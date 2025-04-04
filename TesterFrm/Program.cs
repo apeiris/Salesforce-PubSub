@@ -1,5 +1,3 @@
-using System;
-using System.Windows.Forms;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +7,6 @@ namespace TesterFrm {
 	static class Program {
 		[STAThread]
 		static void Main() {
-
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 			using (var host = CreateHostBuilder().Build()) {
@@ -17,9 +14,7 @@ namespace TesterFrm {
 				var form = host.Services.GetRequiredService<MainForm>();
 				Application.Run(form);
 			}
-
 		}
-
 		static IHostBuilder CreateHostBuilder() =>
 				Host.CreateDefaultBuilder()
 					.ConfigureAppConfiguration((context, config) => {
@@ -29,11 +24,10 @@ namespace TesterFrm {
 					.ConfigureServices((context, services) => {
 						services.Configure<SalesforceConfig>(context.Configuration.GetSection("Salesforce"));
 						services.AddMemoryCache(); // For IMemoryCache
-						services.AddScoped<ISalesforceService, SalesforceService>(); // Register your implementation
+						services.AddScoped<ISalesforceService, SalesforceService>(); 
 						services.AddScoped<PubSubService>(); // Register PubSubService	
-						services.AddHttpClient();
+						services.AddHttpClient();  
 						services.AddScoped<MainForm>(); // Register the form
-
 					});
 
 	}

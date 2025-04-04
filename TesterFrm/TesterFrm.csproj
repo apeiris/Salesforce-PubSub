@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EditorConfigFiles Include=".editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.hosting" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.http" Version="9.0.3" />

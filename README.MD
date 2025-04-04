@@ -1,5 +1,4 @@
-﻿- **Note**: This URL has no functional effect in this app but is required by Salesforce for OAuth configuration.
-
+﻿
 ## 1. Enable OAuth Settings in Salesforce
 Ensure the **OAuth and OpenID Connect Settings** are configured:
 - Go to **Setup > Security > OAuth and OpenID Connect Settings**.
