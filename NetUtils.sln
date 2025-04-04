@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35828.75
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetUtils", "NetUtils.csproj", "{9C10C302-B472-5147-FA97-6E0FB0C52CE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TesterFrm", "TesterFrm\TesterFrm.csproj", "{8F74B087-78B5-DE94-ED16-59A6CE66DAB9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C10C302-B472-5147-FA97-6E0FB0C52CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C10C302-B472-5147-FA97-6E0FB0C52CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C10C302-B472-5147-FA97-6E0FB0C52CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C10C302-B472-5147-FA97-6E0FB0C52CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F74B087-78B5-DE94-ED16-59A6CE66DAB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F74B087-78B5-DE94-ED16-59A6CE66DAB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F74B087-78B5-DE94-ED16-59A6CE66DAB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F74B087-78B5-DE94-ED16-59A6CE66DAB9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {120A63CF-6F2A-4964-ACE2-94B70A12CFA0}
+	EndGlobalSection
+EndGlobal

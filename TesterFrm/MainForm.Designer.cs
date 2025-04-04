@@ -1,0 +1,244 @@
+﻿namespace TesterFrm
+	{
+	partial class MainForm
+		{
+		private System.ComponentModel.IContainer components = null;
+
+		protected override void Dispose(bool disposing)
+			{
+			if (disposing && (components != null))
+				{
+				components.Dispose();
+				}
+			base.Dispose(disposing);
+			}
+
+		private void InitializeComponent()
+			{
+			btnAuthenticate = new Button();
+			txtResult = new TextBox();
+			btnGetTokenAsync = new Button();
+			statusStrip1 = new StatusStrip();
+			toolStripStatusLabel1 = new ToolStripStatusLabel();
+			tabControl1 = new TabControl();
+			tbpOAuth2 = new TabPage();
+			tbpPubSub = new TabPage();
+			tableLayoutPanel1 = new TableLayoutPanel();
+			button1 = new Button();
+			tableLayoutPanel2 = new TableLayoutPanel();
+			btnGetSchema = new Button();
+			btnSubscribe = new Button();
+			dgvObject = new DataGridView();
+			lbxObjects = new ListBox();
+			statusStrip1.SuspendLayout();
+			tabControl1.SuspendLayout();
+			tbpOAuth2.SuspendLayout();
+			tbpPubSub.SuspendLayout();
+			tableLayoutPanel1.SuspendLayout();
+			tableLayoutPanel2.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvObject).BeginInit();
+			SuspendLayout();
+			// 
+			// btnAuthenticate
+			// 
+			btnAuthenticate.Location = new Point(389, 226);
+			btnAuthenticate.Margin = new Padding(4, 3, 4, 3);
+			btnAuthenticate.Name = "btnAuthenticate";
+			btnAuthenticate.Size = new Size(100, 35);
+			btnAuthenticate.TabIndex = 0;
+			btnAuthenticate.Text = "Authenticate";
+			btnAuthenticate.UseVisualStyleBackColor = true;
+			btnAuthenticate.Click += btnAuthenticate_Click;
+			// 
+			// txtResult
+			// 
+			txtResult.Location = new Point(21, 20);
+			txtResult.Margin = new Padding(4, 3, 4, 3);
+			txtResult.Multiline = true;
+			txtResult.Name = "txtResult";
+			txtResult.Size = new Size(674, 115);
+			txtResult.TabIndex = 1;
+			// 
+			// btnGetTokenAsync
+			// 
+			btnGetTokenAsync.Location = new Point(21, 226);
+			btnGetTokenAsync.Margin = new Padding(4, 3, 4, 3);
+			btnGetTokenAsync.Name = "btnGetTokenAsync";
+			btnGetTokenAsync.Size = new Size(311, 35);
+			btnGetTokenAsync.TabIndex = 2;
+			btnGetTokenAsync.Text = "Task<token,iUrl,tenantId> = GetTokenAsync()";
+			btnGetTokenAsync.UseVisualStyleBackColor = true;
+			btnGetTokenAsync.Click += btnGetTokenAsync_Click;
+			// 
+			// statusStrip1
+			// 
+			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
+			statusStrip1.Location = new Point(0, 572);
+			statusStrip1.Name = "statusStrip1";
+			statusStrip1.Size = new Size(1152, 22);
+			statusStrip1.TabIndex = 3;
+			statusStrip1.Text = "statusStrip1";
+			// 
+			// toolStripStatusLabel1
+			// 
+			toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+			toolStripStatusLabel1.Size = new Size(118, 17);
+			toolStripStatusLabel1.Text = "toolStripStatusLabel1";
+			// 
+			// tabControl1
+			// 
+			tabControl1.Controls.Add(tbpOAuth2);
+			tabControl1.Controls.Add(tbpPubSub);
+			tabControl1.Dock = DockStyle.Fill;
+			tabControl1.Location = new Point(0, 0);
+			tabControl1.Name = "tabControl1";
+			tabControl1.SelectedIndex = 0;
+			tabControl1.Size = new Size(1152, 572);
+			tabControl1.TabIndex = 4;
+			// 
+			// tbpOAuth2
+			// 
+			tbpOAuth2.Controls.Add(btnGetTokenAsync);
+			tbpOAuth2.Controls.Add(btnAuthenticate);
+			tbpOAuth2.Controls.Add(txtResult);
+			tbpOAuth2.Location = new Point(4, 24);
+			tbpOAuth2.Name = "tbpOAuth2";
+			tbpOAuth2.Padding = new Padding(3);
+			tbpOAuth2.Size = new Size(1144, 544);
+			tbpOAuth2.TabIndex = 0;
+			tbpOAuth2.Text = "OAuth2";
+			tbpOAuth2.UseVisualStyleBackColor = true;
+			// 
+			// tbpPubSub
+			// 
+			tbpPubSub.Controls.Add(tableLayoutPanel1);
+			tbpPubSub.Location = new Point(4, 24);
+			tbpPubSub.Name = "tbpPubSub";
+			tbpPubSub.Padding = new Padding(3);
+			tbpPubSub.Size = new Size(1144, 544);
+			tbpPubSub.TabIndex = 1;
+			tbpPubSub.Text = "Pub/Sub";
+			tbpPubSub.UseVisualStyleBackColor = true;
+			// 
+			// tableLayoutPanel1
+			// 
+			tableLayoutPanel1.ColumnCount = 2;
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22.3198586F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 77.68014F));
+			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
+			tableLayoutPanel1.Controls.Add(dgvObject, 1, 0);
+			tableLayoutPanel1.Controls.Add(lbxObjects, 0, 0);
+			tableLayoutPanel1.Dock = DockStyle.Fill;
+			tableLayoutPanel1.Location = new Point(3, 3);
+			tableLayoutPanel1.Name = "tableLayoutPanel1";
+			tableLayoutPanel1.RowCount = 2;
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 78.43866F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 21.5613384F));
+			tableLayoutPanel1.Size = new Size(1138, 538);
+			tableLayoutPanel1.TabIndex = 0;
+			// 
+			// button1
+			// 
+			button1.Location = new Point(100, 53);
+			button1.Name = "button1";
+			button1.Size = new Size(145, 44);
+			button1.TabIndex = 2;
+			button1.Text = "Clear";
+			button1.UseVisualStyleBackColor = true;
+			button1.Click += button1_Click;
+			// 
+			// tableLayoutPanel2
+			// 
+			tableLayoutPanel2.ColumnCount = 2;
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39.1129036F));
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.8870964F));
+			tableLayoutPanel2.Controls.Add(btnGetSchema, 0, 0);
+			tableLayoutPanel2.Controls.Add(btnSubscribe, 1, 0);
+			tableLayoutPanel2.Controls.Add(button1, 1, 1);
+			tableLayoutPanel2.Location = new Point(3, 425);
+			tableLayoutPanel2.Name = "tableLayoutPanel2";
+			tableLayoutPanel2.RowCount = 2;
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel2.Size = new Size(248, 100);
+			tableLayoutPanel2.TabIndex = 3;
+			// 
+			// btnGetSchema
+			// 
+			btnGetSchema.Location = new Point(3, 3);
+			btnGetSchema.Name = "btnGetSchema";
+			btnGetSchema.Size = new Size(91, 44);
+			btnGetSchema.TabIndex = 1;
+			btnGetSchema.Text = "GeSchema";
+			btnGetSchema.UseVisualStyleBackColor = true;
+			btnGetSchema.Click += btnGetSchema_Click;
+			// 
+			// btnSubscribe
+			// 
+			btnSubscribe.Location = new Point(100, 3);
+			btnSubscribe.Name = "btnSubscribe";
+			btnSubscribe.Size = new Size(145, 44);
+			btnSubscribe.TabIndex = 0;
+			btnSubscribe.Text = "Subscribe";
+			btnSubscribe.UseVisualStyleBackColor = true;
+			btnSubscribe.Click += btnSubscribe_Click;
+			// 
+			// dgvObject
+			// 
+			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvObject.Dock = DockStyle.Fill;
+			dgvObject.Location = new Point(257, 3);
+			dgvObject.Name = "dgvObject";
+			dgvObject.Size = new Size(878, 416);
+			dgvObject.TabIndex = 4;
+			// 
+			// lbxObjects
+			// 
+			lbxObjects.FormattingEnabled = true;
+			lbxObjects.Location = new Point(3, 3);
+			lbxObjects.Name = "lbxObjects";
+			lbxObjects.Size = new Size(248, 409);
+			lbxObjects.TabIndex = 5;
+			// 
+			// Form1
+			// 
+			AutoScaleDimensions = new SizeF(7F, 15F);
+			AutoScaleMode = AutoScaleMode.Font;
+			ClientSize = new Size(1152, 594);
+			Controls.Add(tabControl1);
+			Controls.Add(statusStrip1);
+			Margin = new Padding(4, 3, 4, 3);
+			Name = "Form1";
+			Text = "Salesforce OAuth2 Authentication";
+			FormClosing += Form1_FormClosing;
+			Load += Form1_Load;
+			statusStrip1.ResumeLayout(false);
+			statusStrip1.PerformLayout();
+			tabControl1.ResumeLayout(false);
+			tbpOAuth2.ResumeLayout(false);
+			tbpOAuth2.PerformLayout();
+			tbpPubSub.ResumeLayout(false);
+			tableLayoutPanel1.ResumeLayout(false);
+			tableLayoutPanel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)dgvObject).EndInit();
+			ResumeLayout(false);
+			PerformLayout();
+			}
+
+		private System.Windows.Forms.Button btnAuthenticate;
+		private System.Windows.Forms.TextBox txtResult;
+		private Button btnGetTokenAsync;
+		private StatusStrip statusStrip1;
+		private ToolStripStatusLabel toolStripStatusLabel1;
+		private TabControl tabControl1;
+		private TabPage tbpOAuth2;
+		private TabPage tbpPubSub;
+		private TableLayoutPanel tableLayoutPanel1;
+		private Button btnSubscribe;
+		private Button button1;
+		private TableLayoutPanel tableLayoutPanel2;
+		private Button btnGetSchema;
+		private DataGridView dgvObject;
+		private ListBox lbxObjects;
+		}
+	}

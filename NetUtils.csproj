@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="TesterFrm\**" />
+    <EmbeddedResource Remove="TesterFrm\**" />
+    <None Remove="TesterFrm\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Proto\sfPubSub.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="apache.avro" Version="1.12.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.70.0" />
+    <PackageReference Include="Microsoft.extensions.dependencyInjection" Version="9.0.3" />
+    <PackageReference Include="Microsoft.extensions.http" Version="9.0.3" />
+    <PackageReference Include="Microsoft.extensions.options" Version="9.0.3" />
+    <PackageReference Include="newtonsoft.json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Proto\SfPubSub.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+</Project>
