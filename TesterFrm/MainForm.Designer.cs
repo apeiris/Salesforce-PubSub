@@ -13,8 +13,7 @@
 			base.Dispose(disposing);
 			}
 
-		private void InitializeComponent()
-			{
+		private void InitializeComponent() {
 			btnAuthenticate = new Button();
 			txtResult = new TextBox();
 			btnGetTokenAsync = new Button();
@@ -24,12 +23,16 @@
 			tbpOAuth2 = new TabPage();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
-			button1 = new Button();
 			tableLayoutPanel2 = new TableLayoutPanel();
-			btnGetSchema = new Button();
 			btnSubscribe = new Button();
+			button1 = new Button();
 			dgvObject = new DataGridView();
+			splitContainer1 = new SplitContainer();
 			lbxObjects = new ListBox();
+			lbxFields = new ListBox();
+			lblPanel1 = new Label();
+			lblPanel2 = new Label();
+			chkFilterSubscribedFields = new CheckBox();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpOAuth2.SuspendLayout();
@@ -37,6 +40,10 @@
 			tableLayoutPanel1.SuspendLayout();
 			tableLayoutPanel2.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvObject).BeginInit();
+			((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
+			splitContainer1.Panel1.SuspendLayout();
+			splitContainer1.Panel2.SuspendLayout();
+			splitContainer1.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -123,23 +130,52 @@
 			// tableLayoutPanel1
 			// 
 			tableLayoutPanel1.ColumnCount = 2;
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22.3198586F));
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 77.68014F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25.3954315F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 74.60457F));
 			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
 			tableLayoutPanel1.Controls.Add(dgvObject, 1, 0);
-			tableLayoutPanel1.Controls.Add(lbxObjects, 0, 0);
+			tableLayoutPanel1.Controls.Add(splitContainer1, 0, 0);
+			tableLayoutPanel1.Controls.Add(lblPanel1, 1, 1);
+			tableLayoutPanel1.Controls.Add(lblPanel2, 1, 2);
 			tableLayoutPanel1.Dock = DockStyle.Fill;
 			tableLayoutPanel1.Location = new Point(3, 3);
 			tableLayoutPanel1.Name = "tableLayoutPanel1";
-			tableLayoutPanel1.RowCount = 2;
+			tableLayoutPanel1.RowCount = 3;
 			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 78.43866F));
 			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 21.5613384F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel1.Size = new Size(1138, 538);
 			tableLayoutPanel1.TabIndex = 0;
 			// 
+			// tableLayoutPanel2
+			// 
+			tableLayoutPanel2.ColumnCount = 2;
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39.1129036F));
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.8870964F));
+			tableLayoutPanel2.Controls.Add(button1, 1, 1);
+			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 1);
+			tableLayoutPanel2.Controls.Add(chkFilterSubscribedFields, 0, 0);
+			tableLayoutPanel2.Location = new Point(3, 409);
+			tableLayoutPanel2.Name = "tableLayoutPanel2";
+			tableLayoutPanel2.RowCount = 2;
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel2.Size = new Size(283, 100);
+			tableLayoutPanel2.TabIndex = 3;
+			// 
+			// btnSubscribe
+			// 
+			btnSubscribe.Location = new Point(3, 53);
+			btnSubscribe.Name = "btnSubscribe";
+			btnSubscribe.Size = new Size(104, 44);
+			btnSubscribe.TabIndex = 0;
+			btnSubscribe.Text = "Subscribe";
+			btnSubscribe.UseVisualStyleBackColor = true;
+			btnSubscribe.Click += btnSubscribe_Click;
+			// 
 			// button1
 			// 
-			button1.Location = new Point(100, 53);
+			button1.Location = new Point(113, 53);
 			button1.Name = "button1";
 			button1.Size = new Size(145, 44);
 			button1.TabIndex = 2;
@@ -147,60 +183,86 @@
 			button1.UseVisualStyleBackColor = true;
 			button1.Click += button1_Click;
 			// 
-			// tableLayoutPanel2
-			// 
-			tableLayoutPanel2.ColumnCount = 2;
-			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39.1129036F));
-			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.8870964F));
-			tableLayoutPanel2.Controls.Add(btnGetSchema, 0, 0);
-			tableLayoutPanel2.Controls.Add(btnSubscribe, 1, 0);
-			tableLayoutPanel2.Controls.Add(button1, 1, 1);
-			tableLayoutPanel2.Location = new Point(3, 425);
-			tableLayoutPanel2.Name = "tableLayoutPanel2";
-			tableLayoutPanel2.RowCount = 2;
-			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel2.Size = new Size(248, 100);
-			tableLayoutPanel2.TabIndex = 3;
-			// 
-			// btnGetSchema
-			// 
-			btnGetSchema.Location = new Point(3, 3);
-			btnGetSchema.Name = "btnGetSchema";
-			btnGetSchema.Size = new Size(91, 44);
-			btnGetSchema.TabIndex = 1;
-			btnGetSchema.Text = "GeSchema";
-			btnGetSchema.UseVisualStyleBackColor = true;
-			btnGetSchema.Click += btnGetSchema_Click;
-			// 
-			// btnSubscribe
-			// 
-			btnSubscribe.Location = new Point(100, 3);
-			btnSubscribe.Name = "btnSubscribe";
-			btnSubscribe.Size = new Size(145, 44);
-			btnSubscribe.TabIndex = 0;
-			btnSubscribe.Text = "Subscribe";
-			btnSubscribe.UseVisualStyleBackColor = true;
-			btnSubscribe.Click += btnSubscribe_Click;
-			// 
 			// dgvObject
 			// 
 			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvObject.Dock = DockStyle.Fill;
-			dgvObject.Location = new Point(257, 3);
+			dgvObject.Location = new Point(292, 3);
 			dgvObject.Name = "dgvObject";
-			dgvObject.Size = new Size(878, 416);
+			dgvObject.Size = new Size(843, 400);
 			dgvObject.TabIndex = 4;
+			// 
+			// splitContainer1
+			// 
+			splitContainer1.Dock = DockStyle.Fill;
+			splitContainer1.Location = new Point(3, 3);
+			splitContainer1.Name = "splitContainer1";
+			splitContainer1.Orientation = Orientation.Horizontal;
+			// 
+			// splitContainer1.Panel1
+			// 
+			splitContainer1.Panel1.Controls.Add(lbxObjects);
+			// 
+			// splitContainer1.Panel2
+			// 
+			splitContainer1.Panel2.Controls.Add(lbxFields);
+			splitContainer1.Size = new Size(283, 400);
+			splitContainer1.SplitterDistance = 175;
+			splitContainer1.TabIndex = 6;
 			// 
 			// lbxObjects
 			// 
+			lbxObjects.Dock = DockStyle.Fill;
 			lbxObjects.FormattingEnabled = true;
-			lbxObjects.Location = new Point(3, 3);
+			lbxObjects.Location = new Point(0, 0);
 			lbxObjects.Name = "lbxObjects";
-			lbxObjects.Size = new Size(248, 409);
+			lbxObjects.Size = new Size(283, 175);
 			lbxObjects.TabIndex = 5;
+			lbxObjects.SelectedIndexChanged +=async(sender,e)=>await lbxObjects_SelectedIndexChanged(sender,e);
 			// 
-			// Form1
+			// lbxFields
+			// 
+			lbxFields.Dock = DockStyle.Fill;
+			lbxFields.FormattingEnabled = true;
+			lbxFields.Location = new Point(0, 0);
+			lbxFields.Name = "lbxFields";
+			lbxFields.Size = new Size(283, 221);
+			lbxFields.TabIndex = 6;
+			// 
+			// lblPanel1
+			// 
+			lblPanel1.AutoSize = true;
+			lblPanel1.Dock = DockStyle.Top;
+			lblPanel1.Location = new Point(292, 406);
+			lblPanel1.Name = "lblPanel1";
+			lblPanel1.Size = new Size(843, 15);
+			lblPanel1.TabIndex = 7;
+			lblPanel1.Text = "lblPanel1";
+			lblPanel1.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// lblPanel2
+			// 
+			lblPanel2.AutoSize = true;
+			lblPanel2.Dock = DockStyle.Top;
+			lblPanel2.Location = new Point(292, 517);
+			lblPanel2.Name = "lblPanel2";
+			lblPanel2.Size = new Size(843, 15);
+			lblPanel2.TabIndex = 8;
+			lblPanel2.Text = "Subscribed Fields:";
+			lblPanel2.TextAlign = ContentAlignment.TopCenter;
+			// 
+			// chkFilterSubscribedFields
+			// 
+			chkFilterSubscribedFields.AutoSize = true;
+			tableLayoutPanel2.SetColumnSpan(chkFilterSubscribedFields, 2);
+			chkFilterSubscribedFields.Location = new Point(3, 3);
+			chkFilterSubscribedFields.Name = "chkFilterSubscribedFields";
+			chkFilterSubscribedFields.Size = new Size(147, 19);
+			chkFilterSubscribedFields.TabIndex = 3;
+			chkFilterSubscribedFields.Text = "Apply  subscribed filter";
+			chkFilterSubscribedFields.UseVisualStyleBackColor = true;
+			// 
+			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
@@ -208,7 +270,7 @@
 			Controls.Add(tabControl1);
 			Controls.Add(statusStrip1);
 			Margin = new Padding(4, 3, 4, 3);
-			Name = "Form1";
+			Name = "MainForm";
 			Text = "Salesforce OAuth2 Authentication";
 			FormClosing += Form1_FormClosing;
 			Load += Form1_Load;
@@ -219,11 +281,17 @@
 			tbpOAuth2.PerformLayout();
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
+			tableLayoutPanel1.PerformLayout();
 			tableLayoutPanel2.ResumeLayout(false);
+			tableLayoutPanel2.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)dgvObject).EndInit();
+			splitContainer1.Panel1.ResumeLayout(false);
+			splitContainer1.Panel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
+			splitContainer1.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
-			}
+		}
 
 		private System.Windows.Forms.Button btnAuthenticate;
 		private System.Windows.Forms.TextBox txtResult;
@@ -237,8 +305,12 @@
 		private Button btnSubscribe;
 		private Button button1;
 		private TableLayoutPanel tableLayoutPanel2;
-		private Button btnGetSchema;
 		private DataGridView dgvObject;
 		private ListBox lbxObjects;
-		}
+		private SplitContainer splitContainer1;
+		private ListBox lbxFields;
+		private Label lblPanel1;
+		private Label lblPanel2;
+		private CheckBox chkFilterSubscribedFields;
+	}
 	}
