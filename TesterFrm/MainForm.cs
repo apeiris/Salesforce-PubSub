@@ -139,7 +139,7 @@ namespace TesterFrm {
 			}
 			return dataTable;
 		}
-		private async Task lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
+		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
 
 			await _semaphore.WaitAsync();
@@ -155,7 +155,7 @@ namespace TesterFrm {
 
 				// Perform async operations outside the lock
 				DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic(selectedTopic));
-				if (chkFilterSubscribedFields.Checked) {
+				if (rbtFilterSubscribed.Checked) {
 					dt = await RemoveRowsNotInColumnList(dt, _config.Topics.GetFieldsToFilterByName(selectedTopic));
 				}
 
@@ -180,6 +180,16 @@ namespace TesterFrm {
 				_semaphore.Release();
 			}
 		}
+
+		private void grpFilterOptions_EnabledChanged(object sender, EventArgs e) {
+
+		}
+
+		private void filterChanged(object sender, EventArgs e) {
+			lbxObjects_SelectedIndexChanged(null, null);
+		}
+
+		
 	}
 }
 

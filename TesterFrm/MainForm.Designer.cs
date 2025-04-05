@@ -24,21 +24,24 @@
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
-			btnSubscribe = new Button();
 			button1 = new Button();
+			btnSubscribe = new Button();
+			grpFilterOptions = new GroupBox();
+			rbtFilterNone = new RadioButton();
+			rbtFilterSubscribed = new RadioButton();
 			dgvObject = new DataGridView();
 			splitContainer1 = new SplitContainer();
 			lbxObjects = new ListBox();
 			lbxFields = new ListBox();
 			lblPanel1 = new Label();
 			lblPanel2 = new Label();
-			chkFilterSubscribedFields = new CheckBox();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpOAuth2.SuspendLayout();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
 			tableLayoutPanel2.SuspendLayout();
+			grpFilterOptions.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvObject).BeginInit();
 			((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
 			splitContainer1.Panel1.SuspendLayout();
@@ -80,7 +83,7 @@
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1 });
-			statusStrip1.Location = new Point(0, 572);
+			statusStrip1.Location = new Point(0, 706);
 			statusStrip1.Name = "statusStrip1";
 			statusStrip1.Size = new Size(1152, 22);
 			statusStrip1.TabIndex = 3;
@@ -100,7 +103,7 @@
 			tabControl1.Location = new Point(0, 0);
 			tabControl1.Name = "tabControl1";
 			tabControl1.SelectedIndex = 0;
-			tabControl1.Size = new Size(1152, 572);
+			tabControl1.Size = new Size(1152, 706);
 			tabControl1.TabIndex = 4;
 			// 
 			// tbpOAuth2
@@ -111,7 +114,7 @@
 			tbpOAuth2.Location = new Point(4, 24);
 			tbpOAuth2.Name = "tbpOAuth2";
 			tbpOAuth2.Padding = new Padding(3);
-			tbpOAuth2.Size = new Size(1144, 544);
+			tbpOAuth2.Size = new Size(1144, 678);
 			tbpOAuth2.TabIndex = 0;
 			tbpOAuth2.Text = "OAuth2";
 			tbpOAuth2.UseVisualStyleBackColor = true;
@@ -122,7 +125,7 @@
 			tbpPubSub.Location = new Point(4, 24);
 			tbpPubSub.Name = "tbpPubSub";
 			tbpPubSub.Padding = new Padding(3);
-			tbpPubSub.Size = new Size(1144, 544);
+			tbpPubSub.Size = new Size(1144, 678);
 			tbpPubSub.TabIndex = 1;
 			tbpPubSub.Text = "Pub/Sub";
 			tbpPubSub.UseVisualStyleBackColor = true;
@@ -130,8 +133,8 @@
 			// tableLayoutPanel1
 			// 
 			tableLayoutPanel1.ColumnCount = 2;
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25.3954315F));
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 74.60457F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34.71002F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65.2899857F));
 			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
 			tableLayoutPanel1.Controls.Add(dgvObject, 1, 0);
 			tableLayoutPanel1.Controls.Add(splitContainer1, 0, 0);
@@ -141,41 +144,34 @@
 			tableLayoutPanel1.Location = new Point(3, 3);
 			tableLayoutPanel1.Name = "tableLayoutPanel1";
 			tableLayoutPanel1.RowCount = 3;
-			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 78.43866F));
-			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 21.5613384F));
-			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel1.Size = new Size(1138, 538);
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 68.1749649F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 31.825037F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 8F));
+			tableLayoutPanel1.Size = new Size(1138, 672);
 			tableLayoutPanel1.TabIndex = 0;
 			// 
 			// tableLayoutPanel2
 			// 
 			tableLayoutPanel2.ColumnCount = 2;
-			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39.1129036F));
-			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.8870964F));
-			tableLayoutPanel2.Controls.Add(button1, 1, 1);
-			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 1);
-			tableLayoutPanel2.Controls.Add(chkFilterSubscribedFields, 0, 0);
-			tableLayoutPanel2.Location = new Point(3, 409);
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
+			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
+			tableLayoutPanel2.Controls.Add(button1, 1, 3);
+			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 3);
+			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 2);
+			tableLayoutPanel2.Location = new Point(3, 455);
 			tableLayoutPanel2.Name = "tableLayoutPanel2";
-			tableLayoutPanel2.RowCount = 2;
-			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel2.Size = new Size(283, 100);
+			tableLayoutPanel2.RowCount = 4;
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 52.63158F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 47.36842F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 82F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+			tableLayoutPanel2.Size = new Size(283, 200);
 			tableLayoutPanel2.TabIndex = 3;
-			// 
-			// btnSubscribe
-			// 
-			btnSubscribe.Location = new Point(3, 53);
-			btnSubscribe.Name = "btnSubscribe";
-			btnSubscribe.Size = new Size(104, 44);
-			btnSubscribe.TabIndex = 0;
-			btnSubscribe.Text = "Subscribe";
-			btnSubscribe.UseVisualStyleBackColor = true;
-			btnSubscribe.Click += btnSubscribe_Click;
 			// 
 			// button1
 			// 
-			button1.Location = new Point(113, 53);
+			button1.Location = new Point(132, 120);
 			button1.Name = "button1";
 			button1.Size = new Size(145, 44);
 			button1.TabIndex = 2;
@@ -183,13 +179,60 @@
 			button1.UseVisualStyleBackColor = true;
 			button1.Click += button1_Click;
 			// 
+			// btnSubscribe
+			// 
+			btnSubscribe.Location = new Point(3, 120);
+			btnSubscribe.Name = "btnSubscribe";
+			btnSubscribe.Size = new Size(104, 44);
+			btnSubscribe.TabIndex = 0;
+			btnSubscribe.Text = "Subscribe";
+			btnSubscribe.UseVisualStyleBackColor = true;
+			btnSubscribe.Click += btnSubscribe_Click;
+			// 
+			// grpFilterOptions
+			// 
+			tableLayoutPanel2.SetColumnSpan(grpFilterOptions, 2);
+			grpFilterOptions.Controls.Add(rbtFilterNone);
+			grpFilterOptions.Controls.Add(rbtFilterSubscribed);
+			grpFilterOptions.Location = new Point(3, 65);
+			grpFilterOptions.Name = "grpFilterOptions";
+			grpFilterOptions.Size = new Size(233, 49);
+			grpFilterOptions.TabIndex = 6;
+			grpFilterOptions.TabStop = false;
+			grpFilterOptions.Text = "Filter";
+			grpFilterOptions.EnabledChanged += grpFilterOptions_EnabledChanged;
+			// 
+			// rbtFilterNone
+			// 
+			rbtFilterNone.AutoSize = true;
+			rbtFilterNone.Checked = true;
+			rbtFilterNone.Location = new Point(6, 22);
+			rbtFilterNone.Name = "rbtFilterNone";
+			rbtFilterNone.Size = new Size(54, 19);
+			rbtFilterNone.TabIndex = 4;
+			rbtFilterNone.TabStop = true;
+			rbtFilterNone.Text = "None";
+			rbtFilterNone.UseVisualStyleBackColor = true;
+			rbtFilterNone.CheckedChanged += filterChanged;
+			// 
+			// rbtFilterSubscribed
+			// 
+			rbtFilterSubscribed.AutoSize = true;
+			rbtFilterSubscribed.Location = new Point(66, 22);
+			rbtFilterSubscribed.Name = "rbtFilterSubscribed";
+			rbtFilterSubscribed.Size = new Size(110, 19);
+			rbtFilterSubscribed.TabIndex = 5;
+			rbtFilterSubscribed.Text = "Only subscribed";
+			rbtFilterSubscribed.UseVisualStyleBackColor = true;
+			rbtFilterSubscribed.CheckedChanged += filterChanged;
+			// 
 			// dgvObject
 			// 
 			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvObject.Dock = DockStyle.Fill;
-			dgvObject.Location = new Point(292, 3);
+			dgvObject.Location = new Point(398, 3);
 			dgvObject.Name = "dgvObject";
-			dgvObject.Size = new Size(843, 400);
+			dgvObject.Size = new Size(737, 446);
 			dgvObject.TabIndex = 4;
 			// 
 			// splitContainer1
@@ -206,8 +249,8 @@
 			// splitContainer1.Panel2
 			// 
 			splitContainer1.Panel2.Controls.Add(lbxFields);
-			splitContainer1.Size = new Size(283, 400);
-			splitContainer1.SplitterDistance = 175;
+			splitContainer1.Size = new Size(389, 446);
+			splitContainer1.SplitterDistance = 195;
 			splitContainer1.TabIndex = 6;
 			// 
 			// lbxObjects
@@ -216,9 +259,9 @@
 			lbxObjects.FormattingEnabled = true;
 			lbxObjects.Location = new Point(0, 0);
 			lbxObjects.Name = "lbxObjects";
-			lbxObjects.Size = new Size(283, 175);
+			lbxObjects.Size = new Size(389, 195);
 			lbxObjects.TabIndex = 5;
-			lbxObjects.SelectedIndexChanged +=async(sender,e)=>await lbxObjects_SelectedIndexChanged(sender,e);
+			lbxObjects.SelectedIndexChanged += lbxObjects_SelectedIndexChanged;
 			// 
 			// lbxFields
 			// 
@@ -226,16 +269,16 @@
 			lbxFields.FormattingEnabled = true;
 			lbxFields.Location = new Point(0, 0);
 			lbxFields.Name = "lbxFields";
-			lbxFields.Size = new Size(283, 221);
+			lbxFields.Size = new Size(389, 247);
 			lbxFields.TabIndex = 6;
 			// 
 			// lblPanel1
 			// 
 			lblPanel1.AutoSize = true;
 			lblPanel1.Dock = DockStyle.Top;
-			lblPanel1.Location = new Point(292, 406);
+			lblPanel1.Location = new Point(398, 452);
 			lblPanel1.Name = "lblPanel1";
-			lblPanel1.Size = new Size(843, 15);
+			lblPanel1.Size = new Size(737, 15);
 			lblPanel1.TabIndex = 7;
 			lblPanel1.Text = "lblPanel1";
 			lblPanel1.TextAlign = ContentAlignment.MiddleCenter;
@@ -244,29 +287,18 @@
 			// 
 			lblPanel2.AutoSize = true;
 			lblPanel2.Dock = DockStyle.Top;
-			lblPanel2.Location = new Point(292, 517);
+			lblPanel2.Location = new Point(398, 663);
 			lblPanel2.Name = "lblPanel2";
-			lblPanel2.Size = new Size(843, 15);
+			lblPanel2.Size = new Size(737, 9);
 			lblPanel2.TabIndex = 8;
 			lblPanel2.Text = "Subscribed Fields:";
 			lblPanel2.TextAlign = ContentAlignment.TopCenter;
-			// 
-			// chkFilterSubscribedFields
-			// 
-			chkFilterSubscribedFields.AutoSize = true;
-			tableLayoutPanel2.SetColumnSpan(chkFilterSubscribedFields, 2);
-			chkFilterSubscribedFields.Location = new Point(3, 3);
-			chkFilterSubscribedFields.Name = "chkFilterSubscribedFields";
-			chkFilterSubscribedFields.Size = new Size(147, 19);
-			chkFilterSubscribedFields.TabIndex = 3;
-			chkFilterSubscribedFields.Text = "Apply  subscribed filter";
-			chkFilterSubscribedFields.UseVisualStyleBackColor = true;
 			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(1152, 594);
+			ClientSize = new Size(1152, 728);
 			Controls.Add(tabControl1);
 			Controls.Add(statusStrip1);
 			Margin = new Padding(4, 3, 4, 3);
@@ -283,7 +315,8 @@
 			tableLayoutPanel1.ResumeLayout(false);
 			tableLayoutPanel1.PerformLayout();
 			tableLayoutPanel2.ResumeLayout(false);
-			tableLayoutPanel2.PerformLayout();
+			grpFilterOptions.ResumeLayout(false);
+			grpFilterOptions.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)dgvObject).EndInit();
 			splitContainer1.Panel1.ResumeLayout(false);
 			splitContainer1.Panel2.ResumeLayout(false);
@@ -311,6 +344,8 @@
 		private ListBox lbxFields;
 		private Label lblPanel1;
 		private Label lblPanel2;
-		private CheckBox chkFilterSubscribedFields;
+		private RadioButton rbtFilterSubscribed;
+		private RadioButton rbtFilterNone;
+		private GroupBox grpFilterOptions;
 	}
 	}
