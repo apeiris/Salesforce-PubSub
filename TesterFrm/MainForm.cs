@@ -173,6 +173,26 @@ namespace TesterFrm {
 						rowHeaderCheckStates[rowIndex] = !current;
 						dgv.InvalidateRow(rowIndex);
 					}
+					if (dgv.Name.ToLower() == "dgvobject") {// huh lets remove or add the name column to lbxFields
+						if (dgv.Columns["name"] != null) {
+							string cellValue = dgv.Rows[rowIndex].Cells["name"].Value.ToString();
+							if (lbxFields.Items.Contains(cellValue)) {
+								lbxFields.Items.Remove(cellValue);
+							} else {
+								lbxFields.Items.Add(cellValue);
+							}
+						}
+					} else if (dgv.Name.ToLower() == "dgvsfobjects") {
+						if (dgv.Columns["name"] != null) {
+							string cellValue = dgv.Rows[rowIndex].Cells["name"].Value.ToString();
+							if (lbxFields.Items.Contains(cellValue)) {
+								lbxFields.Items.Remove(cellValue);
+							} else {
+								lbxFields.Items.Add(cellValue);
+
+							}
+						}
+					}
 				}
 			}
 		}
