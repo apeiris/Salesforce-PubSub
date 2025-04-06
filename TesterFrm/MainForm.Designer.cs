@@ -20,7 +20,12 @@
 			statusStrip1 = new StatusStrip();
 			toolStripStatusLabel1 = new ToolStripStatusLabel();
 			tabControl1 = new TabControl();
-			tbpOAuth2 = new TabPage();
+			tbpSfObjects = new TabPage();
+			splitContainer2 = new SplitContainer();
+			tableLayoutPanel3 = new TableLayoutPanel();
+			dgvSfObjects = new DataGridView();
+			tableLayoutPanel4 = new TableLayoutPanel();
+			btnSubscribeToCDC = new Button();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
@@ -35,9 +40,16 @@
 			lbxFields = new ListBox();
 			lblPanel1 = new Label();
 			lblPanel2 = new Label();
+			tbpOAuth2 = new TabPage();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
-			tbpOAuth2.SuspendLayout();
+			tbpSfObjects.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitContainer2).BeginInit();
+			splitContainer2.Panel1.SuspendLayout();
+			splitContainer2.SuspendLayout();
+			tableLayoutPanel3.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvSfObjects).BeginInit();
+			tableLayoutPanel4.SuspendLayout();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
 			tableLayoutPanel2.SuspendLayout();
@@ -47,6 +59,7 @@
 			splitContainer1.Panel1.SuspendLayout();
 			splitContainer1.Panel2.SuspendLayout();
 			splitContainer1.SuspendLayout();
+			tbpOAuth2.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -97,27 +110,90 @@
 			// 
 			// tabControl1
 			// 
-			tabControl1.Controls.Add(tbpOAuth2);
+			tabControl1.Controls.Add(tbpSfObjects);
 			tabControl1.Controls.Add(tbpPubSub);
+			tabControl1.Controls.Add(tbpOAuth2);
 			tabControl1.Dock = DockStyle.Fill;
 			tabControl1.Location = new Point(0, 0);
 			tabControl1.Name = "tabControl1";
 			tabControl1.SelectedIndex = 0;
 			tabControl1.Size = new Size(1152, 706);
 			tabControl1.TabIndex = 4;
+			tabControl1.Selected += TabControl1_Selected;
 			// 
-			// tbpOAuth2
+			// tbpSfObjects
 			// 
-			tbpOAuth2.Controls.Add(btnGetTokenAsync);
-			tbpOAuth2.Controls.Add(btnAuthenticate);
-			tbpOAuth2.Controls.Add(txtResult);
-			tbpOAuth2.Location = new Point(4, 24);
-			tbpOAuth2.Name = "tbpOAuth2";
-			tbpOAuth2.Padding = new Padding(3);
-			tbpOAuth2.Size = new Size(1144, 678);
-			tbpOAuth2.TabIndex = 0;
-			tbpOAuth2.Text = "OAuth2";
-			tbpOAuth2.UseVisualStyleBackColor = true;
+			tbpSfObjects.Controls.Add(splitContainer2);
+			tbpSfObjects.Location = new Point(4, 24);
+			tbpSfObjects.Name = "tbpSfObjects";
+			tbpSfObjects.Size = new Size(1144, 678);
+			tbpSfObjects.TabIndex = 2;
+			tbpSfObjects.Text = "Objects";
+			tbpSfObjects.UseVisualStyleBackColor = true;
+			// 
+			// splitContainer2
+			// 
+			splitContainer2.Dock = DockStyle.Fill;
+			splitContainer2.Location = new Point(0, 0);
+			splitContainer2.Name = "splitContainer2";
+			// 
+			// splitContainer2.Panel1
+			// 
+			splitContainer2.Panel1.Controls.Add(tableLayoutPanel3);
+			splitContainer2.Size = new Size(1144, 678);
+			splitContainer2.SplitterDistance = 678;
+			splitContainer2.TabIndex = 0;
+			// 
+			// tableLayoutPanel3
+			// 
+			tableLayoutPanel3.ColumnCount = 1;
+			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel3.Controls.Add(dgvSfObjects, 0, 0);
+			tableLayoutPanel3.Controls.Add(tableLayoutPanel4, 0, 1);
+			tableLayoutPanel3.Dock = DockStyle.Fill;
+			tableLayoutPanel3.Location = new Point(0, 0);
+			tableLayoutPanel3.Name = "tableLayoutPanel3";
+			tableLayoutPanel3.RowCount = 2;
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 75.0737457F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 24.9262543F));
+			tableLayoutPanel3.Size = new Size(678, 678);
+			tableLayoutPanel3.TabIndex = 0;
+			// 
+			// dgvSfObjects
+			// 
+			dgvSfObjects.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvSfObjects.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvSfObjects.Dock = DockStyle.Fill;
+			dgvSfObjects.Location = new Point(3, 3);
+			dgvSfObjects.Name = "dgvSfObjects";
+			dgvSfObjects.Size = new Size(672, 503);
+			dgvSfObjects.TabIndex = 0;
+			// 
+			// tableLayoutPanel4
+			// 
+			tableLayoutPanel4.ColumnCount = 2;
+			tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24.1071434F));
+			tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75.89286F));
+			tableLayoutPanel4.Controls.Add(btnSubscribeToCDC, 0, 0);
+			tableLayoutPanel4.Dock = DockStyle.Fill;
+			tableLayoutPanel4.Location = new Point(3, 512);
+			tableLayoutPanel4.Name = "tableLayoutPanel4";
+			tableLayoutPanel4.RowCount = 2;
+			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 23.3128834F));
+			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 76.68712F));
+			tableLayoutPanel4.Size = new Size(672, 163);
+			tableLayoutPanel4.TabIndex = 1;
+			// 
+			// btnSubscribeToCDC
+			// 
+			btnSubscribeToCDC.Location = new Point(3, 3);
+			btnSubscribeToCDC.Name = "btnSubscribeToCDC";
+			btnSubscribeToCDC.Size = new Size(149, 23);
+			btnSubscribeToCDC.TabIndex = 0;
+			btnSubscribeToCDC.Text = "Subscribe To CDC";
+			btnSubscribeToCDC.UseVisualStyleBackColor = true;
+			btnSubscribeToCDC.Click += btnGetSfObjects_Click;
 			// 
 			// tbpPubSub
 			// 
@@ -177,7 +253,6 @@
 			button1.TabIndex = 2;
 			button1.Text = "Clear";
 			button1.UseVisualStyleBackColor = true;
-			button1.Click += button1_Click;
 			// 
 			// btnSubscribe
 			// 
@@ -200,7 +275,6 @@
 			grpFilterOptions.TabIndex = 6;
 			grpFilterOptions.TabStop = false;
 			grpFilterOptions.Text = "Filter";
-			grpFilterOptions.EnabledChanged += grpFilterOptions_EnabledChanged;
 			// 
 			// rbtFilterNone
 			// 
@@ -228,6 +302,10 @@
 			// 
 			// dgvObject
 			// 
+			dgvObject.AllowUserToAddRows = false;
+			dgvObject.AllowUserToDeleteRows = false;
+			dgvObject.AllowUserToResizeColumns = false;
+			dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
 			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvObject.Dock = DockStyle.Fill;
 			dgvObject.Location = new Point(398, 3);
@@ -294,6 +372,19 @@
 			lblPanel2.Text = "Subscribed Fields:";
 			lblPanel2.TextAlign = ContentAlignment.TopCenter;
 			// 
+			// tbpOAuth2
+			// 
+			tbpOAuth2.Controls.Add(btnGetTokenAsync);
+			tbpOAuth2.Controls.Add(btnAuthenticate);
+			tbpOAuth2.Controls.Add(txtResult);
+			tbpOAuth2.Location = new Point(4, 24);
+			tbpOAuth2.Name = "tbpOAuth2";
+			tbpOAuth2.Padding = new Padding(3);
+			tbpOAuth2.Size = new Size(1144, 678);
+			tbpOAuth2.TabIndex = 0;
+			tbpOAuth2.Text = "OAuth2";
+			tbpOAuth2.UseVisualStyleBackColor = true;
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -309,8 +400,13 @@
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
 			tabControl1.ResumeLayout(false);
-			tbpOAuth2.ResumeLayout(false);
-			tbpOAuth2.PerformLayout();
+			tbpSfObjects.ResumeLayout(false);
+			splitContainer2.Panel1.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer2).EndInit();
+			splitContainer2.ResumeLayout(false);
+			tableLayoutPanel3.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)dgvSfObjects).EndInit();
+			tableLayoutPanel4.ResumeLayout(false);
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
 			tableLayoutPanel1.PerformLayout();
@@ -322,9 +418,12 @@
 			splitContainer1.Panel2.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
 			splitContainer1.ResumeLayout(false);
+			tbpOAuth2.ResumeLayout(false);
+			tbpOAuth2.PerformLayout();
 			ResumeLayout(false);
 			PerformLayout();
 		}
+
 
 		private System.Windows.Forms.Button btnAuthenticate;
 		private System.Windows.Forms.TextBox txtResult;
@@ -347,5 +446,11 @@
 		private RadioButton rbtFilterSubscribed;
 		private RadioButton rbtFilterNone;
 		private GroupBox grpFilterOptions;
+		private TabPage tbpSfObjects;
+		private SplitContainer splitContainer2;
+		private TableLayoutPanel tableLayoutPanel3;
+		private DataGridView dgvSfObjects;
+		private TableLayoutPanel tableLayoutPanel4;
+		private Button btnSubscribeToCDC;
 	}
 	}

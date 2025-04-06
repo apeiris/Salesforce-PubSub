@@ -1,4 +1,6 @@
 ﻿using System.Data;
+using System.Diagnostics;
+using System.Security.AccessControl;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
@@ -8,13 +10,10 @@ namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
 		private readonly SalesforceConfig _settings;
-
-
 		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings) {
 			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
 		}
-
 		public async Task<string> AuthenticateAsync() {
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
 			var parameters = new Dictionary<string, string>
@@ -35,7 +34,6 @@ namespace NetUtils {
 			var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(content);
 			return tokenResponse.access_token;
 		}
-
 		public async Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync() {
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token") {
 				Content = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -47,23 +45,14 @@ namespace NetUtils {
 					{ "password", _settings.Password }
 				})
 			};
-
 			var response = await _httpClient.SendAsync(request);
 			var responseContent = await response.Content.ReadAsStringAsync();
-
 			if (!response.IsSuccessStatusCode)
 				throw new HttpRequestException($"OAuth failed: {response.StatusCode}, {responseContent}");
-
 			var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseContent);
 			var tenantId = data!["id"].Split('/')[^2];
 			return (data["access_token"], data["instance_url"], tenantId);
 		}
-
-		/// <summary>
-		/// Gets the schema (metadata) of a Salesforce object using the REST API.
-		/// </summary>
-		/// <param name="objectName">The API name of the object (e.g., "Account").</param>
-		/// <returns>A JsonElement containing the schema description.</returns>
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName) {
 			// Get token and instance URL
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
@@ -77,11 +66,10 @@ namespace NetUtils {
 			request.Headers.Add("Accept", "application/json");
 
 			try {
-				// Send the request
+				
 				HttpResponseMessage response = await _httpClient.SendAsync(request);
 				response.EnsureSuccessStatusCode();
 
-				// Read and parse the JSON response
 				string jsonResponse = await response.Content.ReadAsStringAsync();
 				JsonElement schema = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
 				return schema;
@@ -90,22 +78,54 @@ namespace NetUtils {
 			}
 		}
 
-		/// <summary>
-		/// Gets a human-readable summary of the schema for a Salesforce object.
-		/// </summary>
-		/// <param name="objectName">The API name of the object (e.g., "Account").</param>
-		/// <param name="apiVersion">The Salesforce API version (e.g., "v59.0").</param>
-		/// <returns>A string summarizing the object's schema.</returns>
+		public async Task<DataTable> GetAllObjects() {
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
+			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			try {
+				HttpResponseMessage response = await _httpClient.SendAsync(request);
+				response.EnsureSuccessStatusCode();
+				string jsonResponse = await response.Content.ReadAsStringAsync();
+				using var jdoc = JsonDocument.Parse(jsonResponse);
+				var objects = jdoc.RootElement
+					.GetProperty("sobjects")
+					.EnumerateArray()
+					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
+				var root = new XElement("Objects",
+					objects.Select(f => new XElement("Object",
+						new XElement("Name", f.Name)
+					))
+				);
+
+				var dataSet = new DataSet();
+				using (var reader = root.CreateReader()) {
+					dataSet.ReadXml(reader);
+				}
+
+				if (dataSet.Tables.Count > 0) {
+					dataSet.Tables[0].TableName = "sobjects";
+					return dataSet.Tables[0];
+				} else {
+					throw new Exception("No table created from XML.");
+				}
+			} catch (HttpRequestException ex) {
+				throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
+			} catch (JsonException ex) {
+				throw new Exception($"Failed to parse JSON response:\n{ex.Message}", ex);
+			} catch (Exception ex) {
+				throw new Exception($"Unexpected error: {ex.Message}", ex);
+			}
+		}
+
+
 		public async Task<string> GetObjectSchemaSummaryAsync(string objectName) {
 			JsonElement schema = await GetObjectSchemaAsync(objectName);
 			var sb = new System.Text.StringBuilder();
-
-			// Extract basic object info
 			sb.AppendLine($"Object: {schema.GetProperty("name").GetString()}");
-
 			sb.AppendLine($"Label: {schema.GetProperty("label").GetString()}");
 			sb.AppendLine("Fields:");
-
 			// Iterate through fields
 			foreach (JsonElement field in schema.GetProperty("fields").EnumerateArray()) {
 				string fieldName = field.GetProperty("name").GetString();
@@ -113,10 +133,8 @@ namespace NetUtils {
 				string fieldLabel = field.GetProperty("label").GetString();
 				string fieldLength = field.GetProperty("length").GetUInt32().ToString();
 				bool isCustom = field.GetProperty("custom").GetBoolean();
-
 				sb.AppendLine($"- {fieldName} ({fieldType}): {fieldLabel}:{fieldLength}: {(isCustom ? "[Custom]" : "")}");
 			}
-
 			return sb.ToString();
 		}
 		public async Task<DataTable> GetObjectSchemaAsDataTableAsync(string objectName) {
@@ -148,13 +166,7 @@ namespace NetUtils {
 			ds.Tables[0].TableName = objectName;
 			return ds.Tables[0];
 		}
-
-
-
-
 		// ===================================================================================
-
-
 		public class TokenResponse {
 			public string access_token { get; set; }
 			public string instance_url { get; set; }
