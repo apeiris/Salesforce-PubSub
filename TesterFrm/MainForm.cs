@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using NetUtils;
 using Microsoft.Extensions.Caching.Memory;
 using System.Data;
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
 using System.Text.Json;
 using System.Diagnostics;
+using Serilog;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region fields
@@ -18,6 +19,7 @@ namespace TesterFrm {
 		private readonly ISalesforceService _salesforceService;
 		private readonly PubSubService _pubSubService;
 		private readonly SalesforceConfig _config;
+		private readonly Serilog.ILogger _logger;
 		static string _token = "";
 		static string _instanceUrl = "";
 		static string _tenantId = "";
@@ -36,7 +38,9 @@ namespace TesterFrm {
 				btnAuthenticate.Enabled = false;
 				this.Invoke((Action)(() => txtResult.Clear()));
 				var token = await _salesforceService.AuthenticateAsync();
-				this.Invoke((Action)(() => txtResult.Text = $"Successfully authenticated. Access Token: {token}..."));
+				this.Invoke((Action)(() => txtResult.Text = $"Token copied to clipboard: {token}..."));
+				Clipboard.SetText(token);
+
 			} catch (Exception ex) {
 				this.Invoke((Action)(() => txtResult.Text = $"Authentication failed: {ex.Message}"));
 			}
@@ -53,8 +57,10 @@ namespace TesterFrm {
 			try {
 
 				await _pubSubService.StartSubscriptionsAsync(msg => {
-					//	lbxResult.Invoke(new Action(() => lbxResult.Items.Add(msg)));
+					txtResult.Invoke(new Action(() => txtResult.Text = msg));
 				});
+				Clipboard.SetText(txtResult.Text);
+				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
 				MessageBox.Show($"Error: {ex.Message}");
 			}
@@ -91,10 +97,47 @@ namespace TesterFrm {
 
 			await LoadSfObjectsAsync();
 		}
+		private void btnMoveRight_Click(object sender, EventArgs e) {
 
+			if (dgvDestination.Columns.Count == 0) {
+				CopySourceScheama(dgvSfObjects, dgvDestination);
+			}
+
+			var rowsToRemove = new List<DataRow>();
+			foreach (DataGridViewRow row in dgvSfObjects.SelectedRows) {
+				if (!row.IsNewRow) {
+					// Get the underlying DataRow from the DataTable
+					DataRowView drv = row.DataBoundItem as DataRowView;
+					if (drv != null) {
+						// Add to right grid
+						dgvDestination.Rows.Add(drv["Name"]);
+						// Mark for removal from source
+						rowsToRemove.Add(drv.Row);
+					}
+				}
+			}
+
+			// Remove the rows from the source DataTable
+			DataTable sT = (DataTable)dgvSfObjects.DataSource!;
+			foreach (DataRow row in rowsToRemove) {
+				sT.Rows.Remove(row);
+			}
+
+			// Refresh the left grid
+			dgvSfObjects.Refresh();
+		}
+		private void btnClearDestination_Click(object sender, EventArgs e) {
+			dgvDestination.Columns.Clear();
+			dgvDestination.Rows.Clear();
+		}
+		private void btnCommit_Click(object sender, EventArgs e) {
+			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+			MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
+		}
 		#endregion buttons
 		#region dgv
-		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject,string columnName, List<string> fieldList) {
+		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject, string columnName, List<string> fieldList) {
 			// Ensure the map exists for this DataGridView
 			if (!_rowHeaderCheckStatesMap.ContainsKey(dgvObject)) {
 				_rowHeaderCheckStatesMap[dgvObject] = new Dictionary<int, bool>();
@@ -231,14 +274,20 @@ namespace TesterFrm {
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
 			_config = config.Value;
+			_logger = Log.ForContext<MainForm>();
 			AttachHandlers(dgvObject);
 			AttachHandlers(dgvSfObjects);
+			_logger.Information("MainForm initialized.");
 		}
 		private void Form1_Load(object sender, EventArgs e) {
-			string savedTab = Properties.Settings.Default.SelectedTab;
+			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
 			if (!string.IsNullOrEmpty(savedTab) && tabControl1.TabPages.ContainsKey(savedTab)) {
-				tabControl1.SelectedTab = tabControl1.TabPages[savedTab];
-				LoadTopics(lbxObjects);// Load topics into the ListBox
+				//tabControl1.SelectedTab = tabControl1.TabPages[savedTab];
+
+				//tabControl1.TabPages[savedTab].Select();
+
+				TabPage tbp = tabControl1.TabPages[savedTab];
+				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
 			}
 			lblPanel1.Parent = splitContainer1.Panel1;
 			lblPanel2.Parent = splitContainer1.Panel2;
@@ -288,6 +337,44 @@ namespace TesterFrm {
 			}
 			return dataTable;
 		}
+		private void CopySourceScheama(DataGridView source, DataGridView destination) {
+
+
+			destination.Columns.Clear();
+			destination.Rows.Clear();
+	
+			// Copy header style
+			destination.ColumnHeadersDefaultCellStyle = source.ColumnHeadersDefaultCellStyle.Clone();
+			destination.ColumnHeadersHeight = source.ColumnHeadersHeight;
+			destination.ColumnHeadersHeightSizeMode = source.ColumnHeadersHeightSizeMode;
+			destination.EnableHeadersVisualStyles = source.EnableHeadersVisualStyles;
+			destination.RowHeadersWidth = source.RowHeadersWidth;
+			// Copy columns
+			foreach (DataGridViewColumn col in source.Columns) {
+				DataGridViewColumn ncol = (DataGridViewColumn)col.Clone();
+
+				// Explicitly set properties
+				ncol.Width = col.Width;                    // Set the exact width
+				ncol.MinimumWidth = col.MinimumWidth;      // Set minimum width
+				ncol.FillWeight = col.FillWeight;          // Set fill weight for proportional sizing
+				ncol.Resizable = col.Resizable;            // Copy resizable property
+
+				// Force Displayed width to match source (optional, for visible columns)
+			//	ncol.Displayed = col.Displayed;
+
+				// Disable auto-sizing to preserve the exact width
+				ncol.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+
+				// Add the column to destination
+				destination.Columns.Add(ncol);
+		
+			
+			}
+			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+
+
+		}
+
 
 
 
@@ -342,40 +429,40 @@ namespace TesterFrm {
 		#endregion lbx
 		#region tabs
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
+			_logger.Information($"tabpage={e.TabPage.Name}");
+			Log.Information("hahaha");
+			Debug.WriteLine("this is debuggggg");
+			Debug.WriteLine($" tabpage={e.TabPage.Name}");
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
-
 					await LoadSfObjectsAsync();
 					_sfsObjectsLoaded = true;
+					CopySourceScheama(dgvSfObjects, dgvDestination);
 				}
 				break;
+				case "tbppubsub":
+				LoadTopics(lbxObjects);	// Load topics into the listbox
+				break;
+				default:break;
 			}
-
+			tabControl1.SelectedTab = e.TabPage;
 		}
-
 		private async void TabControl1_Selected(object sender, TabControlEventArgs e) {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
+
+
+
+
+
+
 	}
 }
+
+
+
 
 

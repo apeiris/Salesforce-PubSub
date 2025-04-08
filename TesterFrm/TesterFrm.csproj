@@ -12,6 +12,10 @@
     <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.hosting" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.http" Version="9.0.3" />
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="serilog.extensions.hosting" Version="9.0.0" />
+    <PackageReference Include="serilog.sinks.console" Version="6.0.0" />
+    <PackageReference Include="Serilog.sinks.debug" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +30,9 @@
     </Compile>
   </ItemGroup>
 <ItemGroup>
+    <None Update="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

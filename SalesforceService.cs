@@ -77,7 +77,6 @@ namespace NetUtils {
 				throw new Exception($"Failed to retrieve schema for {objectName}: {ex.Message}", ex);
 			}
 		}
-
 		public async Task<DataTable> GetAllObjects() {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
@@ -118,6 +117,12 @@ namespace NetUtils {
 				throw new Exception($"Unexpected error: {ex.Message}", ex);
 			}
 		}
+		//---------------------------------------------------
+		
+		//---------------------------------------------------
+
+
+
 
 
 		public async Task<string> GetObjectSchemaSummaryAsync(string objectName) {

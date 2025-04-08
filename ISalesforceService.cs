@@ -10,4 +10,5 @@ public interface ISalesforceService
 	Task<string> GetObjectSchemaSummaryAsync(string objectName);
 	Task<DataTable> GetObjectSchemaAsDataTableAsync(string objectName);
 	Task<DataTable> GetAllObjects();
+
 }
