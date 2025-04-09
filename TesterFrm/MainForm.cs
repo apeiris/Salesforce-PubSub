@@ -156,26 +156,26 @@ namespace TesterFrm {
 				}
 			}
 		}
-		private void DataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e) {
-			if (sender is DataGridView dgv) {
-				Graphics g = e.Graphics;
-				Rectangle rowBounds = dgv.GetRowDisplayRectangle(e.RowIndex, true);
-				Point checkBoxLocation = new Point(
-					rowBounds.Left + (dgv.RowHeadersWidth - 14) / 2,
-					rowBounds.Top + (rowBounds.Height - 14) / 2
-				);
+		//private void DataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e) {
+		//	if (sender is DataGridView dgv) {
+		//		Graphics g = e.Graphics;
+		//		Rectangle rowBounds = dgv.GetRowDisplayRectangle(e.RowIndex, true);
+		//		Point checkBoxLocation = new Point(
+		//			rowBounds.Left + (dgv.RowHeadersWidth - 14) / 2,
+		//			rowBounds.Top + (rowBounds.Height - 14) / 2
+		//		);
 
-				// Get or initialize the check states for this DataGridView
-				if (!_rowHeaderCheckStatesMap.TryGetValue(dgv, out var rowHeaderCheckStates)) {
-					rowHeaderCheckStates = new Dictionary<int, bool>();
-					_rowHeaderCheckStatesMap[dgv] = rowHeaderCheckStates;
-				}
+		//		// Get or initialize the check states for this DataGridView
+		//		if (!_rowHeaderCheckStatesMap.TryGetValue(dgv, out var rowHeaderCheckStates)) {
+		//			rowHeaderCheckStates = new Dictionary<int, bool>();
+		//			_rowHeaderCheckStatesMap[dgv] = rowHeaderCheckStates;
+		//		}
 
-				bool isChecked = rowHeaderCheckStates.ContainsKey(e.RowIndex) && rowHeaderCheckStates[e.RowIndex];
-				CheckBoxState state = isChecked ? CheckBoxState.CheckedNormal : CheckBoxState.UncheckedNormal;
-				CheckBoxRenderer.DrawCheckBox(g, checkBoxLocation, state);
-			}
-		}
+		//		bool isChecked = rowHeaderCheckStates.ContainsKey(e.RowIndex) && rowHeaderCheckStates[e.RowIndex];
+		//		CheckBoxState state = isChecked ? CheckBoxState.CheckedNormal : CheckBoxState.UncheckedNormal;
+		//		CheckBoxRenderer.DrawCheckBox(g, checkBoxLocation, state);
+		//	}
+		//}
 		private void SetupDataGridViewHeaders(string tn) {
 			dgvObject.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
@@ -241,7 +241,7 @@ namespace TesterFrm {
 		}
 
 		private void AttachHandlers(DataGridView dgv) {
-			dgv.RowPostPaint += DataGridView_RowPostPaint;
+			//dgv.RowPostPaint += DataGridView_RowPostPaint;
 			dgv.MouseClick += DataGridView_MouseClick;
 		}
 		private async Task LoadSfObjectsAsync() {

@@ -25,10 +25,11 @@
 			dgvSfObjects = new DataGridView();
 			btnSubscribeToCDC = new Button();
 			btnMoveRight = new Button();
-			button3 = new Button();
 			dgvDestination = new DataGridView();
 			button2 = new Button();
 			btnClearDestination = new Button();
+			btnMoveLeft = new Button();
+			label2 = new Label();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
@@ -49,7 +50,6 @@
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
 			txtObjectName = new TextBox();
-			label2 = new Label();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -154,7 +154,7 @@
 			tableLayoutPanel3.Controls.Add(dgvDestination, 2, 1);
 			tableLayoutPanel3.Controls.Add(button2, 2, 6);
 			tableLayoutPanel3.Controls.Add(btnClearDestination, 3, 6);
-			tableLayoutPanel3.Controls.Add(button3, 1, 3);
+			tableLayoutPanel3.Controls.Add(btnMoveLeft, 1, 3);
 			tableLayoutPanel3.Controls.Add(label2, 0, 0);
 			tableLayoutPanel3.Location = new Point(55, 3);
 			tableLayoutPanel3.Name = "tableLayoutPanel3";
@@ -204,16 +204,6 @@
 			btnMoveRight.UseVisualStyleBackColor = true;
 			btnMoveRight.Click += btnMoveRight_Click;
 			// 
-			// button3
-			// 
-			button3.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			button3.Location = new Point(479, 227);
-			button3.Name = "button3";
-			button3.Size = new Size(75, 40);
-			button3.TabIndex = 1;
-			button3.Text = "<";
-			button3.UseVisualStyleBackColor = true;
-			// 
 			// dgvDestination
 			// 
 			dgvDestination.AllowUserToAddRows = false;
@@ -249,6 +239,30 @@
 			btnClearDestination.Text = "Clear";
 			btnClearDestination.UseVisualStyleBackColor = true;
 			btnClearDestination.Click += btnClearDestination_Click;
+			// 
+			// btnMoveLeft
+			// 
+			btnMoveLeft.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnMoveLeft.Location = new Point(479, 227);
+			btnMoveLeft.Name = "btnMoveLeft";
+			btnMoveLeft.Size = new Size(75, 40);
+			btnMoveLeft.TabIndex = 1;
+			btnMoveLeft.Text = "<";
+			btnMoveLeft.UseVisualStyleBackColor = true;
+			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			tableLayoutPanel3.SetColumnSpan(label2, 5);
+			label2.Dock = DockStyle.Fill;
+			label2.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			label2.ForeColor = Color.Blue;
+			label2.Location = new Point(3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(1017, 41);
+			label2.TabIndex = 5;
+			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
+			label2.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// tbpPubSub
 			// 
@@ -500,20 +514,6 @@
 			txtObjectName.TabIndex = 1;
 			txtObjectName.Text = "Account";
 			// 
-			// label2
-			// 
-			label2.AutoSize = true;
-			tableLayoutPanel3.SetColumnSpan(label2, 5);
-			label2.Dock = DockStyle.Fill;
-			label2.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			label2.ForeColor = SystemColors.HotTrack;
-			label2.Location = new Point(3, 0);
-			label2.Name = "label2";
-			label2.Size = new Size(1017, 41);
-			label2.TabIndex = 5;
-			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
-			label2.TextAlign = ContentAlignment.MiddleCenter;
-			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -586,7 +586,7 @@
 		private Button button2;
 		private DataGridView dgvSfObjects;
 		private Button btnSubscribeToCDC;
-		private Button button3;
+		private Button btnMoveLeft;
 		private DataGridView dgvDestination;
 		private Button btnClearDestination;
 		private Button btnMoveRight;
