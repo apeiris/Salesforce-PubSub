@@ -22,7 +22,7 @@
 			tabControl1 = new TabControl();
 			tbpSfObjects = new TabPage();
 			tableLayoutPanel3 = new TableLayoutPanel();
-			dgvSfObjects = new DataGridView();
+			dgvSource = new DataGridView();
 			btnSubscribeToCDC = new Button();
 			btnMoveRight = new Button();
 			dgvDestination = new DataGridView();
@@ -54,7 +54,7 @@
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
 			tableLayoutPanel3.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)dgvSfObjects).BeginInit();
+			((System.ComponentModel.ISupportInitialize)dgvSource).BeginInit();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).BeginInit();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
@@ -148,7 +148,7 @@
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 179F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 276F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-			tableLayoutPanel3.Controls.Add(dgvSfObjects, 0, 1);
+			tableLayoutPanel3.Controls.Add(dgvSource, 0, 1);
 			tableLayoutPanel3.Controls.Add(btnSubscribeToCDC, 0, 6);
 			tableLayoutPanel3.Controls.Add(btnMoveRight, 1, 2);
 			tableLayoutPanel3.Controls.Add(dgvDestination, 2, 1);
@@ -171,17 +171,17 @@
 			// 
 			// dgvSfObjects
 			// 
-			dgvSfObjects.AllowUserToAddRows = false;
-			dgvSfObjects.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvSfObjects.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			dgvSfObjects.Dock = DockStyle.Fill;
-			dgvSfObjects.EditMode = DataGridViewEditMode.EditProgrammatically;
-			dgvSfObjects.Location = new Point(3, 44);
-			dgvSfObjects.Name = "dgvSfObjects";
-			dgvSfObjects.ReadOnly = true;
-			tableLayoutPanel3.SetRowSpan(dgvSfObjects, 5);
-			dgvSfObjects.Size = new Size(470, 408);
-			dgvSfObjects.TabIndex = 0;
+			dgvSource.AllowUserToAddRows = false;
+			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvSource.Dock = DockStyle.Fill;
+			dgvSource.EditMode = DataGridViewEditMode.EditProgrammatically;
+			dgvSource.Location = new Point(3, 44);
+			dgvSource.Name = "dgvSfObjects";
+			dgvSource.ReadOnly = true;
+			tableLayoutPanel3.SetRowSpan(dgvSource, 5);
+			dgvSource.Size = new Size(470, 408);
+			dgvSource.TabIndex = 0;
 			// 
 			// btnSubscribeToCDC
 			// 
@@ -249,6 +249,7 @@
 			btnMoveLeft.TabIndex = 1;
 			btnMoveLeft.Text = "<";
 			btnMoveLeft.UseVisualStyleBackColor = true;
+			btnMoveLeft.Click += btnMoveLeft_Click;
 			// 
 			// label2
 			// 
@@ -532,7 +533,7 @@
 			tbpSfObjects.ResumeLayout(false);
 			tableLayoutPanel3.ResumeLayout(false);
 			tableLayoutPanel3.PerformLayout();
-			((System.ComponentModel.ISupportInitialize)dgvSfObjects).EndInit();
+			((System.ComponentModel.ISupportInitialize)dgvSource).EndInit();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).EndInit();
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
@@ -584,7 +585,7 @@
 		private TextBox txtObjectName;
 		private TableLayoutPanel tableLayoutPanel3;
 		private Button button2;
-		private DataGridView dgvSfObjects;
+		private DataGridView dgvSource;
 		private Button btnSubscribeToCDC;
 		private Button btnMoveLeft;
 		private DataGridView dgvDestination;

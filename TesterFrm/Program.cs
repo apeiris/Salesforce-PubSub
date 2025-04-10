@@ -10,10 +10,12 @@ namespace TesterFrm {
 		[STAThread]
 		static void Main() {
 			Log.Logger = new LoggerConfiguration()
+
 	.ReadFrom.Configuration(new ConfigurationBuilder()
 		.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 		.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
 		.Build())
+
 	.CreateLogger();
 			Log.Logger.Error("this");
 

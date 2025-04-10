@@ -10,6 +10,7 @@ using System.Windows.Forms.VisualStyles;
 using System.Text.Json;
 using System.Diagnostics;
 using Serilog;
+using System.Windows.Forms;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region fields
@@ -30,6 +31,13 @@ namespace TesterFrm {
 		// Dictionary to store checkbox states, scoped per DataGridView
 		private readonly Dictionary<DataGridView, Dictionary<int, bool>> _rowHeaderCheckStatesMap
 			= new Dictionary<DataGridView, Dictionary<int, bool>>();
+
+		private DataTable _sourceTable; // Data source for dgvSource
+		private DataTable _destinationTable; // Data source for dgvDestination
+		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
+
+
+		private readonly object _lock = new object();
 		#endregion fields
 		#region buttons
 		private async void btnAuthenticate_Click(object sender, EventArgs e) {
@@ -92,43 +100,118 @@ namespace TesterFrm {
 				_semaphore.Release();
 			}
 		}
+		private void CopySchema(DataGridView source, DataGridView destination) {
+			// Copy column structure to destination DataGridView
+			foreach (DataGridViewColumn col in source.Columns) {
+				destination.Columns.Add((DataGridViewColumn)col.Clone());
+			}
 
+			// Ensure the destination DataTable matches the schema
+			if (destination.DataSource == null) {
+				// If no DataSource exists, create a new DataTable and assign it
+				destination.DataSource = new DataTable();
+			}
+
+			DataTable destTable = (DataTable)destination.DataSource;
+			DataTable srcTable = (DataTable)source.DataSource;
+
+			if (srcTable == null) {
+				throw new InvalidOperationException("Source DataGridView has no DataTable assigned.");
+			}
+
+			// Clear and rebuild destination columns
+			destTable.Columns.Clear();
+			foreach (DataColumn col in srcTable.Columns) {
+				destTable.Columns.Add(col.ColumnName, col.DataType);
+			}
+		}
 		private async void btnGetSfObjects_Click(object sender, EventArgs e) {
 
 			await LoadSfObjectsAsync();
 		}
+		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
-
-			if (dgvDestination.Columns.Count == 0) {
-				CopySourceScheama(dgvSfObjects, dgvDestination);
+			if (dgvSource.SelectedRows.Count == 0) return;
+			DataTable sourceTable = (DataTable)dgvSource.DataSource;
+			DataTable destinationTable;
+			if (dgvDestination.DataSource == null) {
+				destinationTable = sourceTable!.Clone(); // Clone structure only
+				dgvDestination.DataSource = destinationTable;
+			} else {
+				destinationTable = (DataTable)dgvDestination.DataSource;
 			}
-
-			var rowsToRemove = new List<DataRow>();
-			foreach (DataGridViewRow row in dgvSfObjects.SelectedRows) {
-				if (!row.IsNewRow) {
-					// Get the underlying DataRow from the DataTable
-					DataRowView drv = row.DataBoundItem as DataRowView;
-					if (drv != null) {
-						// Add to right grid
-						dgvDestination.Rows.Add(drv["Name"]);
-						// Mark for removal from source
-						rowsToRemove.Add(drv.Row);
-					}
-				}
+			if (sourceTable != null) sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
+			if (destinationTable != null) destinationTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
+			List<DataRow> rowsToRemove = new List<DataRow>();// Create a list to store rows to remove (to avoid modifying collection during iteration)
+			foreach (DataGridViewRow row in dgvSource.SelectedRows) {// Move selected rows
+				DataRow sourceRow = ((DataRowView)row.DataBoundItem!).Row;
+				destinationTable!.ImportRow(sourceRow); // Add to destination
+				rowsToRemove.Add(sourceRow);// Mark for removal from source
 			}
-
-			// Remove the rows from the source DataTable
-			DataTable sT = (DataTable)dgvSfObjects.DataSource!;
-			foreach (DataRow row in rowsToRemove) {
-				sT.Rows.Remove(row);
+			foreach (DataRow row in rowsToRemove) { // Remove rows from source after iteration
+				sourceTable!.Rows.Remove(row);
 			}
-
-			// Refresh the left grid
-			dgvSfObjects.Refresh();
+			dgvSource.DataSource = null;// Refresh both DataGridViews
+			dgvSource.DataSource = sourceTable;
+			dgvSource.Refresh();
+			dgvDestination.DataSource = null;
+			dgvDestination.DataSource = destinationTable;
+			dgvDestination.Refresh();
+			dgvSource.AutoResizeColumns();// Optional: Adjust column sizes
+			dgvDestination.AutoResizeColumns();
 		}
+
+		private void btnMoveLeft_Click(object sender, EventArgs e) {
+			// Check if there are any selected rows in destination
+			if (dgvDestination.SelectedRows.Count == 0)
+				return;
+
+			// Get both DataTables
+			DataTable sourceTable = (DataTable)dgvSource.DataSource;
+			DataTable destinationTable = (DataTable)dgvDestination.DataSource;
+
+			// If sourceTable is null (shouldn't happen in normal use), create it
+			if (sourceTable == null) {
+				sourceTable = destinationTable.Clone();
+				dgvSource.DataSource = sourceTable;
+			}
+
+			// Create a list to store rows to remove from destination
+			List<DataRow> rowsToRemove = new List<DataRow>();
+
+			// Move selected rows from destination to source
+			foreach (DataGridViewRow row in dgvDestination.SelectedRows) {
+				DataRow destRow = ((DataRowView)row.DataBoundItem).Row;
+
+				// Add to source
+				sourceTable.ImportRow(destRow);
+
+				// Mark for removal from destination
+				rowsToRemove.Add(destRow);
+			}
+
+			// Remove rows from destination after iteration
+			foreach (DataRow row in rowsToRemove) {
+				destinationTable.Rows.Remove(row);
+			}
+
+			// Refresh both DataGridViews
+			dgvSource.DataSource = null;
+			dgvSource.DataSource = sourceTable;
+			dgvSource.Refresh();
+
+			dgvDestination.DataSource = null;
+			dgvDestination.DataSource = destinationTable;
+			dgvDestination.Refresh();
+
+			// Optional: Adjust column sizes
+			dgvSource.AutoResizeColumns();
+			dgvDestination.AutoResizeColumns();
+		}
+		#endregion move right and left
 		private void btnClearDestination_Click(object sender, EventArgs e) {
 			dgvDestination.Columns.Clear();
-			dgvDestination.Rows.Clear();
+			//	dgvDestination.Rows.Clear();
 		}
 		private void btnCommit_Click(object sender, EventArgs e) {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
@@ -156,106 +239,53 @@ namespace TesterFrm {
 				}
 			}
 		}
-		//private void DataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e) {
-		//	if (sender is DataGridView dgv) {
-		//		Graphics g = e.Graphics;
-		//		Rectangle rowBounds = dgv.GetRowDisplayRectangle(e.RowIndex, true);
-		//		Point checkBoxLocation = new Point(
-		//			rowBounds.Left + (dgv.RowHeadersWidth - 14) / 2,
-		//			rowBounds.Top + (rowBounds.Height - 14) / 2
-		//		);
 
-		//		// Get or initialize the check states for this DataGridView
-		//		if (!_rowHeaderCheckStatesMap.TryGetValue(dgv, out var rowHeaderCheckStates)) {
-		//			rowHeaderCheckStates = new Dictionary<int, bool>();
-		//			_rowHeaderCheckStatesMap[dgv] = rowHeaderCheckStates;
-		//		}
-
-		//		bool isChecked = rowHeaderCheckStates.ContainsKey(e.RowIndex) && rowHeaderCheckStates[e.RowIndex];
-		//		CheckBoxState state = isChecked ? CheckBoxState.CheckedNormal : CheckBoxState.UncheckedNormal;
-		//		CheckBoxRenderer.DrawCheckBox(g, checkBoxLocation, state);
-		//	}
-		//}
 		private void SetupDataGridViewHeaders(string tn) {
+			return;
 			dgvObject.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvObject.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
 			dgvObject.TopLeftHeaderCell.Value = "Subscribe";
 
-			dgvSfObjects.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
-			dgvSfObjects.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
-			dgvSfObjects.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+			dgvSource.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
+			dgvSource.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvSource.ColumnHeadersHeight = 40;
 
-			dgvSfObjects.TopLeftHeaderCell.Value = "CDC";
+
+
+
+			dgvSource.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
+			dgvSource.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+
+			dgvSource.TopLeftHeaderCell.Value = "CDC";
 			//dgvSfObjects.TopLeftHeaderCell.OwningColumn.Width = 40;
-			dgvSfObjects.TopLeftHeaderCell.ToolTipText = "Susbcribe CDC events on this object.";
+			dgvSource.TopLeftHeaderCell.ToolTipText = "Susbcribe CDC events on this object.";
 
 		}
 
-		private void DataGridView_MouseClick(object sender, MouseEventArgs e) {
-			if (sender is DataGridView dgv) {
-				var hit = dgv.HitTest(e.X, e.Y);
-				if (hit.Type == DataGridViewHitTestType.RowHeader) {
-					int rowIndex = hit.RowIndex;
 
-					Rectangle rowRect = dgv.GetRowDisplayRectangle(rowIndex, true);
-					Rectangle checkboxRect = new Rectangle(
-						rowRect.Left + (dgv.RowHeadersWidth - 14) / 2,
-						rowRect.Top + (rowRect.Height - 14) / 2,
-						14, 14
-					);
-
-					// Get or initialize the check states for this DataGridView
-					if (!_rowHeaderCheckStatesMap.TryGetValue(dgv, out var rowHeaderCheckStates)) {
-						rowHeaderCheckStates = new Dictionary<int, bool>();
-						_rowHeaderCheckStatesMap[dgv] = rowHeaderCheckStates;
-					}
-
-					if (checkboxRect.Contains(e.Location)) {
-						bool current = rowHeaderCheckStates.ContainsKey(rowIndex) && rowHeaderCheckStates[rowIndex];
-						rowHeaderCheckStates[rowIndex] = !current;
-						dgv.InvalidateRow(rowIndex);
-					}
-					if (dgv.Name.ToLower() == "dgvobject") {// huh lets remove or add the name column to lbxFields
-						if (dgv.Columns["name"] != null) {
-							string cellValue = dgv.Rows[rowIndex].Cells["name"].Value.ToString();
-							if (lbxFields.Items.Contains(cellValue)) {
-								lbxFields.Items.Remove(cellValue);
-							} else {
-								lbxFields.Items.Add(cellValue);
-							}
-						}
-					} else if (dgv.Name.ToLower() == "dgvsfobjects") {
-						if (dgv.Columns["name"] != null) {
-							string cellValue = dgv.Rows[rowIndex].Cells["name"].Value.ToString();
-							if (lbxFields.Items.Contains(cellValue)) {
-								lbxFields.Items.Remove(cellValue);
-							} else {
-								lbxFields.Items.Add(cellValue);
-
-							}
-						}
-					}
-				}
-			}
-		}
 
 		private void AttachHandlers(DataGridView dgv) {
 			//dgv.RowPostPaint += DataGridView_RowPostPaint;
-			dgv.MouseClick += DataGridView_MouseClick;
+			//dgv.MouseClick += DataGridView_MouseClick;
 		}
 		private async Task LoadSfObjectsAsync() {
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
-				DataTable dt = await _salesforceService.GetAllObjects();
+				_sourceTable = await _salesforceService.GetAllObjects();
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
-						dgvSfObjects.AutoGenerateColumns = true;
-						dgvSfObjects.DataSource = null;
-						dgvSfObjects.DataSource = dt;
-						dgvSfObjects.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-						toolStripStatusLabel1.Text = $"Schema for {dt.TableName} having {dt.Rows.Count} rows loaded successfully.";
+						dgvSource.AutoGenerateColumns = true;
+						dgvSource.DataSource = null;
+						dgvSource.DataSource = _sourceTable;
+						dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+						dgvSource.Columns[0].HeaderText = "Column A\nDetails";
+						dgvSource.RowHeadersWidth = 140;
+
+						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
+						CopySchema(dgvSource, dgvDestination);
 					}));
 				}
 			} catch (Exception ex) {
@@ -275,8 +305,7 @@ namespace TesterFrm {
 			_pubSubService = pubSubService;
 			_config = config.Value;
 			_logger = Log.ForContext<MainForm>();
-			AttachHandlers(dgvObject);
-			AttachHandlers(dgvSfObjects);
+
 			_logger.Information("MainForm initialized.");
 		}
 		private void Form1_Load(object sender, EventArgs e) {
@@ -291,8 +320,6 @@ namespace TesterFrm {
 			}
 			lblPanel1.Parent = splitContainer1.Panel1;
 			lblPanel2.Parent = splitContainer1.Panel2;
-			//dgvObject.RowPostPaint += dgvObject_RowPostPaint;
-			//dgvObject.MouseClick += dgvObject_MouseClick;
 			SetupDataGridViewHeaders("");
 		}
 		protected override void OnFormClosed(FormClosedEventArgs e) {
@@ -342,7 +369,7 @@ namespace TesterFrm {
 
 			destination.Columns.Clear();
 			destination.Rows.Clear();
-	
+
 			// Copy header style
 			destination.ColumnHeadersDefaultCellStyle = source.ColumnHeadersDefaultCellStyle.Clone();
 			destination.ColumnHeadersHeight = source.ColumnHeadersHeight;
@@ -360,15 +387,15 @@ namespace TesterFrm {
 				ncol.Resizable = col.Resizable;            // Copy resizable property
 
 				// Force Displayed width to match source (optional, for visible columns)
-			//	ncol.Displayed = col.Displayed;
+				//	ncol.Displayed = col.Displayed;
 
 				// Disable auto-sizing to preserve the exact width
 				ncol.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
 
 				// Add the column to destination
 				destination.Columns.Add(ncol);
-		
-			
+
+
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
@@ -387,7 +414,7 @@ namespace TesterFrm {
 
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
-
+			this.UseWaitCursor = true;
 			await _semaphore.WaitAsync();
 			try {
 				string selectedTopic = lbxObjects.SelectedItem.ToString();
@@ -418,8 +445,11 @@ namespace TesterFrm {
 				this.Invoke((Action)(() => toolStripStatusLabel1.Text = $"Error: {ex.Message}"));
 			}
 			finally {
+
 				_semaphore.Release();
+				this.UseWaitCursor = false;
 			}
+
 		}
 
 		private void filterChanged(object sender, EventArgs e) {
@@ -439,13 +469,13 @@ namespace TesterFrm {
 				if (!_sfsObjectsLoaded) {
 					await LoadSfObjectsAsync();
 					_sfsObjectsLoaded = true;
-					CopySourceScheama(dgvSfObjects, dgvDestination);
+					CopySourceScheama(dgvSource, dgvDestination);
 				}
 				break;
 				case "tbppubsub":
-				LoadTopics(lbxObjects);	// Load topics into the listbox
+				LoadTopics(lbxObjects); // Load topics into the listbox
 				break;
-				default:break;
+				default: break;
 			}
 			tabControl1.SelectedTab = e.TabPage;
 		}
@@ -453,6 +483,7 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
+
 
 
 
