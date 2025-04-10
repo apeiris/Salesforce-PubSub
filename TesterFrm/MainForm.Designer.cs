@@ -22,6 +22,7 @@
 			tabControl1 = new TabControl();
 			tbpSfObjects = new TabPage();
 			tableLayoutPanel3 = new TableLayoutPanel();
+			lblSourceList = new Label();
 			dgvSource = new DataGridView();
 			btnSubscribeToCDC = new Button();
 			btnMoveRight = new Button();
@@ -30,6 +31,7 @@
 			btnClearDestination = new Button();
 			btnMoveLeft = new Button();
 			label2 = new Label();
+			lblDestinationList = new Label();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
@@ -148,6 +150,7 @@
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 179F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 276F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel3.Controls.Add(lblSourceList, 0, 5);
 			tableLayoutPanel3.Controls.Add(dgvSource, 0, 1);
 			tableLayoutPanel3.Controls.Add(btnSubscribeToCDC, 0, 6);
 			tableLayoutPanel3.Controls.Add(btnMoveRight, 1, 2);
@@ -156,6 +159,7 @@
 			tableLayoutPanel3.Controls.Add(btnClearDestination, 3, 6);
 			tableLayoutPanel3.Controls.Add(btnMoveLeft, 1, 3);
 			tableLayoutPanel3.Controls.Add(label2, 0, 0);
+			tableLayoutPanel3.Controls.Add(lblDestinationList, 2, 5);
 			tableLayoutPanel3.Location = new Point(55, 3);
 			tableLayoutPanel3.Name = "tableLayoutPanel3";
 			tableLayoutPanel3.RowCount = 7;
@@ -163,13 +167,25 @@
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 71.7791443F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 28.22086F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
-			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 137F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 149F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
 			tableLayoutPanel3.Size = new Size(1023, 592);
 			tableLayoutPanel3.TabIndex = 0;
 			// 
-			// dgvSfObjects
+			// lblSourceList
+			// 
+			lblSourceList.AutoSize = true;
+			lblSourceList.Dock = DockStyle.Fill;
+			lblSourceList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblSourceList.ForeColor = Color.Brown;
+			lblSourceList.Location = new Point(3, 419);
+			lblSourceList.Name = "lblSourceList";
+			lblSourceList.Size = new Size(470, 36);
+			lblSourceList.TabIndex = 6;
+			lblSourceList.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// dgvSource
 			// 
 			dgvSource.AllowUserToAddRows = false;
 			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
@@ -177,11 +193,13 @@
 			dgvSource.Dock = DockStyle.Fill;
 			dgvSource.EditMode = DataGridViewEditMode.EditProgrammatically;
 			dgvSource.Location = new Point(3, 44);
-			dgvSource.Name = "dgvSfObjects";
+			dgvSource.Name = "dgvSource";
 			dgvSource.ReadOnly = true;
-			tableLayoutPanel3.SetRowSpan(dgvSource, 5);
-			dgvSource.Size = new Size(470, 408);
+			tableLayoutPanel3.SetRowSpan(dgvSource, 4);
+			dgvSource.Size = new Size(470, 372);
 			dgvSource.TabIndex = 0;
+			dgvSource.RowsAdded += dgvRowCountChanged;
+			dgvSource.RowsRemoved += dgvRowCountChanged;
 			// 
 			// btnSubscribeToCDC
 			// 
@@ -216,9 +234,11 @@
 			tableLayoutPanel3.SetColumnSpan(dgvDestination, 2);
 			dgvDestination.Location = new Point(571, 44);
 			dgvDestination.Name = "dgvDestination";
-			tableLayoutPanel3.SetRowSpan(dgvDestination, 5);
-			dgvDestination.Size = new Size(449, 408);
+			tableLayoutPanel3.SetRowSpan(dgvDestination, 4);
+			dgvDestination.Size = new Size(449, 372);
 			dgvDestination.TabIndex = 2;
+			dgvDestination.RowsAdded += dgvRowCountChanged;
+			dgvDestination.RowsRemoved+= dgvRowCountChanged;
 			// 
 			// button2
 			// 
@@ -264,6 +284,18 @@
 			label2.TabIndex = 5;
 			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
 			label2.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// lblDestinationList
+			// 
+			lblDestinationList.AutoSize = true;
+			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
+			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblDestinationList.ForeColor = Color.Brown;
+			lblDestinationList.Location = new Point(571, 419);
+			lblDestinationList.Name = "lblDestinationList";
+			lblDestinationList.Size = new Size(0, 21);
+			lblDestinationList.TabIndex = 8;
+			lblDestinationList.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// tbpPubSub
 			// 
@@ -592,5 +624,7 @@
 		private Button btnClearDestination;
 		private Button btnMoveRight;
 		private Label label2;
+		private Label lblSourceList;
+		private Label lblDestinationList;
 	}
 	}

@@ -132,87 +132,74 @@ namespace TesterFrm {
 		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
 			if (dgvSource.SelectedRows.Count == 0) return;
-			DataTable sourceTable = (DataTable)dgvSource.DataSource;
-			DataTable destinationTable;
+			_sourceTable = (DataTable)dgvSource.DataSource!;
 			if (dgvDestination.DataSource == null) {
-				destinationTable = sourceTable!.Clone(); // Clone structure only
-				dgvDestination.DataSource = destinationTable;
+				_destinationTable = _sourceTable!.Clone(); // Clone structure only
+				dgvDestination.DataSource = _destinationTable;
 			} else {
-				destinationTable = (DataTable)dgvDestination.DataSource;
+				_destinationTable = (DataTable)dgvDestination.DataSource;
 			}
-			if (sourceTable != null) sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
-			if (destinationTable != null) destinationTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
+			// Sort the source table by name
 			List<DataRow> rowsToRemove = new List<DataRow>();// Create a list to store rows to remove (to avoid modifying collection during iteration)
 			foreach (DataGridViewRow row in dgvSource.SelectedRows) {// Move selected rows
 				DataRow sourceRow = ((DataRowView)row.DataBoundItem!).Row;
-				destinationTable!.ImportRow(sourceRow); // Add to destination
+				_destinationTable!.ImportRow(sourceRow); // Add to destination
 				rowsToRemove.Add(sourceRow);// Mark for removal from source
 			}
 			foreach (DataRow row in rowsToRemove) { // Remove rows from source after iteration
-				sourceTable!.Rows.Remove(row);
+				_sourceTable!.Rows.Remove(row);
 			}
 			dgvSource.DataSource = null;// Refresh both DataGridViews
-			dgvSource.DataSource = sourceTable;
+			dgvSource.DataSource = _sourceTable;
+			dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 			dgvSource.Refresh();
 			dgvDestination.DataSource = null;
-			dgvDestination.DataSource = destinationTable;
+			dgvDestination.DataSource = _destinationTable;
 			dgvDestination.Refresh();
+			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 			dgvSource.AutoResizeColumns();// Optional: Adjust column sizes
 			dgvDestination.AutoResizeColumns();
+			lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
 		}
 
 		private void btnMoveLeft_Click(object sender, EventArgs e) {
-			// Check if there are any selected rows in destination
-			if (dgvDestination.SelectedRows.Count == 0)
-				return;
-
-			// Get both DataTables
-			DataTable sourceTable = (DataTable)dgvSource.DataSource;
-			DataTable destinationTable = (DataTable)dgvDestination.DataSource;
-
-			// If sourceTable is null (shouldn't happen in normal use), create it
-			if (sourceTable == null) {
-				sourceTable = destinationTable.Clone();
-				dgvSource.DataSource = sourceTable;
+			if (dgvDestination.SelectedRows.Count == 0) return;
+			_sourceTable = (DataTable)dgvSource.DataSource;
+			_destinationTable = (DataTable)dgvDestination.DataSource;
+			if (_sourceTable == null) {
+				_sourceTable = _destinationTable.Clone();
+				dgvSource.DataSource = _sourceTable;
 			}
-
-			// Create a list to store rows to remove from destination
 			List<DataRow> rowsToRemove = new List<DataRow>();
-
-			// Move selected rows from destination to source
 			foreach (DataGridViewRow row in dgvDestination.SelectedRows) {
 				DataRow destRow = ((DataRowView)row.DataBoundItem).Row;
-
-				// Add to source
-				sourceTable.ImportRow(destRow);
-
-				// Mark for removal from destination
+				_sourceTable.ImportRow(destRow);
 				rowsToRemove.Add(destRow);
 			}
-
-			// Remove rows from destination after iteration
 			foreach (DataRow row in rowsToRemove) {
-				destinationTable.Rows.Remove(row);
+				_destinationTable.Rows.Remove(row);
 			}
-
-			// Refresh both DataGridViews
 			dgvSource.DataSource = null;
-			dgvSource.DataSource = sourceTable;
+			dgvSource.DataSource = _sourceTable;
 			dgvSource.Refresh();
+			dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 
 			dgvDestination.DataSource = null;
-			dgvDestination.DataSource = destinationTable;
+			dgvDestination.DataSource = _destinationTable;
 			dgvDestination.Refresh();
-
-			// Optional: Adjust column sizes
+			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 			dgvSource.AutoResizeColumns();
 			dgvDestination.AutoResizeColumns();
 		}
 		#endregion move right and left
 		private void btnClearDestination_Click(object sender, EventArgs e) {
-			dgvDestination.Columns.Clear();
-			//	dgvDestination.Rows.Clear();
+			dgvDestination.SelectAll();
+			foreach (DataGridViewRow row in dgvDestination.Rows) {
+				btnMoveLeft.PerformClick();
+			}
+			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
 		}
+
 		private void btnCommit_Click(object sender, EventArgs e) {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
@@ -241,7 +228,9 @@ namespace TesterFrm {
 		}
 
 		private void SetupDataGridViewHeaders(string tn) {
-			return;
+
+
+		
 			dgvObject.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvObject.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
@@ -252,38 +241,66 @@ namespace TesterFrm {
 			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
 			dgvSource.ColumnHeadersHeight = 40;
 
-
-
-
 			dgvSource.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvSource.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
 
-			dgvSource.TopLeftHeaderCell.Value = "CDC";
-			//dgvSfObjects.TopLeftHeaderCell.OwningColumn.Width = 40;
-			dgvSource.TopLeftHeaderCell.ToolTipText = "Susbcribe CDC events on this object.";
+			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+			dgvSource.RowTemplate.Height = 30; // Set the height of the row template
+			dgvSource.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvSource.AutoGenerateColumns = true;
+			dgvSource.DataSource = null;
+			dgvSource.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
+			dgvDestination.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
+			dgvDestination.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvDestination.ColumnHeadersHeight = 40;
+
+			dgvDestination.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
+			dgvDestination.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+
+			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+
+			dgvDestination.RowTemplate.Height = 30; // Set the height of the row template
+			dgvDestination.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvDestination.AutoGenerateColumns = true;
+			dgvDestination.DataSource = null;
+			dgvDestination.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
 
 		}
 
+		private void dgvRowCountChanged(object sender, EventArgs e) {
 
+			switch (sender) {
+				case DataGridView s when s == dgvSource:
+				lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
+				break;
+
+				case DataGridView s when s == dgvDestination:
+				lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate Object";
+				break;
+			}
+		}
 
 		private void AttachHandlers(DataGridView dgv) {
 			//dgv.RowPostPaint += DataGridView_RowPostPaint;
 			//dgv.MouseClick += DataGridView_MouseClick;
 		}
 		private async Task LoadSfObjectsAsync() {
+			_logger.Debug("LoadSfObjectsAsync()");
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
 				_sourceTable = await _salesforceService.GetAllObjects();
+				_sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
+
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
-						dgvSource.AutoGenerateColumns = true;
-						dgvSource.DataSource = null;
 						dgvSource.DataSource = _sourceTable;
-						dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-						dgvSource.Columns[0].HeaderText = "Column A\nDetails";
-						dgvSource.RowHeadersWidth = 140;
-
+						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
 						CopySchema(dgvSource, dgvDestination);
 					}));
@@ -330,10 +347,6 @@ namespace TesterFrm {
 			Properties.Settings.Default.SelectedTab = tabControl1.SelectedTab.Name;
 			Properties.Settings.Default.Save();
 		}
-
-
-
-
 		#endregion	 form	
 		#region groupbox
 		private void grpFilterOptions_EnabledChanged(object sender, EventArgs e) {
@@ -490,6 +503,7 @@ namespace TesterFrm {
 
 
 
+	
 	}
 }
 
