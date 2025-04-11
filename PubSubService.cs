@@ -8,6 +8,7 @@ using System.Text;
 using Avro.IO;
 using Avro.Generic;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace NetUtils {
 	public class PubSubService : IDisposable {

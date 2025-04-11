@@ -1,18 +1,20 @@
 ﻿using System.Data;
-using System.Diagnostics;
-using System.Security.AccessControl;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
 		private readonly SalesforceConfig _settings;
-		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings) {
+		private readonly ILogger<SalesforceService> _logger;
+		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings,ILogger<SalesforceService> logger) {
 			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
+			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
 		}
 		public async Task<string> AuthenticateAsync() {
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");

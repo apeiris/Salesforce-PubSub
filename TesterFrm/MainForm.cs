@@ -9,8 +9,12 @@ using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
 using System.Text.Json;
 using System.Diagnostics;
-using Serilog;
+//using NLog;
 using System.Windows.Forms;
+using DocumentFormat.OpenXml.Packaging;
+using mySalesforce;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region fields
@@ -20,7 +24,8 @@ namespace TesterFrm {
 		private readonly ISalesforceService _salesforceService;
 		private readonly PubSubService _pubSubService;
 		private readonly SalesforceConfig _config;
-		private readonly Serilog.ILogger _logger;
+		private readonly ILogger<MainForm> _logger;
+
 		static string _token = "";
 		static string _instanceUrl = "";
 		static string _tenantId = "";
@@ -34,8 +39,9 @@ namespace TesterFrm {
 
 		private DataTable _sourceTable; // Data source for dgvSource
 		private DataTable _destinationTable; // Data source for dgvDestination
-		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
 
+		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
+		private readonly SqlServerLib _sqlServerLib;
 
 		private readonly object _lock = new object();
 		#endregion fields
@@ -125,12 +131,10 @@ namespace TesterFrm {
 				destTable.Columns.Add(col.ColumnName, col.DataType);
 			}
 		}
-		private async void btnGetSfObjects_Click(object sender, EventArgs e) {
 
-			await LoadSfObjectsAsync();
-		}
 		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
+			_logger.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
 			if (dgvSource.SelectedRows.Count == 0) return;
 			_sourceTable = (DataTable)dgvSource.DataSource!;
 			if (dgvDestination.DataSource == null) {
@@ -139,7 +143,6 @@ namespace TesterFrm {
 			} else {
 				_destinationTable = (DataTable)dgvDestination.DataSource;
 			}
-			// Sort the source table by name
 			List<DataRow> rowsToRemove = new List<DataRow>();// Create a list to store rows to remove (to avoid modifying collection during iteration)
 			foreach (DataGridViewRow row in dgvSource.SelectedRows) {// Move selected rows
 				DataRow sourceRow = ((DataRowView)row.DataBoundItem!).Row;
@@ -230,7 +233,7 @@ namespace TesterFrm {
 		private void SetupDataGridViewHeaders(string tn) {
 
 
-		
+
 			dgvObject.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvObject.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
@@ -271,17 +274,31 @@ namespace TesterFrm {
 
 
 		}
-
+		private void SetContainedControlsEnabled(Control control, bool enabled) {
+			foreach (Control child in control.Controls) {
+				child.Enabled = enabled;
+				//SetContainedControlsEnabled(child, enabled);
+			}
+		}
 		private void dgvRowCountChanged(object sender, EventArgs e) {
 
 			switch (sender) {
 				case DataGridView s when s == dgvSource:
 				lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
+				btnMoveRight.Enabled = dgvSource.Rows.Count > 0;
+				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
+				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
 
 				case DataGridView s when s == dgvDestination:
 				lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate Object";
+				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
+				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
+
+
+				break;
+
 			}
 		}
 
@@ -290,7 +307,8 @@ namespace TesterFrm {
 			//dgv.MouseClick += DataGridView_MouseClick;
 		}
 		private async Task LoadSfObjectsAsync() {
-			_logger.Debug("LoadSfObjectsAsync()");
+			//	_logger.Debug("LoadSfObjectsAsync()");
+			_logger.LogDebug("LoadSfObjectsAsync()");
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
@@ -315,15 +333,19 @@ namespace TesterFrm {
 		}
 		#endregion dgv
 		#region form
-		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config) {
+		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
 			InitializeComponent();
 			_cache = cache;
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
 			_config = config.Value;
-			_logger = Log.ForContext<MainForm>();
+			//_logger = Log.ForContext<MainForm>();
+			_sqlServerLib = sqlServerLib;
 
-			_logger.Information("MainForm initialized.");
+			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
+			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+			_logger.LogDebug("MainForm initialized.");
+			_logger.LogInformation("(logInformation)MainForm initialized.");
 		}
 		private void Form1_Load(object sender, EventArgs e) {
 			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
@@ -332,11 +354,12 @@ namespace TesterFrm {
 
 				//tabControl1.TabPages[savedTab].Select();
 
-				TabPage tbp = tabControl1.TabPages[savedTab];
+				TabPage tbp = tabControl1.TabPages[savedTab]!;
 				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
 			}
 			lblPanel1.Parent = splitContainer1.Panel1;
 			lblPanel2.Parent = splitContainer1.Panel2;
+			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
 		}
 		protected override void OnFormClosed(FormClosedEventArgs e) {
@@ -378,46 +401,24 @@ namespace TesterFrm {
 			return dataTable;
 		}
 		private void CopySourceScheama(DataGridView source, DataGridView destination) {
-
-
 			destination.Columns.Clear();
-			destination.Rows.Clear();
-
-			// Copy header style
+			if (destination.Rows.Count > 0) destination.Rows.Clear();
 			destination.ColumnHeadersDefaultCellStyle = source.ColumnHeadersDefaultCellStyle.Clone();
 			destination.ColumnHeadersHeight = source.ColumnHeadersHeight;
 			destination.ColumnHeadersHeightSizeMode = source.ColumnHeadersHeightSizeMode;
 			destination.EnableHeadersVisualStyles = source.EnableHeadersVisualStyles;
 			destination.RowHeadersWidth = source.RowHeadersWidth;
-			// Copy columns
-			foreach (DataGridViewColumn col in source.Columns) {
+			foreach (DataGridViewColumn col in source.Columns) { // copy columns
 				DataGridViewColumn ncol = (DataGridViewColumn)col.Clone();
-
-				// Explicitly set properties
 				ncol.Width = col.Width;                    // Set the exact width
 				ncol.MinimumWidth = col.MinimumWidth;      // Set minimum width
 				ncol.FillWeight = col.FillWeight;          // Set fill weight for proportional sizing
 				ncol.Resizable = col.Resizable;            // Copy resizable property
-
-				// Force Displayed width to match source (optional, for visible columns)
-				//	ncol.Displayed = col.Displayed;
-
-				// Disable auto-sizing to preserve the exact width
-				ncol.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-
-				// Add the column to destination
-				destination.Columns.Add(ncol);
-
-
+				ncol.AutoSizeMode = col.AutoSizeMode;             // DataGridViewAutoSizeColumnMode.None;// Disable auto-sizing to preserve the exact width
+				destination.Columns.Add(ncol);// Add the column to destination
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-
-
 		}
-
-
-
-
 		#endregion helpers
 		#region lbx
 		private void LoadTopics(ListBox listBox) {
@@ -473,10 +474,8 @@ namespace TesterFrm {
 		#region tabs
 
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
-			_logger.Information($"tabpage={e.TabPage.Name}");
-			Log.Information("hahaha");
-			Debug.WriteLine("this is debuggggg");
-			Debug.WriteLine($" tabpage={e.TabPage.Name}");
+			_logger.LogDebug($"(logger) tabpage={e.TabPage.Name}");
+
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
@@ -497,13 +496,10 @@ namespace TesterFrm {
 		}
 		#endregion tabs
 
+		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
+			DataTable dt = (DataTable)_sqlServerLib.GetAllTables();
 
-
-
-
-
-
-	
+		}
 	}
 }
 

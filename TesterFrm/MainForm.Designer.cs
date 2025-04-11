@@ -24,14 +24,17 @@
 			tableLayoutPanel3 = new TableLayoutPanel();
 			lblSourceList = new Label();
 			dgvSource = new DataGridView();
-			btnSubscribeToCDC = new Button();
 			btnMoveRight = new Button();
 			dgvDestination = new DataGridView();
-			button2 = new Button();
-			btnClearDestination = new Button();
 			btnMoveLeft = new Button();
 			label2 = new Label();
 			lblDestinationList = new Label();
+			btnCommitToDB = new Button();
+			btnClearDestination = new Button();
+			grpPrimaryKey = new GroupBox();
+			label3 = new Label();
+			textBox1 = new TextBox();
+			chkAddIdentityField = new CheckBox();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
@@ -58,6 +61,7 @@
 			tableLayoutPanel3.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSource).BeginInit();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).BeginInit();
+			grpPrimaryKey.SuspendLayout();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
 			tableLayoutPanel2.SuspendLayout();
@@ -152,24 +156,24 @@
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 			tableLayoutPanel3.Controls.Add(lblSourceList, 0, 5);
 			tableLayoutPanel3.Controls.Add(dgvSource, 0, 1);
-			tableLayoutPanel3.Controls.Add(btnSubscribeToCDC, 0, 6);
 			tableLayoutPanel3.Controls.Add(btnMoveRight, 1, 2);
 			tableLayoutPanel3.Controls.Add(dgvDestination, 2, 1);
-			tableLayoutPanel3.Controls.Add(button2, 2, 6);
-			tableLayoutPanel3.Controls.Add(btnClearDestination, 3, 6);
 			tableLayoutPanel3.Controls.Add(btnMoveLeft, 1, 3);
 			tableLayoutPanel3.Controls.Add(label2, 0, 0);
 			tableLayoutPanel3.Controls.Add(lblDestinationList, 2, 5);
+			tableLayoutPanel3.Controls.Add(grpPrimaryKey, 2, 6);
 			tableLayoutPanel3.Location = new Point(55, 3);
 			tableLayoutPanel3.Name = "tableLayoutPanel3";
-			tableLayoutPanel3.RowCount = 7;
+			tableLayoutPanel3.RowCount = 8;
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 71.7791443F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 28.22086F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 149F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
-			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 73F));
 			tableLayoutPanel3.Size = new Size(1023, 592);
 			tableLayoutPanel3.TabIndex = 0;
 			// 
@@ -179,10 +183,11 @@
 			lblSourceList.Dock = DockStyle.Fill;
 			lblSourceList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
 			lblSourceList.ForeColor = Color.Brown;
-			lblSourceList.Location = new Point(3, 419);
+			lblSourceList.Location = new Point(3, 452);
 			lblSourceList.Name = "lblSourceList";
 			lblSourceList.Size = new Size(470, 36);
 			lblSourceList.TabIndex = 6;
+			lblSourceList.Text = "Placeholder";
 			lblSourceList.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// dgvSource
@@ -196,25 +201,15 @@
 			dgvSource.Name = "dgvSource";
 			dgvSource.ReadOnly = true;
 			tableLayoutPanel3.SetRowSpan(dgvSource, 4);
-			dgvSource.Size = new Size(470, 372);
+			dgvSource.Size = new Size(470, 405);
 			dgvSource.TabIndex = 0;
 			dgvSource.RowsAdded += dgvRowCountChanged;
 			dgvSource.RowsRemoved += dgvRowCountChanged;
 			// 
-			// btnSubscribeToCDC
-			// 
-			btnSubscribeToCDC.Location = new Point(3, 458);
-			btnSubscribeToCDC.Name = "btnSubscribeToCDC";
-			btnSubscribeToCDC.Size = new Size(108, 23);
-			btnSubscribeToCDC.TabIndex = 0;
-			btnSubscribeToCDC.Text = "Subscribe To CDC";
-			btnSubscribeToCDC.UseVisualStyleBackColor = true;
-			btnSubscribeToCDC.Click += btnGetSfObjects_Click;
-			// 
 			// btnMoveRight
 			// 
 			btnMoveRight.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveRight.Location = new Point(479, 176);
+			btnMoveRight.Location = new Point(479, 199);
 			btnMoveRight.Name = "btnMoveRight";
 			btnMoveRight.Size = new Size(75, 40);
 			btnMoveRight.TabIndex = 0;
@@ -235,35 +230,15 @@
 			dgvDestination.Location = new Point(571, 44);
 			dgvDestination.Name = "dgvDestination";
 			tableLayoutPanel3.SetRowSpan(dgvDestination, 4);
-			dgvDestination.Size = new Size(449, 372);
+			dgvDestination.Size = new Size(449, 352);
 			dgvDestination.TabIndex = 2;
 			dgvDestination.RowsAdded += dgvRowCountChanged;
-			dgvDestination.RowsRemoved+= dgvRowCountChanged;
-			// 
-			// button2
-			// 
-			button2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			button2.Location = new Point(571, 458);
-			button2.Name = "button2";
-			button2.Size = new Size(173, 32);
-			button2.TabIndex = 4;
-			button2.Text = "Commit to Database";
-			button2.UseVisualStyleBackColor = true;
-			// 
-			// btnClearDestination
-			// 
-			btnClearDestination.Location = new Point(750, 458);
-			btnClearDestination.Name = "btnClearDestination";
-			btnClearDestination.Size = new Size(108, 32);
-			btnClearDestination.TabIndex = 3;
-			btnClearDestination.Text = "Clear";
-			btnClearDestination.UseVisualStyleBackColor = true;
-			btnClearDestination.Click += btnClearDestination_Click;
+			dgvDestination.RowsRemoved += dgvRowCountChanged;
 			// 
 			// btnMoveLeft
 			// 
 			btnMoveLeft.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveLeft.Location = new Point(479, 227);
+			btnMoveLeft.Location = new Point(479, 260);
 			btnMoveLeft.Name = "btnMoveLeft";
 			btnMoveLeft.Size = new Size(75, 40);
 			btnMoveLeft.TabIndex = 1;
@@ -291,11 +266,80 @@
 			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
 			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
 			lblDestinationList.ForeColor = Color.Brown;
-			lblDestinationList.Location = new Point(571, 419);
+			lblDestinationList.Location = new Point(571, 452);
 			lblDestinationList.Name = "lblDestinationList";
-			lblDestinationList.Size = new Size(0, 21);
+			lblDestinationList.Size = new Size(96, 21);
 			lblDestinationList.TabIndex = 8;
+			lblDestinationList.Text = "Placeholder";
 			lblDestinationList.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// btnCommitToDB
+			// 
+			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnCommitToDB.Location = new Point(6, 35);
+			btnCommitToDB.Name = "btnCommitToDB";
+			btnCommitToDB.Size = new Size(173, 32);
+			btnCommitToDB.TabIndex = 4;
+			btnCommitToDB.Text = "Commit to Database";
+			btnCommitToDB.UseVisualStyleBackColor = true;
+			btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
+			// 
+			// btnClearDestination
+			// 
+			btnClearDestination.Location = new Point(208, 35);
+			btnClearDestination.Name = "btnClearDestination";
+			btnClearDestination.Size = new Size(86, 32);
+			btnClearDestination.TabIndex = 3;
+			btnClearDestination.Text = "Clear";
+			btnClearDestination.UseVisualStyleBackColor = true;
+			btnClearDestination.Click += btnClearDestination_Click;
+			// 
+			// grpPrimaryKey
+			// 
+			grpPrimaryKey.AccessibleRole = AccessibleRole.None;
+			tableLayoutPanel3.SetColumnSpan(grpPrimaryKey, 2);
+			grpPrimaryKey.Controls.Add(label3);
+			grpPrimaryKey.Controls.Add(textBox1);
+			grpPrimaryKey.Controls.Add(chkAddIdentityField);
+			grpPrimaryKey.Controls.Add(btnCommitToDB);
+			grpPrimaryKey.Controls.Add(btnClearDestination);
+			grpPrimaryKey.Location = new Point(571, 491);
+			grpPrimaryKey.Name = "grpPrimaryKey";
+			tableLayoutPanel3.SetRowSpan(grpPrimaryKey, 2);
+			grpPrimaryKey.Size = new Size(449, 90);
+			grpPrimaryKey.TabIndex = 10;
+			grpPrimaryKey.TabStop = false;
+			// 
+			// label3
+			// 
+			label3.AutoSize = true;
+			label3.Location = new Point(142, 12);
+			label3.Name = "label3";
+			label3.Size = new Size(60, 15);
+			label3.TabIndex = 11;
+			label3.Text = "Col.Name";
+			// 
+			// textBox1
+			// 
+			textBox1.AccessibleRole = AccessibleRole.None;
+			textBox1.Location = new Point(208, 8);
+			textBox1.Name = "textBox1";
+			textBox1.Size = new Size(100, 23);
+			textBox1.TabIndex = 10;
+			textBox1.Text = "Id";
+			// 
+			// chkAddIdentityField
+			// 
+			chkAddIdentityField.AccessibleRole = AccessibleRole.None;
+			chkAddIdentityField.AutoSize = true;
+			chkAddIdentityField.Checked = true;
+			chkAddIdentityField.CheckState = CheckState.Checked;
+			chkAddIdentityField.Location = new Point(6, 10);
+			chkAddIdentityField.Name = "chkAddIdentityField";
+			chkAddIdentityField.Size = new Size(114, 19);
+			chkAddIdentityField.TabIndex = 9;
+			chkAddIdentityField.Text = "Add Primary Key";
+			chkAddIdentityField.UseVisualStyleBackColor = true;
 			// 
 			// tbpPubSub
 			// 
@@ -567,6 +611,8 @@
 			tableLayoutPanel3.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSource).EndInit();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).EndInit();
+			grpPrimaryKey.ResumeLayout(false);
+			grpPrimaryKey.PerformLayout();
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
 			tableLayoutPanel1.PerformLayout();
@@ -616,9 +662,8 @@
 		private Label label1;
 		private TextBox txtObjectName;
 		private TableLayoutPanel tableLayoutPanel3;
-		private Button button2;
+		private Button btnCommitToDB;
 		private DataGridView dgvSource;
-		private Button btnSubscribeToCDC;
 		private Button btnMoveLeft;
 		private DataGridView dgvDestination;
 		private Button btnClearDestination;
@@ -626,5 +671,9 @@
 		private Label label2;
 		private Label lblSourceList;
 		private Label lblDestinationList;
+		private GroupBox grpPrimaryKey;
+		private CheckBox chkAddIdentityField;
+		private Label label3;
+		private TextBox textBox1;
 	}
 	}

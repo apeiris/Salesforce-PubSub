@@ -12,13 +12,13 @@
     <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.hosting" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.http" Version="9.0.3" />
-    <PackageReference Include="Serilog" Version="4.2.0" />
-    <PackageReference Include="serilog.extensions.hosting" Version="9.0.0" />
-    <PackageReference Include="serilog.sinks.console" Version="6.0.0" />
-    <PackageReference Include="Serilog.sinks.debug" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
+    <PackageReference Include="nlog" Version="5.4.0" />
+    <PackageReference Include="nlog.extensions.Logging" Version="5.4.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\SqlServerLib\SqlServerLib.csproj" />
     <ProjectReference Include="..\NetUtils.csproj" />
   </ItemGroup>
 
@@ -36,10 +36,16 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="nlog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
+<ItemGroup>
+  <Folder Include="logs\" />
+</ItemGroup>
 
 </Project>

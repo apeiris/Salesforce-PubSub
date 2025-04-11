@@ -24,9 +24,6 @@
     <PackageReference Include="Microsoft.extensions.http" Version="9.0.3" />
     <PackageReference Include="Microsoft.extensions.options" Version="9.0.3" />
     <PackageReference Include="newtonsoft.json" Version="13.0.3" />
-    <PackageReference Include="serilog.extensions.hosting" Version="9.0.0" />
-    <PackageReference Include="serilog.settings.configuration" Version="9.0.0" />
-    <PackageReference Include="serilog.sinks.console" Version="6.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.3" />
   </ItemGroup>
 
