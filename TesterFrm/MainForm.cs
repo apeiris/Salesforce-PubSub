@@ -24,7 +24,7 @@ namespace TesterFrm {
 		private readonly ISalesforceService _salesforceService;
 		private readonly PubSubService _pubSubService;
 		private readonly SalesforceConfig _config;
-		private readonly ILogger<MainForm> _logger;
+		private readonly ILogger<MainForm> _l;
 
 		static string _token = "";
 		static string _instanceUrl = "";
@@ -39,6 +39,7 @@ namespace TesterFrm {
 
 		private DataTable _sourceTable; // Data source for dgvSource
 		private DataTable _destinationTable; // Data source for dgvDestination
+		private DataTable _dtRegistered; // Data source for registered tables
 
 		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
 		private readonly SqlServerLib _sqlServerLib;
@@ -134,7 +135,7 @@ namespace TesterFrm {
 
 		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
-			_logger.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
+			_l.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
 			if (dgvSource.SelectedRows.Count == 0) return;
 			_sourceTable = (DataTable)dgvSource.DataSource!;
 			if (dgvDestination.DataSource == null) {
@@ -152,17 +153,22 @@ namespace TesterFrm {
 			foreach (DataRow row in rowsToRemove) { // Remove rows from source after iteration
 				_sourceTable!.Rows.Remove(row);
 			}
+			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
 			dgvSource.DataSource = null;// Refresh both DataGridViews
 			dgvSource.DataSource = _sourceTable;
 			dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 			dgvSource.Refresh();
+			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
+
 			dgvDestination.DataSource = null;
 			dgvDestination.DataSource = _destinationTable;
 			dgvDestination.Refresh();
-			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 			dgvSource.AutoResizeColumns();// Optional: Adjust column sizes
 			dgvDestination.AutoResizeColumns();
+			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 			lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
+			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
+
 		}
 
 		private void btnMoveLeft_Click(object sender, EventArgs e) {
@@ -207,6 +213,18 @@ namespace TesterFrm {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
 			MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
+		}
+		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
+			//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
+		
+			_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
+			foreach(DataRow row in _destinationTable.Rows) {
+				string tableName = row["name"].ToString();
+				string s=	_sqlServerLib.CreateTable(tableName);
+				_l.LogDebug($"Created Table={ s }");
+			}
+			MessageBox.Show("Rows committed to the database successfully.");	
+
 		}
 		#endregion buttons
 		#region dgv
@@ -295,32 +313,32 @@ namespace TesterFrm {
 				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
 				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
-
-
-				break;
-
+			
 			}
 		}
 
-		private void AttachHandlers(DataGridView dgv) {
-			//dgv.RowPostPaint += DataGridView_RowPostPaint;
-			//dgv.MouseClick += DataGridView_MouseClick;
-		}
 		private async Task LoadSfObjectsAsync() {
-			//	_logger.Debug("LoadSfObjectsAsync()");
-			_logger.LogDebug("LoadSfObjectsAsync()");
+			_l.LogDebug("LoadSfObjectsAsync()");
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
 				_sourceTable = await _salesforceService.GetAllObjects();
+				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
+				_l.LogDebug($"_dtRegistered={_dtRegistered.Rows.Count}");
+				_sourceTable = _dtRegistered.ExcludeRegistered(_sourceTable, "name");
+				_l.LogDebug($"after exluding registered={_dtRegistered.Rows.Count}");
 				_sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
-
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
 						dgvSource.DataSource = _sourceTable;
 						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
-						CopySchema(dgvSource, dgvDestination);
+						//	CopySchema(dgvSource, dgvDestination);
+						if (_dtRegistered.Rows.Count > 0) {
+							_l.LogDebug($"Registered rowcount {_dtRegistered.Rows.Count}");
+							_destinationTable = _dtRegistered;
+							dgvDestination.DataSource = _destinationTable;
+						}
 					}));
 				}
 			} catch (Exception ex) {
@@ -343,17 +361,13 @@ namespace TesterFrm {
 			_sqlServerLib = sqlServerLib;
 
 			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
-			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
-			_logger.LogDebug("MainForm initialized.");
-			_logger.LogInformation("(logInformation)MainForm initialized.");
+			_l = logger ?? throw new ArgumentNullException(nameof(logger));
+			_l.LogDebug("MainForm initialized.");
+			_l.LogInformation("(logInformation)MainForm initialized.");
 		}
 		private void Form1_Load(object sender, EventArgs e) {
 			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
 			if (!string.IsNullOrEmpty(savedTab) && tabControl1.TabPages.ContainsKey(savedTab)) {
-				//tabControl1.SelectedTab = tabControl1.TabPages[savedTab];
-
-				//tabControl1.TabPages[savedTab].Select();
-
 				TabPage tbp = tabControl1.TabPages[savedTab]!;
 				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
 			}
@@ -418,6 +432,8 @@ namespace TesterFrm {
 				destination.Columns.Add(ncol);// Add the column to destination
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
+
 		}
 		#endregion helpers
 		#region lbx
@@ -474,7 +490,7 @@ namespace TesterFrm {
 		#region tabs
 
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
-			_logger.LogDebug($"(logger) tabpage={e.TabPage.Name}");
+			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
 
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
@@ -496,10 +512,9 @@ namespace TesterFrm {
 		}
 		#endregion tabs
 
-		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
-			DataTable dt = (DataTable)_sqlServerLib.GetAllTables();
 
-		}
+
+
 	}
 }
 

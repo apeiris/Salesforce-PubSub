@@ -29,12 +29,12 @@
 			btnMoveLeft = new Button();
 			label2 = new Label();
 			lblDestinationList = new Label();
-			btnCommitToDB = new Button();
-			btnClearDestination = new Button();
 			grpPrimaryKey = new GroupBox();
 			label3 = new Label();
 			textBox1 = new TextBox();
 			chkAddIdentityField = new CheckBox();
+			btnCommitToDB = new Button();
+			btnClearDestination = new Button();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			tableLayoutPanel2 = new TableLayoutPanel();
@@ -273,27 +273,6 @@
 			lblDestinationList.Text = "Placeholder";
 			lblDestinationList.TextAlign = ContentAlignment.MiddleCenter;
 			// 
-			// btnCommitToDB
-			// 
-			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnCommitToDB.Location = new Point(6, 35);
-			btnCommitToDB.Name = "btnCommitToDB";
-			btnCommitToDB.Size = new Size(173, 32);
-			btnCommitToDB.TabIndex = 4;
-			btnCommitToDB.Text = "Commit to Database";
-			btnCommitToDB.UseVisualStyleBackColor = true;
-			btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
-			// 
-			// btnClearDestination
-			// 
-			btnClearDestination.Location = new Point(208, 35);
-			btnClearDestination.Name = "btnClearDestination";
-			btnClearDestination.Size = new Size(86, 32);
-			btnClearDestination.TabIndex = 3;
-			btnClearDestination.Text = "Clear";
-			btnClearDestination.UseVisualStyleBackColor = true;
-			btnClearDestination.Click += btnClearDestination_Click;
-			// 
 			// grpPrimaryKey
 			// 
 			grpPrimaryKey.AccessibleRole = AccessibleRole.None;
@@ -340,6 +319,27 @@
 			chkAddIdentityField.TabIndex = 9;
 			chkAddIdentityField.Text = "Add Primary Key";
 			chkAddIdentityField.UseVisualStyleBackColor = true;
+			// 
+			// btnCommitToDB
+			// 
+			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnCommitToDB.Location = new Point(6, 35);
+			btnCommitToDB.Name = "btnCommitToDB";
+			btnCommitToDB.Size = new Size(173, 32);
+			btnCommitToDB.TabIndex = 4;
+			btnCommitToDB.Text = "Commit to Database";
+			btnCommitToDB.UseVisualStyleBackColor = true;
+			btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
+			// 
+			// btnClearDestination
+			// 
+			btnClearDestination.Location = new Point(208, 35);
+			btnClearDestination.Name = "btnClearDestination";
+			btnClearDestination.Size = new Size(86, 32);
+			btnClearDestination.TabIndex = 3;
+			btnClearDestination.Text = "Clear";
+			btnClearDestination.UseVisualStyleBackColor = true;
+			btnClearDestination.Click += btnClearDestination_Click;
 			// 
 			// tbpPubSub
 			// 
