@@ -107,31 +107,6 @@ namespace TesterFrm {
 				_semaphore.Release();
 			}
 		}
-		private void CopySchema(DataGridView source, DataGridView destination) {
-			// Copy column structure to destination DataGridView
-			foreach (DataGridViewColumn col in source.Columns) {
-				destination.Columns.Add((DataGridViewColumn)col.Clone());
-			}
-
-			// Ensure the destination DataTable matches the schema
-			if (destination.DataSource == null) {
-				// If no DataSource exists, create a new DataTable and assign it
-				destination.DataSource = new DataTable();
-			}
-
-			DataTable destTable = (DataTable)destination.DataSource;
-			DataTable srcTable = (DataTable)source.DataSource;
-
-			if (srcTable == null) {
-				throw new InvalidOperationException("Source DataGridView has no DataTable assigned.");
-			}
-
-			// Clear and rebuild destination columns
-			destTable.Columns.Clear();
-			foreach (DataColumn col in srcTable.Columns) {
-				destTable.Columns.Add(col.ColumnName, col.DataType);
-			}
-		}
 
 		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
@@ -224,7 +199,6 @@ namespace TesterFrm {
 				_l.LogDebug($"Created Table={ s }");
 			}
 			MessageBox.Show("Rows committed to the database successfully.");	
-
 		}
 		#endregion buttons
 		#region dgv
@@ -333,7 +307,6 @@ namespace TesterFrm {
 						dgvSource.DataSource = _sourceTable;
 						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
-						//	CopySchema(dgvSource, dgvDestination);
 						if (_dtRegistered.Rows.Count > 0) {
 							_l.LogDebug($"Registered rowcount {_dtRegistered.Rows.Count}");
 							_destinationTable = _dtRegistered;
