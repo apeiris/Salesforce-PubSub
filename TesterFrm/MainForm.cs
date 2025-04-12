@@ -484,10 +484,6 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
-
-
-
-
 	}
 }
 
