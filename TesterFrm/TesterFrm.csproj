@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="logs\**" />
+    <EmbeddedResource Remove="logs\**" />
+    <None Remove="logs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.hosting" Version="9.0.3" />
     <PackageReference Include="microsoft.extensions.http" Version="9.0.3" />
@@ -44,8 +50,5 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-<ItemGroup>
-  <Folder Include="logs\" />
-</ItemGroup>
 
 </Project>
