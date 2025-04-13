@@ -89,9 +89,10 @@ namespace TesterFrm {
 				}
 
 				// Perform the async operation outside the lock
-				DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
-
+				//DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
 				// Now synchronize access to the UI with lock
+				DataTable dt = ds.Tables[ObjectFromTopic((string)lbxObjects.SelectedItem!)];
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
 						dgvObject.DataSource = dt;
@@ -187,18 +188,20 @@ namespace TesterFrm {
 		private void btnCommit_Click(object sender, EventArgs e) {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
-			MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
+			//MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
 		}
 		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
 			//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
-		
+
 			_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
-			foreach(DataRow row in _destinationTable.Rows) {
+			foreach (DataRow row in _destinationTable.Rows) {
 				string tableName = row["name"].ToString();
-				string s=	_sqlServerLib.CreateTable(tableName);
-				_l.LogDebug($"Created Table={ s }");
+				string s = _sqlServerLib.CreateTable(tableName);
+				_l.LogDebug($"Created Table={s}");
+				lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
 			}
-			MessageBox.Show("Rows committed to the database successfully.");	
+			toolStripStatusLabel1.Text = $"Created {_destinationTable.Rows.Count}, now select the tables and fields in pub/sub tab.. ";
+			//MessageBox.Show("Rows committed to the database successfully.");
 		}
 		#endregion buttons
 		#region dgv
@@ -230,6 +233,9 @@ namespace TesterFrm {
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvObject.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
 			dgvObject.TopLeftHeaderCell.Value = "Subscribe";
+			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvObject.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
 			dgvSource.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvSource.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -265,6 +271,14 @@ namespace TesterFrm {
 			dgvDestination.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
 
+			dgvRelations.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
+			dgvRelations.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+			dgvRelations.TopLeftHeaderCell.Value = "Subscribe";
+			dgvRelations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvRelations.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvRelations.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+
 		}
 		private void SetContainedControlsEnabled(Control control, bool enabled) {
 			foreach (Control child in control.Controls) {
@@ -287,7 +301,7 @@ namespace TesterFrm {
 				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
 				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
-			
+
 			}
 		}
 
@@ -345,7 +359,7 @@ namespace TesterFrm {
 				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
 			}
 			lblPanel1.Parent = splitContainer1.Panel1;
-			lblPanel2.Parent = splitContainer1.Panel2;
+			//lblPanel2.Parent = splitContainer1.Panel2;
 			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
 		}
@@ -414,7 +428,6 @@ namespace TesterFrm {
 			listBox.Items.Clear();
 			listBox.Items.AddRange(_config.Topics.Select(topic => topic.Name).ToArray());
 		}
-
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
 			this.UseWaitCursor = true;
@@ -422,37 +435,36 @@ namespace TesterFrm {
 			try {
 				string selectedTopic = lbxObjects.SelectedItem.ToString();
 				this.Invoke((Action)(() => {
-
 					lblPanel1.Text = toolStripStatusLabel1.Text;
 					List<string> fields = _config.Topics.GetFieldsToFilterByName(selectedTopic);
 					lbxFields.Items.Clear();
 					lbxFields.Items.AddRange(fields.ToArray());
-
 				}));
-				// Perform async operations outside the lock
-				DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic(selectedTopic));
-
-				toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dt.Rows.Count} fields.";
+				string selectedObject = ObjectFromTopic(selectedTopic);
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(selectedObject);// async operations outside the lock
+				DataTable dtObject = ds.Tables[selectedObject];
+				toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
+				
+				
 				if (rbtFilterSubscribed.Checked) {
-					dt = await RemoveRowsNotInColumnList(dt, _config.Topics.GetFieldsToFilterByName(selectedTopic));
+					dtObject = await RemoveRowsNotInColumnList(dtObject, _config.Topics.GetFieldsToFilterByName(selectedTopic));
 				}
-				// Synchronize UI updates with lock
-				lock (_dgvLock) {
+				lock (_dgvLock) {// Synchronize UI updates with lock
 					this.Invoke((Action)(() => {
-						dgvObject.DataSource = dt;
+						dgvObject.DataSource = dtObject;
 						dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+						lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
 						UpdateRowHeaderCheckboxes(dgvObject, "name", _config.Topics.GetFieldsToFilterByName(selectedTopic));
+						dgvRelations.DataSource = ds.Tables["relations"];
 					}));
 				}
 			} catch (Exception ex) {
 				this.Invoke((Action)(() => toolStripStatusLabel1.Text = $"Error: {ex.Message}"));
 			}
 			finally {
-
 				_semaphore.Release();
 				this.UseWaitCursor = false;
 			}
-
 		}
 
 		private void filterChanged(object sender, EventArgs e) {
@@ -474,7 +486,8 @@ namespace TesterFrm {
 				}
 				break;
 				case "tbppubsub":
-				LoadTopics(lbxObjects); // Load topics into the listbox
+				
+				//LoadTopics(lbxObjects); // Load topics into the listbox
 				break;
 				default: break;
 			}
