@@ -197,12 +197,12 @@ namespace NetUtils {
 							new XElement("referenceTo", string.Join(",", f.referenceTo))
 						)
 					),
-				childRelationNames.Any() ? childRelationNames.Select(cr => new XElement($"relations",
+				childRelationNames.Select(cr => new XElement($"relations",
 								new XElement("Name", cr.Name ?? ""),
 								new XElement("ChildSObject", cr.Child ?? ""),
 								new XElement("Field", cr.field ?? ""),
 								new XElement("Cascade", cr.Cascade)
-							)) : new XElement("ChildRelationship"));
+							)) );
 				using (XmlReader xr = schemaRoot.CreateReader()) ds.ReadXml(xr);
 			} catch (Exception ex) {
 				_logger.LogError(ex.Message);
