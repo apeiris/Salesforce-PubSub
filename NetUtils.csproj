@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="n3 in MainFo%28%29%28%29ooooo%28%29ooo%28%29 Reintroduced button3 to the form, ensuring its presence in the UI." />
     <None Remove="Proto\sfPubSub.proto" />
   </ItemGroup>
 

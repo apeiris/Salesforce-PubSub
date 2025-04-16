@@ -193,10 +193,13 @@ namespace TesterFrm {
 		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
 			//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
 
+			_destinationTable.TableName = "sfSObjects";
+			string s = _sqlServerLib.CreateSqlTableFromDataTable(_destinationTable);
 			_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
 			foreach (DataRow row in _destinationTable.Rows) {
 				string tableName = row["name"].ToString();
-				string s = _sqlServerLib.CreateTable(tableName);
+				//string s = _sqlServerLib.CreateTable(tableName);
+
 				_l.LogDebug($"Created Table={s}");
 				lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
 			}
@@ -240,7 +243,7 @@ namespace TesterFrm {
 			dgvSource.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvSource.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
 			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
-			dgvSource.ColumnHeadersHeight = 40;
+			dgvSource.ColumnHeadersHeight = 50;
 
 			dgvSource.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvSource.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
@@ -435,7 +438,6 @@ namespace TesterFrm {
 			try {
 				string selectedTopic = lbxObjects.SelectedItem.ToString();
 				this.Invoke((Action)(() => {
-					lblPanel1.Text = toolStripStatusLabel1.Text;
 					List<string> fields = _config.Topics.GetFieldsToFilterByName(selectedTopic);
 					lbxFields.Items.Clear();
 					lbxFields.Items.AddRange(fields.ToArray());
@@ -444,8 +446,8 @@ namespace TesterFrm {
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(selectedObject);// async operations outside the lock
 				DataTable dtObject = ds.Tables[selectedObject];
 				toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
-				
-				
+
+
 				if (rbtFilterSubscribed.Checked) {
 					dtObject = await RemoveRowsNotInColumnList(dtObject, _config.Topics.GetFieldsToFilterByName(selectedTopic));
 				}
@@ -486,7 +488,7 @@ namespace TesterFrm {
 				}
 				break;
 				case "tbppubsub":
-				
+
 				//LoadTopics(lbxObjects); // Load topics into the listbox
 				break;
 				default: break;

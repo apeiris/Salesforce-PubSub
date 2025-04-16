@@ -41,12 +41,12 @@
 			dgvObject = new DataGridView();
 			lblSelectedTable = new Label();
 			tableLayoutPanel2 = new TableLayoutPanel();
-			button1 = new Button();
+			btnCommit = new Button();
 			btnSubscribe = new Button();
+			button1 = new Button();
 			grpFilterOptions = new GroupBox();
 			rbtFilterNone = new RadioButton();
 			rbtFilterSubscribed = new RadioButton();
-			btnCommit = new Button();
 			tableLayoutPanel4 = new TableLayoutPanel();
 			dgvRelations = new DataGridView();
 			lblRelations = new Label();
@@ -361,8 +361,8 @@
 			// tableLayoutPanel1
 			// 
 			tableLayoutPanel1.ColumnCount = 2;
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 21.2569313F));
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78.7430649F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.176012F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 71.82399F));
 			tableLayoutPanel1.Controls.Add(splitContainer1, 0, 0);
 			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
 			tableLayoutPanel1.Controls.Add(tableLayoutPanel4, 1, 1);
@@ -432,9 +432,9 @@
 			lblPanel1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
 			lblPanel1.Location = new Point(0, 0);
 			lblPanel1.Name = "lblPanel1";
-			lblPanel1.Size = new Size(82, 21);
+			lblPanel1.Size = new Size(149, 21);
 			lblPanel1.TabIndex = 7;
-			lblPanel1.Text = "lblPanel1";
+			lblPanel1.Text = "CDC Subscriptions";
 			lblPanel1.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// lbxFields
@@ -451,7 +451,7 @@
 			dgvObject.AllowUserToAddRows = false;
 			dgvObject.AllowUserToDeleteRows = false;
 			dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvObject.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvObject.ColumnHeadersHeight = 40;
 			dgvObject.Dock = DockStyle.Fill;
 			dgvObject.Location = new Point(0, 21);
 			dgvObject.Name = "dgvObject";
@@ -475,33 +475,35 @@
 			tableLayoutPanel2.ColumnCount = 2;
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
-			tableLayoutPanel2.Controls.Add(button1, 1, 3);
-			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 3);
-			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 2);
-			tableLayoutPanel2.Controls.Add(btnCommit, 0, 0);
+			tableLayoutPanel2.Controls.Add(btnCommit, 0, 1);
+			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
+			tableLayoutPanel2.Controls.Add(button1, 1, 4);
+			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 3);
 			tableLayoutPanel2.Location = new Point(3, 370);
 			tableLayoutPanel2.Name = "tableLayoutPanel2";
-			tableLayoutPanel2.RowCount = 4;
+			tableLayoutPanel2.RowCount = 5;
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 51.6129036F));
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 48.3870964F));
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
-			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 82F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel2.Size = new Size(293, 231);
+			tableLayoutPanel2.Size = new Size(391, 272);
 			tableLayoutPanel2.TabIndex = 3;
 			// 
-			// button1
+			// btnCommit
 			// 
-			button1.Location = new Point(136, 151);
-			button1.Name = "button1";
-			button1.Size = new Size(145, 44);
-			button1.TabIndex = 2;
-			button1.Text = "Clear";
-			button1.UseVisualStyleBackColor = true;
+			btnCommit.Location = new Point(3, 62);
+			btnCommit.Name = "btnCommit";
+			btnCommit.Size = new Size(123, 42);
+			btnCommit.TabIndex = 7;
+			btnCommit.Text = "Commit";
+			btnCommit.UseVisualStyleBackColor = true;
+			btnCommit.Click += btnCommit_Click;
 			// 
 			// btnSubscribe
 			// 
-			btnSubscribe.Location = new Point(3, 151);
+			btnSubscribe.Location = new Point(3, 224);
 			btnSubscribe.Name = "btnSubscribe";
 			btnSubscribe.Size = new Size(104, 44);
 			btnSubscribe.TabIndex = 0;
@@ -509,14 +511,23 @@
 			btnSubscribe.UseVisualStyleBackColor = true;
 			btnSubscribe.Click += btnSubscribe_Click;
 			// 
+			// button1
+			// 
+			button1.Location = new Point(181, 224);
+			button1.Name = "button1";
+			button1.Size = new Size(145, 44);
+			button1.TabIndex = 2;
+			button1.Text = "Clear";
+			button1.UseVisualStyleBackColor = true;
+			// 
 			// grpFilterOptions
 			// 
 			tableLayoutPanel2.SetColumnSpan(grpFilterOptions, 2);
 			grpFilterOptions.Controls.Add(rbtFilterNone);
 			grpFilterOptions.Controls.Add(rbtFilterSubscribed);
-			grpFilterOptions.Location = new Point(3, 96);
+			grpFilterOptions.Location = new Point(3, 172);
 			grpFilterOptions.Name = "grpFilterOptions";
-			grpFilterOptions.Size = new Size(233, 49);
+			grpFilterOptions.Size = new Size(233, 46);
 			grpFilterOptions.TabIndex = 6;
 			grpFilterOptions.TabStop = false;
 			grpFilterOptions.Text = "Filter";
@@ -545,16 +556,6 @@
 			rbtFilterSubscribed.UseVisualStyleBackColor = true;
 			rbtFilterSubscribed.CheckedChanged += filterChanged;
 			// 
-			// btnCommit
-			// 
-			btnCommit.Location = new Point(3, 3);
-			btnCommit.Name = "btnCommit";
-			btnCommit.Size = new Size(123, 42);
-			btnCommit.TabIndex = 7;
-			btnCommit.Text = "Commit";
-			btnCommit.UseVisualStyleBackColor = true;
-			btnCommit.Click += btnCommit_Click;
-			// 
 			// tableLayoutPanel4
 			// 
 			tableLayoutPanel4.ColumnCount = 1;
@@ -562,13 +563,13 @@
 			tableLayoutPanel4.Controls.Add(dgvRelations, 0, 1);
 			tableLayoutPanel4.Controls.Add(lblRelations, 0, 0);
 			tableLayoutPanel4.Dock = DockStyle.Fill;
-			tableLayoutPanel4.Location = new Point(302, 370);
+			tableLayoutPanel4.Location = new Point(400, 370);
 			tableLayoutPanel4.Name = "tableLayoutPanel4";
 			tableLayoutPanel4.RowCount = 2;
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 11.8942728F));
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 88.10573F));
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel4.Size = new Size(1104, 290);
+			tableLayoutPanel4.Size = new Size(1006, 290);
 			tableLayoutPanel4.TabIndex = 7;
 			// 
 			// dgvRelations
@@ -580,7 +581,7 @@
 			dgvRelations.Dock = DockStyle.Fill;
 			dgvRelations.Location = new Point(3, 37);
 			dgvRelations.Name = "dgvRelations";
-			dgvRelations.Size = new Size(1098, 250);
+			dgvRelations.Size = new Size(1000, 250);
 			dgvRelations.TabIndex = 10;
 			// 
 			// lblRelations
