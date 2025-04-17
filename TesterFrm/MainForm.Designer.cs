@@ -329,13 +329,14 @@
 			// btnCommitToDB
 			// 
 			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnCommitToDB.Location = new Point(6, 35);
+			btnCommitToDB.Location = new Point(0, 35);
 			btnCommitToDB.Name = "btnCommitToDB";
 			btnCommitToDB.Size = new Size(173, 32);
 			btnCommitToDB.TabIndex = 4;
 			btnCommitToDB.Text = "Commit to Database";
 			btnCommitToDB.UseVisualStyleBackColor = true;
-			btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
+			//	btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
+			btnCommitToDB.Click += async (s, e) => await CommitObjectsAsDbArtefactsAsync(s, e);
 			// 
 			// btnClearDestination
 			// 

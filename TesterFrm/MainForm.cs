@@ -185,26 +185,71 @@ namespace TesterFrm {
 			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
 		}
 
-		private void btnCommit_Click(object sender, EventArgs e) {
+		private async void btnCommit_Click(object sender, EventArgs e) {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
 			//MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
 		}
-		private void btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
-			//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
+		//private async Task btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
+		//	//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
 
-			_destinationTable.TableName = "sfSObjects";
-			string s = _sqlServerLib.CreateSqlTableFromDataTable(_destinationTable);
-			_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
-			foreach (DataRow row in _destinationTable.Rows) {
-				string tableName = row["name"].ToString();
-				//string s = _sqlServerLib.CreateTable(tableName);
+		//	_destinationTable.TableName = "sfSObjects";
+		//	//	string s = _sqlServerLib.CreateSqlTableFromDataTable(_destinationTable);
+		//	_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
+		//	foreach (DataRow row in _destinationTable.Rows) {
+		//		string tableName = row["name"].ToString();
+		//		//DataSet ds =await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName).Result;
+		//		DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName!);
+		//		//string s = _sqlServerLib.CreateTable(tableName);
 
-				_l.LogDebug($"Created Table={s}");
-				lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
+
+		//		lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
+		//	}
+		//	toolStripStatusLabel1.Text = $"Created {_destinationTable.Rows.Count}, now select the tables and fields in pub/sub tab.. ";
+		//	//MessageBox.Show("Rows committed to the database successfully.");
+		//}
+
+		private async Task CommitObjectsAsDbArtefactsAsync(object sender, EventArgs e) {
+			try {
+				// Validate selection
+				if (lbxObjects.SelectedItem == null) {
+					toolStripStatusLabel1.Text = "Please select an object first.";
+					return;
+				}
+
+				// Get selected fields
+				List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+				_l.LogDebug($"Selected fields: {string.Join(", ", selectedFields)}");
+
+				// Configure destination table
+				_destinationTable.TableName = "sfSObjects";
+				_l.LogDebug($"Processing {_destinationTable.Rows.Count} rows in destination table");
+
+				// Process each row
+				foreach (DataRow row in _destinationTable.Rows) {
+					string tableName = row["name"]?.ToString();
+					if (string.IsNullOrEmpty(tableName)) {
+						_l.LogWarning("Encountered empty table name, skipping...");
+						continue;
+					}
+
+					try {
+						// Fetch schema and process
+						DataSet schema = await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName);
+						lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
+					} catch (Exception ex) {
+						_l.LogError($"Failed to process table {tableName}: {ex.Message}");
+						continue;
+					}
+				}
+
+				// Update UI with results
+				toolStripStatusLabel1.Text = $"Processed {_destinationTable.Rows.Count} tables. Select tables and fields in pub/sub tab.";
+			} catch (Exception ex) {
+				_l.LogError($"Unexpected error during commit: {ex.Message}");
+				toolStripStatusLabel1.Text = "Error processing tables. Check logs for details.";
+				MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
-			toolStripStatusLabel1.Text = $"Created {_destinationTable.Rows.Count}, now select the tables and fields in pub/sub tab.. ";
-			//MessageBox.Show("Rows committed to the database successfully.");
 		}
 		#endregion buttons
 		#region dgv
@@ -422,6 +467,7 @@ namespace TesterFrm {
 				destination.Columns.Add(ncol);// Add the column to destination
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+			if (dgvDestination.Columns.Count>0)
 			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 
 		}
