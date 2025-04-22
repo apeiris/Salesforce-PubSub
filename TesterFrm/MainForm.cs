@@ -4,17 +4,10 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Data;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
-using System.Dynamic;
-using System.Threading.Tasks;
-using System.Windows.Forms.VisualStyles;
-using System.Text.Json;
 using System.Diagnostics;
-//using NLog;
-using System.Windows.Forms;
-using DocumentFormat.OpenXml.Packaging;
 using mySalesforce;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region fields
@@ -40,6 +33,7 @@ namespace TesterFrm {
 		private DataTable _sourceTable; // Data source for dgvSource
 		private DataTable _destinationTable; // Data source for dgvDestination
 		private DataTable _dtRegistered; // Data source for registered tables
+		private static int _lbxLogMw = 0;
 
 		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
 		private readonly SqlServerLib _sqlServerLib;
@@ -52,7 +46,7 @@ namespace TesterFrm {
 			try {
 				btnAuthenticate.Enabled = false;
 				this.Invoke((Action)(() => txtResult.Clear()));
-				var token = await _salesforceService.AuthenticateAsync();
+				var token = await _salesforceService.GetSFTokenAsync();
 				this.Invoke((Action)(() => txtResult.Text = $"Token copied to clipboard: {token}..."));
 				Clipboard.SetText(token);
 
@@ -90,7 +84,7 @@ namespace TesterFrm {
 
 				// Perform the async operation outside the lock
 				//DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
-				DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
 				// Now synchronize access to the UI with lock
 				DataTable dt = ds.Tables[ObjectFromTopic((string)lbxObjects.SelectedItem!)];
 				lock (_dgvLock) {
@@ -143,8 +137,7 @@ namespace TesterFrm {
 			dgvDestination.AutoResizeColumns();
 			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 			lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
-			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
-
+			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
 
 		private void btnMoveLeft_Click(object sender, EventArgs e) {
@@ -184,73 +177,14 @@ namespace TesterFrm {
 			}
 			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
 		}
-
-		private async void btnCommit_Click(object sender, EventArgs e) {
-			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
-			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
-			//MessageBox.Show($"Selected fields:{string.Join(", ", selectedFields)}");
+		private void btnClearLog_Click(object sender, EventArgs e) {
+			lbxLog.Items.Clear();
 		}
-		//private async Task btnCommitObjectsAsDbArtefacts(object sender, EventArgs e) {
-		//	//DataTable dt = (DataTable)_sqlServerLib.GetAll_sfoTables();
-
-		//	_destinationTable.TableName = "sfSObjects";
-		//	//	string s = _sqlServerLib.CreateSqlTableFromDataTable(_destinationTable);
-		//	_l.LogDebug($"_destinationTable .RowCount={_destinationTable.Rows.Count}");
-		//	foreach (DataRow row in _destinationTable.Rows) {
-		//		string tableName = row["name"].ToString();
-		//		//DataSet ds =await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName).Result;
-		//		DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName!);
-		//		//string s = _sqlServerLib.CreateTable(tableName);
-
-
-		//		lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
-		//	}
-		//	toolStripStatusLabel1.Text = $"Created {_destinationTable.Rows.Count}, now select the tables and fields in pub/sub tab.. ";
-		//	//MessageBox.Show("Rows committed to the database successfully.");
-		//}
-
-		private async Task CommitObjectsAsDbArtefactsAsync(object sender, EventArgs e) {
-			try {
-				// Validate selection
-				if (lbxObjects.SelectedItem == null) {
-					toolStripStatusLabel1.Text = "Please select an object first.";
-					return;
-				}
-
-				// Get selected fields
-				List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
-				_l.LogDebug($"Selected fields: {string.Join(", ", selectedFields)}");
-
-				// Configure destination table
-				_destinationTable.TableName = "sfSObjects";
-				_l.LogDebug($"Processing {_destinationTable.Rows.Count} rows in destination table");
-
-				// Process each row
-				foreach (DataRow row in _destinationTable.Rows) {
-					string tableName = row["name"]?.ToString();
-					if (string.IsNullOrEmpty(tableName)) {
-						_l.LogWarning("Encountered empty table name, skipping...");
-						continue;
-					}
-
-					try {
-						// Fetch schema and process
-						DataSet schema = await _salesforceService.GetObjectSchemaAsDataTableAsync(tableName);
-						lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
-					} catch (Exception ex) {
-						_l.LogError($"Failed to process table {tableName}: {ex.Message}");
-						continue;
-					}
-				}
-
-				// Update UI with results
-				toolStripStatusLabel1.Text = $"Processed {_destinationTable.Rows.Count} tables. Select tables and fields in pub/sub tab.";
-			} catch (Exception ex) {
-				_l.LogError($"Unexpected error during commit: {ex.Message}");
-				toolStripStatusLabel1.Text = "Error processing tables. Check logs for details.";
-				MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			}
+		private void btnCommit_Click(object sender, EventArgs e) {
+			
 		}
+
+
 		#endregion buttons
 		#region dgv
 		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject, string columnName, List<string> fieldList) {
@@ -354,13 +288,14 @@ namespace TesterFrm {
 		}
 
 		private async Task LoadSfObjectsAsync() {
-			_l.LogDebug("LoadSfObjectsAsync()");
+			//_l.LogDebug("LoadSfObjectsAsync()");
+			Log("LoadSFObjectsAsync", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
 				_sourceTable = await _salesforceService.GetAllObjects();
 				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
-				_l.LogDebug($"_dtRegistered={_dtRegistered.Rows.Count}");
+				Log($"the registed from Sql server contains {_dtRegistered.Rows.Count} ", LogLevel.Debug);
 				_sourceTable = _dtRegistered.ExcludeRegistered(_sourceTable, "name");
 				_l.LogDebug($"after exluding registered={_dtRegistered.Rows.Count}");
 				_sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
@@ -370,7 +305,7 @@ namespace TesterFrm {
 						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
 						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
 						if (_dtRegistered.Rows.Count > 0) {
-							_l.LogDebug($"Registered rowcount {_dtRegistered.Rows.Count}");
+							Log($"Registered rowcount {_dtRegistered.Rows.Count}", LogLevel.Debug);
 							_destinationTable = _dtRegistered;
 							dgvDestination.DataSource = _destinationTable;
 						}
@@ -395,6 +330,13 @@ namespace TesterFrm {
 			//_logger = Log.ForContext<MainForm>();
 			_sqlServerLib = sqlServerLib;
 
+			if (_salesforceService is SalesforceService cs) {
+				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt;
+			}
+			;
+			_sqlServerLib.SqlEvent += (s, e) => {
+				Log(e.Message, e.LogLevel);
+			};
 			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
 			_l = logger ?? throw new ArgumentNullException(nameof(logger));
 			_l.LogDebug("MainForm initialized.");
@@ -410,6 +352,16 @@ namespace TesterFrm {
 			//lblPanel2.Parent = splitContainer1.Panel2;
 			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
+		}
+		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
+
+			Invoke((Action)(() => {
+
+				Log($"Authenticating: {e.Message}", e.LogLevel);
+
+				btnAuthenticate.Enabled = false;
+				toolStripStatusLabel1.Text = "Authenticating...";
+			}));
 		}
 		protected override void OnFormClosed(FormClosedEventArgs e) {
 			base.OnFormClosed(e);
@@ -467,10 +419,52 @@ namespace TesterFrm {
 				destination.Columns.Add(ncol);// Add the column to destination
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-			if (dgvDestination.Columns.Count>0)
-			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
+			if (dgvDestination.Columns.Count > 0)
+				dgvDestination.Columns[0].HeaderText = "CDC Candidates";
 
 		}
+		private async Task CommitObjectsAsDbArtefactsAsync(object sender, EventArgs e) {
+			try {
+				// Validate selection
+				if (lbxObjects.SelectedItem == null) {
+					toolStripStatusLabel1.Text = "Please select an object first.";
+					return;
+				}
+
+				// Get selected fields
+				List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+				_l.LogDebug($"Selected fields: {string.Join(", ", selectedFields)}");
+
+				// Configure destination table
+				_destinationTable.TableName = "sfSObjects";
+				_l.LogDebug($"Processing {_destinationTable.Rows.Count} rows in destination table");
+
+				// Process each row
+				foreach (DataRow row in _destinationTable.Rows) {
+					string tableName = row["name"]?.ToString();
+					if (string.IsNullOrEmpty(tableName)) {
+						_l.LogWarning("Encountered empty table name, skipping...");
+						continue;
+					}
+
+					try {
+						// Fetch schema and process
+						DataSet schema = await _salesforceService.GetObjectSchemaAsDataSetAsync(tableName);
+						lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
+					} catch (Exception ex) {
+						_l.LogError($"Failed to process table {tableName}: {ex.Message}");
+						continue;
+					}
+				}
+
+				toolStripStatusLabel1.Text = $"Processed {_destinationTable.Rows.Count} tables. Select tables and fields in pub/sub tab.";
+			} catch (Exception ex) {
+				_l.LogError($"Unexpected error during commit: {ex.Message}");
+				toolStripStatusLabel1.Text = "Error processing tables. Check logs for details.";
+				MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+
 		#endregion helpers
 		#region lbx
 		private void LoadTopics(ListBox listBox) {
@@ -489,7 +483,7 @@ namespace TesterFrm {
 					lbxFields.Items.AddRange(fields.ToArray());
 				}));
 				string selectedObject = ObjectFromTopic(selectedTopic);
-				DataSet ds = await _salesforceService.GetObjectSchemaAsDataTableAsync(selectedObject);// async operations outside the lock
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(selectedObject);// async operations outside the lock
 				DataTable dtObject = ds.Tables[selectedObject];
 				toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
 
@@ -514,17 +508,48 @@ namespace TesterFrm {
 				this.UseWaitCursor = false;
 			}
 		}
-
 		private void filterChanged(object sender, EventArgs e) {
 			lbxObjects_SelectedIndexChanged(null, null);
 		}
-
+		#region lbxLog
+		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
+			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
+			lbxLog.Items.Add(new LogItem(msg, l));
+		}
+		private void lbxLog_DrawItem(object sender, DrawItemEventArgs e) {
+			if (e.Index < 0) return;
+			Color bc;
+			LogItem li = (LogItem)lbxLog.Items[e.Index];
+			string text = lbxLog.Items[e.Index].ToString();
+			switch (li.Level) {
+				case LogLevel.Debug:
+				bc = Color.Blue;
+				break;
+				case LogLevel.Information:
+				bc = Color.Green;
+				break;
+				case LogLevel.Warning:
+				bc = Color.Yellow;
+				break;
+				case LogLevel.Error:
+				bc = Color.Red;
+				break;
+				default:
+				bc = Color.Gray;
+				break;
+			}
+			int iW = (int)e.Graphics.MeasureString(text, e.Font).Width;
+			_lbxLogMw = iW > _lbxLogMw ? iW : _lbxLogMw;
+			lbxLog.HorizontalExtent = _lbxLogMw;
+			e.Graphics.FillRectangle(new SolidBrush(bc), e.Bounds);
+			TextRenderer.DrawText(e.Graphics, text, e.Font, e.Bounds, e.ForeColor, TextFormatFlags.Left);
+			e.DrawFocusRectangle();
+		}
+		#endregion lbxLog
 		#endregion lbx
 		#region tabs
-
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
-
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
@@ -534,8 +559,7 @@ namespace TesterFrm {
 				}
 				break;
 				case "tbppubsub":
-
-				//LoadTopics(lbxObjects); // Load topics into the listbox
+				LoadTopics(lbxObjects); // Load topics into the listbox
 				break;
 				default: break;
 			}
@@ -545,7 +569,47 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
+		private async void btnCommitToDB_Click(object sender, EventArgs e) {
+			//	btnCommit.PerformClick();
+			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
+
+			//List<string>
+			foreach (DataRow dr in _destinationTable.Rows) {
+				string tblName = dr["name"].ToString();
+				Log($"Processing {dr["name"]}", LogLevel.Debug);
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
+
+				if (ds != null) {
+					rtfLog.Text = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0],tblName);
+				} else {
+					Log($"Schema for the table {tblName} could not be retrived..",LogLevel.Error);
+					Debugger.Break();
+
+					//throw new Exception($"Null dataset return fro {dr["name"].ToString()}");
+				}
+			}
+
+		}
 	}
+	#region utility classes
+	public class LogItem {
+		public string Message { get; set; }
+		public LogLevel Level { get; set; }
+		public LogItem(string message, LogLevel level) {
+			Message = message;
+			Level = level;
+		}
+		public override string ToString() {
+			return Message;
+		}
+	}
+
+
+
+	#endregion utility classes
+
 }
 
 

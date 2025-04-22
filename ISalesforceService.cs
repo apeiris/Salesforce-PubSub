@@ -4,12 +4,13 @@ namespace NetUtils;
 
 public interface ISalesforceService
 	{
-	Task<string> AuthenticateAsync();
+	Task<string> GetSFTokenAsync();
 	Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync();
 	Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default);
 	Task<string> GetObjectSchemaSummaryAsync(string objectName);
 
-	Task<DataSet> GetObjectSchemaAsDataTableAsync(string objectName);
+             	  
+	Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName);
 	Task<DataTable> GetAllObjects();
 
 }

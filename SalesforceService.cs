@@ -1,23 +1,26 @@
 ﻿using System.Data;
-using System.Security.Cryptography.Xml;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
 		private readonly SalesforceConfig _settings;
 		private readonly ILogger<SalesforceService> _logger;
+		//public event Func<object, AuthenticationEventArgs, Task> AuthenticationAttempt;
+		public event EventHandler<AuthenticationEventArgs> AuthenticationAttempt;
 		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings, ILogger<SalesforceService> logger) {
 			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
 		}
-		public async Task<string> AuthenticateAsync() {
+		public async Task<string> GetSFTokenAsync() {
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
 			var parameters = new Dictionary<string, string>
 			{
@@ -50,12 +53,25 @@ namespace NetUtils {
 			};
 			var response = await _httpClient.SendAsync(request);
 			var responseContent = await response.Content.ReadAsStringAsync();
-			if (!response.IsSuccessStatusCode)
-				throw new HttpRequestException($"OAuth failed: {response.StatusCode}, {responseContent}");
+			if (!response.IsSuccessStatusCode) {
+				//throw new HttpRequestException($"OAuth failed: {response.StatusCode}, {responseContent}");
+			//	AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(false, $"Authentication failed: {responseContent}"));
+				RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
+				return (null, null, null);
+			}
 			var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseContent);
 			var tenantId = data!["id"].Split('/')[^2];
+			//AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(true, "Authentication successful", data["instance_url"]));
+			RaiseAuthenticationAttempt(LogLevel.Information, $"Authenticated {responseContent}");
 			return (data["access_token"], data["instance_url"], tenantId);
 		}
+		private void RaiseAuthenticationAttempt(LogLevel ll, string message, string instanceUrl = null,
+		[CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0) {
+			string detailedMessage = $"{message} [Method: {callerMemberName}, Line: {callerLineNumber}]";
+			AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(ll, detailedMessage, instanceUrl));
+		}
+		
+		
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) {    // Validate input
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
@@ -161,7 +177,7 @@ namespace NetUtils {
 			}
 			return sb.ToString();
 		}
-		public async Task<DataSet> GetObjectSchemaAsDataTableAsync(string objectName) {
+		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName) {
 			var schemax = await GetObjectSchemaAsync(objectName);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
@@ -211,6 +227,38 @@ namespace NetUtils {
 			}
 			return ds;
 		}
+		//====================================================================================
+		#region helpers
+		
+		
+		public class AuthenticationEventArgs : EventArgs {
+			public LogLevel LogLevel { get; }
+			public string Message { get; }
+			public string InstanceUrl { get; }
+
+			public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
+			//_logger.Logle
+				LogLevel = ll;
+				Message = message;
+				InstanceUrl = instanceUrl;
+			}
+		}
+
+		public class SchemaFetchedEventArgs : EventArgs {
+			public string ObjectName { get; }
+			public DataTable Schema { get; }
+			public bool Success { get; }
+			public string ErrorMessage { get; }
+
+			public SchemaFetchedEventArgs(string objectName, DataTable schema, bool success, string errorMessage = null) {
+				ObjectName = objectName;
+				Schema = schema;
+				Success = success;
+				ErrorMessage = errorMessage;
+			}
+		}
+		#endregion	helpers
+
 		// ===================================================================================
 		public class TokenResponse {
 			public string access_token { get; set; }

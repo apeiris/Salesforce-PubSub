@@ -41,7 +41,6 @@
 			dgvObject = new DataGridView();
 			lblSelectedTable = new Label();
 			tableLayoutPanel2 = new TableLayoutPanel();
-			btnCommit = new Button();
 			btnSubscribe = new Button();
 			button1 = new Button();
 			grpFilterOptions = new GroupBox();
@@ -55,6 +54,13 @@
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
 			txtObjectName = new TextBox();
+			tbpEventLog = new TabPage();
+			splitContainer3 = new SplitContainer();
+			tableLayoutPanel6 = new TableLayoutPanel();
+			tableLayoutPanel7 = new TableLayoutPanel();
+			btnClearLog = new Button();
+			lbxLog = new ListBox();
+			rtfLog = new RichTextBox();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -80,6 +86,13 @@
 			tbpOAuth2.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
+			tbpEventLog.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitContainer3).BeginInit();
+			splitContainer3.Panel1.SuspendLayout();
+			splitContainer3.Panel2.SuspendLayout();
+			splitContainer3.SuspendLayout();
+			tableLayoutPanel6.SuspendLayout();
+			tableLayoutPanel7.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -134,6 +147,7 @@
 			tabControl1.Controls.Add(tbpPubSub);
 			tabControl1.Controls.Add(tbpOAuth2);
 			tabControl1.Controls.Add(tbpDescribeObject);
+			tabControl1.Controls.Add(tbpEventLog);
 			tabControl1.Dock = DockStyle.Fill;
 			tabControl1.Location = new Point(0, 0);
 			tabControl1.Name = "tabControl1";
@@ -335,8 +349,7 @@
 			btnCommitToDB.TabIndex = 4;
 			btnCommitToDB.Text = "Commit to Database";
 			btnCommitToDB.UseVisualStyleBackColor = true;
-			//	btnCommitToDB.Click += btnCommitObjectsAsDbArtefacts;
-			btnCommitToDB.Click += async (s, e) => await CommitObjectsAsDbArtefactsAsync(s, e);
+			btnCommitToDB.Click += btnCommitToDB_Click;
 			// 
 			// btnClearDestination
 			// 
@@ -476,7 +489,6 @@
 			tableLayoutPanel2.ColumnCount = 2;
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
-			tableLayoutPanel2.Controls.Add(btnCommit, 0, 1);
 			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
 			tableLayoutPanel2.Controls.Add(button1, 1, 4);
 			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 3);
@@ -491,16 +503,6 @@
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel2.Size = new Size(391, 272);
 			tableLayoutPanel2.TabIndex = 3;
-			// 
-			// btnCommit
-			// 
-			btnCommit.Location = new Point(3, 62);
-			btnCommit.Name = "btnCommit";
-			btnCommit.Size = new Size(123, 42);
-			btnCommit.TabIndex = 7;
-			btnCommit.Text = "Commit";
-			btnCommit.UseVisualStyleBackColor = true;
-			btnCommit.Click += btnCommit_Click;
 			// 
 			// btnSubscribe
 			// 
@@ -657,6 +659,95 @@
 			txtObjectName.TabIndex = 1;
 			txtObjectName.Text = "Account";
 			// 
+			// tbpEventLog
+			// 
+			tbpEventLog.Controls.Add(splitContainer3);
+			tbpEventLog.Location = new Point(4, 24);
+			tbpEventLog.Name = "tbpEventLog";
+			tbpEventLog.Size = new Size(1415, 678);
+			tbpEventLog.TabIndex = 4;
+			tbpEventLog.Text = "Event Log";
+			tbpEventLog.UseVisualStyleBackColor = true;
+			// 
+			// splitContainer3
+			// 
+			splitContainer3.Dock = DockStyle.Fill;
+			splitContainer3.Location = new Point(0, 0);
+			splitContainer3.Name = "splitContainer3";
+			// 
+			// splitContainer3.Panel1
+			// 
+			splitContainer3.Panel1.Controls.Add(tableLayoutPanel6);
+			// 
+			// splitContainer3.Panel2
+			// 
+			splitContainer3.Panel2.Controls.Add(rtfLog);
+			splitContainer3.Size = new Size(1415, 678);
+			splitContainer3.SplitterDistance = 762;
+			splitContainer3.TabIndex = 0;
+			// 
+			// tableLayoutPanel6
+			// 
+			tableLayoutPanel6.ColumnCount = 1;
+			tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel6.Controls.Add(tableLayoutPanel7, 0, 1);
+			tableLayoutPanel6.Controls.Add(lbxLog, 0, 0);
+			tableLayoutPanel6.Dock = DockStyle.Fill;
+			tableLayoutPanel6.Location = new Point(0, 0);
+			tableLayoutPanel6.Name = "tableLayoutPanel6";
+			tableLayoutPanel6.RowCount = 2;
+			tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 90.26549F));
+			tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 9.734513F));
+			tableLayoutPanel6.Size = new Size(762, 678);
+			tableLayoutPanel6.TabIndex = 0;
+			// 
+			// tableLayoutPanel7
+			// 
+			tableLayoutPanel7.ColumnCount = 2;
+			tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel7.Controls.Add(btnClearLog, 0, 0);
+			tableLayoutPanel7.Location = new Point(3, 615);
+			tableLayoutPanel7.Name = "tableLayoutPanel7";
+			tableLayoutPanel7.RowCount = 2;
+			tableLayoutPanel7.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel7.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel7.Size = new Size(200, 60);
+			tableLayoutPanel7.TabIndex = 0;
+			// 
+			// btnClearLog
+			// 
+			btnClearLog.Location = new Point(3, 3);
+			btnClearLog.Name = "btnClearLog";
+			btnClearLog.Size = new Size(93, 23);
+			btnClearLog.TabIndex = 0;
+			btnClearLog.Text = "Clear log";
+			btnClearLog.UseVisualStyleBackColor = true;
+			btnClearLog.Click += btnClearLog_Click;
+			// 
+			// lbxLog
+			// 
+			lbxLog.Dock = DockStyle.Fill;
+			lbxLog.DrawMode = DrawMode.OwnerDrawFixed;
+			lbxLog.FormattingEnabled = true;
+			lbxLog.HorizontalScrollbar = true;
+			lbxLog.Location = new Point(3, 3);
+			lbxLog.Name = "lbxLog";
+			lbxLog.ScrollAlwaysVisible = true;
+			lbxLog.Size = new Size(756, 606);
+			lbxLog.TabIndex = 1;
+			lbxLog.DrawItem += lbxLog_DrawItem;
+			// 
+			// rtfLog
+			// 
+			rtfLog.Dock = DockStyle.Fill;
+			rtfLog.Location = new Point(0, 0);
+			rtfLog.Name = "rtfLog";
+			rtfLog.Size = new Size(649, 678);
+			rtfLog.TabIndex = 0;
+			rtfLog.Text = "";
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -703,6 +794,13 @@
 			tbpDescribeObject.ResumeLayout(false);
 			tableLayoutPanel5.ResumeLayout(false);
 			tableLayoutPanel5.PerformLayout();
+			tbpEventLog.ResumeLayout(false);
+			splitContainer3.Panel1.ResumeLayout(false);
+			splitContainer3.Panel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer3).EndInit();
+			splitContainer3.ResumeLayout(false);
+			tableLayoutPanel6.ResumeLayout(false);
+			tableLayoutPanel7.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -755,5 +853,12 @@
 		//	private DataGridView dgvRelations;
 		private Label lblRelations;
 		private DataGridView dgvRelations;
+		private TabPage tbpEventLog;
+		private SplitContainer splitContainer3;
+		private TableLayoutPanel tableLayoutPanel6;
+		private TableLayoutPanel tableLayoutPanel7;
+		private Button btnClearLog;
+		private ListBox lbxLog;
+		private RichTextBox rtfLog;
 	}
 }
