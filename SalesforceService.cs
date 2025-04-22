@@ -12,6 +12,12 @@ namespace NetUtils {
 		private readonly HttpClient _httpClient;
 		private readonly SalesforceConfig _settings;
 		private readonly ILogger<SalesforceService> _logger;
+
+		private static readonly object _tokenLock = new object();
+		private static string _cachedToken;
+		private static string _cachedInstanceUrl;
+		private static DateTimeOffset? _tokenExpiresAt;
+
 		//public event Func<object, AuthenticationEventArgs, Task> AuthenticationAttempt;
 		public event EventHandler<AuthenticationEventArgs> AuthenticationAttempt;
 		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings, ILogger<SalesforceService> logger) {
@@ -19,6 +25,110 @@ namespace NetUtils {
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
+		}
+
+		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
+			if (string.IsNullOrWhiteSpace(objectName)) {
+				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
+			}
+
+			// Check cache for valid token
+			string token;
+			string instanceUrl;
+			lock (_tokenLock) {
+				if (!string.IsNullOrEmpty(_cachedToken) &&
+					!string.IsNullOrEmpty(_cachedInstanceUrl) &&
+					(_tokenExpiresAt == null || _tokenExpiresAt > DateTimeOffset.UtcNow.AddSeconds(30))) {
+					token = _cachedToken;
+					instanceUrl = _cachedInstanceUrl;
+					_logger.LogDebug("Using cached token for {ObjectName}", objectName);
+				} else {
+					token = null;
+					instanceUrl = null;
+				}
+			}
+
+			// Fetch new token if cache is invalid or expired
+			if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(instanceUrl)) {
+				_logger.LogDebug("Fetching new token for {ObjectName}", objectName);
+				var (newToken, newInstanceUrl, expiresAt) = await GetAccessTokenAsync();
+				if (string.IsNullOrEmpty(newToken) || string.IsNullOrEmpty(newInstanceUrl)) {
+					_logger.LogError("Invalid token or instance URL for {ObjectName}", objectName);
+					throw new Exception("Authentication failed: missing token or instance URL");
+				}
+
+				// Parse expiresAt string to DateTimeOffset
+				DateTimeOffset? parsedExpiresAt = null;
+				if (!string.IsNullOrEmpty(expiresAt)) {
+					// Try parsing as ISO 8601 timestamp
+					if (DateTimeOffset.TryParse(expiresAt, out var parsedDateTime)) {
+						parsedExpiresAt = parsedDateTime;
+					}
+					// Try parsing as seconds (duration)
+					else if (double.TryParse(expiresAt, out var seconds)) {
+						parsedExpiresAt = DateTimeOffset.UtcNow.AddSeconds(seconds);
+					} else {
+						_logger.LogWarning("Invalid expiresAt format for {ObjectName}: {ExpiresAt}. Using default expiration.", objectName, expiresAt);
+					}
+				}
+
+				// Update cache
+				lock (_tokenLock) {
+					_cachedToken = newToken;
+					_cachedInstanceUrl = newInstanceUrl;
+					_tokenExpiresAt = parsedExpiresAt ?? DateTimeOffset.UtcNow.AddHours(1); // Default to 1 hour if null or invalid
+					_logger.LogDebug("Cached new token for {ObjectName}, expires at {ExpiresAt}", objectName, _tokenExpiresAt);
+				}
+				token = newToken;
+				instanceUrl = newInstanceUrl;
+			}
+
+			// Construct URL
+			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
+			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe";
+			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
+
+			// Set up request
+			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+
+			try {
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("API request failed for {ObjectName}: Status={StatusCode}, Content={Content}",
+						objectName, response.StatusCode, errorContent);
+					throw new Exception($"Failed to retrieve schema for {objectName}: {response.ReasonPhrase}");
+				}
+
+				await using var stream = await response.Content.ReadAsStreamAsync();
+				JsonElement schema;
+				try {
+					schema = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
+				} catch (JsonException jsonEx) {
+					_logger.LogError("Failed to deserialize schema for {ObjectName}: {Message}", objectName, jsonEx.Message);
+					throw new Exception($"Invalid JSON response for {objectName}", jsonEx);
+				}
+
+				// Validate schema
+				if (!schema.TryGetProperty("fields", out _) || !schema.TryGetProperty("childRelationships", out _)) {
+					_logger.LogError("Schema for {ObjectName} missing required properties", objectName);
+					throw new Exception($"Invalid schema for {objectName}: missing fields or childRelationships");
+				}
+
+				_logger.LogDebug("Successfully retrieved schema for {ObjectName}", objectName);
+				return schema;
+			} catch (HttpRequestException httpEx) {
+				_logger.LogError("HTTP error retrieving schema for {ObjectName}: {Message}", objectName, httpEx.Message);
+				throw new Exception($"Failed to retrieve schema for {objectName}: {httpEx.Message}", httpEx);
+			} catch (TaskCanceledException timeoutEx) {
+				_logger.LogError("Request timed out for {ObjectName}: {Message}", objectName, timeoutEx.Message);
+				throw new Exception($"Schema request for {objectName} timed out", timeoutEx);
+			} catch (Exception ex) {
+				_logger.LogError("Unexpected error retrieving schema for {ObjectName}: {Message}", objectName, ex.Message);
+				throw;
+			}
 		}
 		public async Task<string> GetSFTokenAsync() {
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
@@ -72,54 +182,7 @@ namespace NetUtils {
 		}
 		
 		
-		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
-			if (string.IsNullOrWhiteSpace(objectName)) {    // Validate input
-				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
-			}
-			var (token, instanceUrl, _) = await GetAccessTokenAsync();// Get token and instance URL
-			if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(instanceUrl)) {
-				_logger.LogError("Invalid token or instance URL for {ObjectName}", objectName);
-				throw new Exception("Authentication failed: missing token or instance URL");
-			}
-			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion; // Construct URL
-			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe";
-			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
-			using var request = new HttpRequestMessage(HttpMethod.Get, url);// Set up request
-			request.Headers.Add("Authorization", $"Bearer {token}");
-			request.Headers.Add("Accept", "application/json");
-			try {
-				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
-				if (!response.IsSuccessStatusCode) {
-					string errorContent = await response.Content.ReadAsStringAsync();
-					_logger.LogError("API request failed for {ObjectName}: Status={StatusCode}, Content={Content}",
-						objectName, response.StatusCode, errorContent);
-					throw new Exception($"Failed to retrieve schema for {objectName}: {response.ReasonPhrase}");
-				}
-				await using var stream = await response.Content.ReadAsStreamAsync();
-				JsonElement schema;
-				try {
-					schema = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
-				} catch (JsonException jsonEx) {
-					_logger.LogError("Failed to deserialize schema for {ObjectName}: {Message}", objectName, jsonEx.Message);
-					throw new Exception($"Invalid JSON response for {objectName}", jsonEx);
-				}
-				if (!schema.TryGetProperty("fields", out _) || !schema.TryGetProperty("childRelationships", out _)) {// Validate schema
-					_logger.LogError("Schema for {ObjectName} missing required properties", objectName);
-					throw new Exception($"Invalid schema for {objectName}: missing fields or childRelationships");
-				}
-				_logger.LogDebug("Successfully retrieved schema for {ObjectName}", objectName);
-				return schema;
-			} catch (HttpRequestException httpEx) {
-				_logger.LogError("HTTP error retrieving schema for {ObjectName}: {Message}", objectName, httpEx.Message);
-				throw new Exception($"Failed to retrieve schema for {objectName}: {httpEx.Message}", httpEx);
-			} catch (TaskCanceledException timeoutEx) {
-				_logger.LogError("Request timed out for {ObjectName}: {Message}", objectName, timeoutEx.Message);
-				throw new Exception($"Schema request for {objectName} timed out", timeoutEx);
-			} catch (Exception ex) {
-				_logger.LogError("Unexpected error retrieving schema for {ObjectName}: {Message}", objectName, ex.Message);
-				throw;
-			}
-		}
+		
 		public async Task<DataTable> GetAllObjects() {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
