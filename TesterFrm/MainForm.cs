@@ -102,7 +102,6 @@ namespace TesterFrm {
 				_semaphore.Release();
 			}
 		}
-
 		#region move right and left
 		private void btnMoveRight_Click(object sender, EventArgs e) {
 			_l.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
@@ -139,7 +138,6 @@ namespace TesterFrm {
 			lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
 			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
-
 		private void btnMoveLeft_Click(object sender, EventArgs e) {
 			if (dgvDestination.SelectedRows.Count == 0) return;
 			_sourceTable = (DataTable)dgvSource.DataSource;
@@ -180,12 +178,24 @@ namespace TesterFrm {
 		private void btnClearLog_Click(object sender, EventArgs e) {
 			lbxLog.Items.Clear();
 		}
-		private void btnCommit_Click(object sender, EventArgs e) {
-			
+		private async void btnCommitToDB_Click(object sender, EventArgs e) {
+			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
+			foreach (DataRow dr in _destinationTable.Rows) {
+				string tblName = dr["name"].ToString();
+				Log($"Processing {dr["name"]}", LogLevel.Debug);
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
+				if (ds != null) {
+					rtfLog.Text = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], tblName);
+				} else {
+					Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
+					Debugger.Break();
+				}
+			}
 		}
-
-
 		#endregion buttons
+
 		#region dgv
 		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject, string columnName, List<string> fieldList) {
 			// Ensure the map exists for this DataGridView
@@ -569,29 +579,7 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
-		private async void btnCommitToDB_Click(object sender, EventArgs e) {
-			//	btnCommit.PerformClick();
-			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
-			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
-			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
 
-			//List<string>
-			foreach (DataRow dr in _destinationTable.Rows) {
-				string tblName = dr["name"].ToString();
-				Log($"Processing {dr["name"]}", LogLevel.Debug);
-				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
-
-				if (ds != null) {
-					rtfLog.Text = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0],tblName);
-				} else {
-					Log($"Schema for the table {tblName} could not be retrived..",LogLevel.Error);
-					Debugger.Break();
-
-					//throw new Exception($"Null dataset return fro {dr["name"].ToString()}");
-				}
-			}
-
-		}
 	}
 	#region utility classes
 	public class LogItem {
