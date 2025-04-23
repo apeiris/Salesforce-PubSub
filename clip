@@ -1,0 +1,194 @@
+diff --git a/SalesforceConfig.cs b/SalesforceConfig.cs
+index c2e814b..42df6d0 100644
+--- a/SalesforceConfig.cs
++++ b/SalesforceConfig.cs
+@@ -14,6 +14,7 @@ namespace NetUtils {
+ 		public string LoginUrl { get; set; }
+ 		public string GrpcUrl { get; set; }
+ 		public string PubSubEndpoint { get; set; }
++		public string SqlSchemaName { get; set; }
+ 		public List<Topic> Topics { get; set; }
+ 	}
+ 
+diff --git a/SalesforceService.cs b/SalesforceService.cs
+index 4d5b24d..ef34af6 100644
+--- a/SalesforceService.cs
++++ b/SalesforceService.cs
+@@ -85,7 +85,7 @@ namespace NetUtils {
+ 
+ 			// Construct URL
+ 			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
+-			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe";
++			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
+ 			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
+ 
+ 			// Set up request
+@@ -180,24 +180,36 @@ namespace NetUtils {
+ 			string detailedMessage = $"{message} [Method: {callerMemberName}, Line: {callerLineNumber}]";
+ 			AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(ll, detailedMessage, instanceUrl));
+ 		}
+-		
+-		
+-		
++
+ 		public async Task<DataTable> GetAllObjects() {
+ 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+ 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
+ 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+ 			request.Headers.Add("Authorization", $"Bearer {token}");
+ 			request.Headers.Add("Accept", "application/json");
++
+ 			try {
+ 				HttpResponseMessage response = await _httpClient.SendAsync(request);
+ 				response.EnsureSuccessStatusCode();
+ 				string jsonResponse = await response.Content.ReadAsStringAsync();
+ 				using var jdoc = JsonDocument.Parse(jsonResponse);
++
+ 				var objects = jdoc.RootElement
+ 					.GetProperty("sobjects")
+ 					.EnumerateArray()
++					.Where(obj => {
++						//bool isCustom = obj.GetProperty("custom").GetBoolean();
++						//bool isQueryable = obj.GetProperty("queryable").GetBoolean();
++						//bool isCreateable = obj.GetProperty("createable").GetBoolean();
++						string name = obj.GetProperty("name").GetString();
++
++						// Include custom objects or standard objects that are queryable and createable
++						// Exclude specific system objects like 'Name'
++						//return (isCustom || (isQueryable && isCreateable)) && name != "Name";
++						return name != "Name";
++					})
+ 					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
++
+ 				var root = new XElement("Objects",
+ 					objects.Select(f => new XElement("Object",
+ 						new XElement("Name", f.Name)
+@@ -223,6 +235,45 @@ namespace NetUtils {
+ 				throw new Exception($"Unexpected error: {ex.Message}", ex);
+ 			}
+ 		}
++
++		//public async Task<DataTable> GetAllObjects() {
++		//	var (token, instanceUrl, _) = await GetAccessTokenAsync();
++		//	string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
++		//	using var request = new HttpRequestMessage(HttpMethod.Get, url);
++		//	request.Headers.Add("Authorization", $"Bearer {token}");
++		//	request.Headers.Add("Accept", "application/json");
++		//	try {
++		//		HttpResponseMessage response = await _httpClient.SendAsync(request);
++		//		response.EnsureSuccessStatusCode();
++		//		string jsonResponse = await response.Content.ReadAsStringAsync();
++		//		using var jdoc = JsonDocument.Parse(jsonResponse);
++		//		var objects = jdoc.RootElement
++		//			.GetProperty("sobjects")
++		//			.EnumerateArray()
++		//			.Select(obj => new { Name = obj.GetProperty("name").GetString() });
++		//		var root = new XElement("Objects",
++		//			objects.Select(f => new XElement("Object",
++		//				new XElement("Name", f.Name)
++		//			))
++		//		);
++		//		var dataSet = new DataSet();
++		//		using (var reader = root.CreateReader()) {
++		//			dataSet.ReadXml(reader);
++		//		}
++		//		if (dataSet.Tables.Count > 0) {
++		//			dataSet.Tables[0].TableName = "sobjects";
++		//			return dataSet.Tables[0];
++		//		} else {
++		//			throw new Exception("No table created from XML.");
++		//		}
++		//	} catch (HttpRequestException ex) {
++		//		throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
++		//	} catch (JsonException ex) {
++		//		throw new Exception($"Failed to parse JSON response:\n{ex.Message}", ex);
++		//	} catch (Exception ex) {
++		//		throw new Exception($"Unexpected error: {ex.Message}", ex);
++		//	}
++		//}
+ 		public async Task<string> GetObjectSchemaSummaryAsync(string objectName) {
+ 			JsonElement schema = await GetObjectSchemaAsync(objectName);
+ 			var sb = new System.Text.StringBuilder();
+diff --git a/TesterFrm/MainForm.Designer.cs b/TesterFrm/MainForm.Designer.cs
+index ef10556..d34e419 100644
+--- a/TesterFrm/MainForm.Designer.cs
++++ b/TesterFrm/MainForm.Designer.cs
+@@ -737,6 +737,7 @@
+ 			lbxLog.ScrollAlwaysVisible = true;
+ 			lbxLog.Size = new Size(756, 606);
+ 			lbxLog.TabIndex = 1;
++			lbxLog.Click += lbxLog_Click;
+ 			lbxLog.DrawItem += lbxLog_DrawItem;
+ 			// 
+ 			// rtfLog
+diff --git a/TesterFrm/MainForm.cs b/TesterFrm/MainForm.cs
+index 3fd47ae..0d785fb 100644
+--- a/TesterFrm/MainForm.cs
++++ b/TesterFrm/MainForm.cs
+@@ -170,9 +170,11 @@ namespace TesterFrm {
+ 		#endregion move right and left
+ 		private void btnClearDestination_Click(object sender, EventArgs e) {
+ 			dgvDestination.SelectAll();
+-			foreach (DataGridViewRow row in dgvDestination.Rows) {
+-				btnMoveLeft.PerformClick();
+-			}
++			_destinationTable.Clear();
++			dgvDestination.Refresh();
++			//foreach (DataGridViewRow row in dgvDestination.Rows) {
++			//	btnMoveLeft.PerformClick();
++			//}
+ 			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
+ 		}
+ 		private void btnClearLog_Click(object sender, EventArgs e) {
+@@ -180,6 +182,7 @@ namespace TesterFrm {
+ 		}
+ 		private async void btnCommitToDB_Click(object sender, EventArgs e) {
+ 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
++			string script = "";
+ 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+ 			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
+ 			foreach (DataRow dr in _destinationTable.Rows) {
+@@ -187,10 +190,12 @@ namespace TesterFrm {
+ 				Log($"Processing {dr["name"]}", LogLevel.Debug);
+ 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
+ 				if (ds != null) {
+-					rtfLog.Text = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], tblName);
++					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SqlSchemaName, tblName);
++					_sqlServerLib.ExecuteNoneQuery(script);
++					rtfLog.Text = script;
+ 				} else {
+ 					Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
+-					Debugger.Break();
++					//Debugger.Break();
+ 				}
+ 			}
+ 		}
+@@ -298,7 +303,6 @@ namespace TesterFrm {
+ 		}
+ 
+ 		private async Task LoadSfObjectsAsync() {
+-			//_l.LogDebug("LoadSfObjectsAsync()");
+ 			Log("LoadSFObjectsAsync", LogLevel.Debug);
+ 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
+ 			await _semaphore.WaitAsync();
+@@ -555,6 +559,12 @@ namespace TesterFrm {
+ 			TextRenderer.DrawText(e.Graphics, text, e.Font, e.Bounds, e.ForeColor, TextFormatFlags.Left);
+ 			e.DrawFocusRectangle();
+ 		}
++		private void lbxLog_Click(object sender, EventArgs e) {
++		
++			Clipboard.SetText(lbxLog.SelectedItem.ToString());
++				Log($"Copied to clipboard: {Clipboard.GetText()}", LogLevel.Debug); // optional logging
++			
++		}
+ 		#endregion lbxLog
+ 		#endregion lbx
+ 		#region tabs
+@@ -580,6 +590,7 @@ namespace TesterFrm {
+ 		}
+ 		#endregion tabs
+ 
++		
+ 	}
+ 	#region utility classes
+ 	public class LogItem {

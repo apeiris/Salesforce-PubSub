@@ -85,7 +85,7 @@ namespace NetUtils {
 
 			// Construct URL
 			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
-			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe";
+			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
 			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
 
 			// Set up request
@@ -180,24 +180,36 @@ namespace NetUtils {
 			string detailedMessage = $"{message} [Method: {callerMemberName}, Line: {callerLineNumber}]";
 			AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(ll, detailedMessage, instanceUrl));
 		}
-		
-		
-		
+
 		public async Task<DataTable> GetAllObjects() {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
+
 			try {
 				HttpResponseMessage response = await _httpClient.SendAsync(request);
 				response.EnsureSuccessStatusCode();
 				string jsonResponse = await response.Content.ReadAsStringAsync();
 				using var jdoc = JsonDocument.Parse(jsonResponse);
+
 				var objects = jdoc.RootElement
 					.GetProperty("sobjects")
 					.EnumerateArray()
+					.Where(obj => {
+						//bool isCustom = obj.GetProperty("custom").GetBoolean();
+						//bool isQueryable = obj.GetProperty("queryable").GetBoolean();
+						//bool isCreateable = obj.GetProperty("createable").GetBoolean();
+						string name = obj.GetProperty("name").GetString();
+
+						// Include custom objects or standard objects that are queryable and createable
+						// Exclude specific system objects like 'Name'
+						//return (isCustom || (isQueryable && isCreateable)) && name != "Name";
+						return name != "Name";
+					})
 					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
+
 				var root = new XElement("Objects",
 					objects.Select(f => new XElement("Object",
 						new XElement("Name", f.Name)
@@ -223,6 +235,45 @@ namespace NetUtils {
 				throw new Exception($"Unexpected error: {ex.Message}", ex);
 			}
 		}
+
+		//public async Task<DataTable> GetAllObjects() {
+		//	var (token, instanceUrl, _) = await GetAccessTokenAsync();
+		//	string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
+		//	using var request = new HttpRequestMessage(HttpMethod.Get, url);
+		//	request.Headers.Add("Authorization", $"Bearer {token}");
+		//	request.Headers.Add("Accept", "application/json");
+		//	try {
+		//		HttpResponseMessage response = await _httpClient.SendAsync(request);
+		//		response.EnsureSuccessStatusCode();
+		//		string jsonResponse = await response.Content.ReadAsStringAsync();
+		//		using var jdoc = JsonDocument.Parse(jsonResponse);
+		//		var objects = jdoc.RootElement
+		//			.GetProperty("sobjects")
+		//			.EnumerateArray()
+		//			.Select(obj => new { Name = obj.GetProperty("name").GetString() });
+		//		var root = new XElement("Objects",
+		//			objects.Select(f => new XElement("Object",
+		//				new XElement("Name", f.Name)
+		//			))
+		//		);
+		//		var dataSet = new DataSet();
+		//		using (var reader = root.CreateReader()) {
+		//			dataSet.ReadXml(reader);
+		//		}
+		//		if (dataSet.Tables.Count > 0) {
+		//			dataSet.Tables[0].TableName = "sobjects";
+		//			return dataSet.Tables[0];
+		//		} else {
+		//			throw new Exception("No table created from XML.");
+		//		}
+		//	} catch (HttpRequestException ex) {
+		//		throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
+		//	} catch (JsonException ex) {
+		//		throw new Exception($"Failed to parse JSON response:\n{ex.Message}", ex);
+		//	} catch (Exception ex) {
+		//		throw new Exception($"Unexpected error: {ex.Message}", ex);
+		//	}
+		//}
 		public async Task<string> GetObjectSchemaSummaryAsync(string objectName) {
 			JsonElement schema = await GetObjectSchemaAsync(objectName);
 			var sb = new System.Text.StringBuilder();

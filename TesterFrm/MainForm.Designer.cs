@@ -737,6 +737,7 @@
 			lbxLog.ScrollAlwaysVisible = true;
 			lbxLog.Size = new Size(756, 606);
 			lbxLog.TabIndex = 1;
+			lbxLog.Click += lbxLog_Click;
 			lbxLog.DrawItem += lbxLog_DrawItem;
 			// 
 			// rtfLog

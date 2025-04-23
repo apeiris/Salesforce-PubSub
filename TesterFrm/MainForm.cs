@@ -170,9 +170,11 @@ namespace TesterFrm {
 		#endregion move right and left
 		private void btnClearDestination_Click(object sender, EventArgs e) {
 			dgvDestination.SelectAll();
-			foreach (DataGridViewRow row in dgvDestination.Rows) {
-				btnMoveLeft.PerformClick();
-			}
+			_destinationTable.Clear();
+			dgvDestination.Refresh();
+			//foreach (DataGridViewRow row in dgvDestination.Rows) {
+			//	btnMoveLeft.PerformClick();
+			//}
 			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
 		}
 		private void btnClearLog_Click(object sender, EventArgs e) {
@@ -180,6 +182,7 @@ namespace TesterFrm {
 		}
 		private async void btnCommitToDB_Click(object sender, EventArgs e) {
 			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+			string script = "";
 			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
 			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
 			foreach (DataRow dr in _destinationTable.Rows) {
@@ -187,10 +190,12 @@ namespace TesterFrm {
 				Log($"Processing {dr["name"]}", LogLevel.Debug);
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
 				if (ds != null) {
-					rtfLog.Text = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], tblName);
+					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SqlSchemaName, tblName);
+					_sqlServerLib.ExecuteNoneQuery(script);
+					rtfLog.Text = script;
 				} else {
 					Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
-					Debugger.Break();
+					//Debugger.Break();
 				}
 			}
 		}
@@ -298,7 +303,6 @@ namespace TesterFrm {
 		}
 
 		private async Task LoadSfObjectsAsync() {
-			//_l.LogDebug("LoadSfObjectsAsync()");
 			Log("LoadSFObjectsAsync", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
@@ -555,6 +559,12 @@ namespace TesterFrm {
 			TextRenderer.DrawText(e.Graphics, text, e.Font, e.Bounds, e.ForeColor, TextFormatFlags.Left);
 			e.DrawFocusRectangle();
 		}
+		private void lbxLog_Click(object sender, EventArgs e) {
+		
+			Clipboard.SetText(lbxLog.SelectedItem.ToString());
+				Log($"Copied to clipboard: {Clipboard.GetText()}", LogLevel.Debug); // optional logging
+			
+		}
 		#endregion lbxLog
 		#endregion lbx
 		#region tabs
@@ -580,6 +590,7 @@ namespace TesterFrm {
 		}
 		#endregion tabs
 
+		
 	}
 	#region utility classes
 	public class LogItem {
