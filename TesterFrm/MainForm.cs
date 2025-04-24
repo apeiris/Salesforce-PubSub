@@ -26,7 +26,8 @@ namespace TesterFrm {
 		private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 		private readonly object _dgvLock = new object();
 		static bool _sfsObjectsLoaded = false;
-		// Dictionary to store checkbox states, scoped per DataGridView
+		private List<string> _sfoTables = new List<string>(); // List of Salesforce objects from SQL Server
+															  // Dictionary to store checkbox states, scoped per DataGridView
 		private readonly Dictionary<DataGridView, Dictionary<int, bool>> _rowHeaderCheckStatesMap
 			= new Dictionary<DataGridView, Dictionary<int, bool>>();
 
@@ -483,7 +484,9 @@ namespace TesterFrm {
 		#region lbx
 		private void LoadTopics(ListBox listBox) {
 			listBox.Items.Clear();
-			listBox.Items.AddRange(_config.Topics.Select(topic => topic.Name).ToArray());
+			//listBox.Items.AddRange(_config.Topics.Select(topic => topic.Name).ToArray
+			DataTable dataTable = _sqlServerLib.GetAll_sfoTables();
+			listBox.Items.AddRange(_sqlServerLib.GetChangeEventUrls(dataTable).ToArray());
 		}
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
@@ -579,7 +582,7 @@ namespace TesterFrm {
 				}
 				break;
 				case "tbppubsub":
-				LoadTopics(lbxObjects); // Load topics into the listbox
+				LoadTopics(lbxObjects); // Load sfo Tables from sql server  topics into the listbox
 				break;
 				default: break;
 			}
