@@ -26,6 +26,7 @@ namespace NetUtils {
 				Credentials = ChannelCredentials.SecureSsl
 			});
 			_client = new PubSubClient(_channel);
+
 			_subscriptions = new List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse>, CancellationTokenSource)>();
 			_schemaCache = new Dictionary<string, RecordSchema>();
 		}
@@ -64,8 +65,7 @@ namespace NetUtils {
 						while (await streamingCall.ResponseStream.MoveNext(cts.Token)) {
 							var response = streamingCall.ResponseStream.Current;
 							string responseJson = response.ToString();
-							// Parse the JSON-like response
-							var jsonDoc = JsonDocument.Parse(responseJson);
+							var jsonDoc = JsonDocument.Parse(responseJson); // Parse the JSON-like response
 							if (jsonDoc.RootElement.TryGetProperty("events", out var eventsElement)) {
 								var eventsArray = eventsElement.EnumerateArray();
 								foreach (var evt in eventsArray) {
@@ -75,9 +75,7 @@ namespace NetUtils {
 									byte[] payload = Convert.FromBase64String(payloadBase64);
 									var schema = await GetSchemaAsync(schemaId, token, instanceUrl, tenantId);
 									List<string> decodedEvent = DecodeChangeEvent(payload, schema, fieldsToFilter);
-									foreach (var field in decodedEvent) {
-										onProgressUpdate?.Invoke(field);
-									}
+									foreach (var field in decodedEvent) onProgressUpdate?.Invoke(field);
 								}
 								await streamingCall.RequestStream.WriteAsync(fetchRequest);
 							}
@@ -97,31 +95,25 @@ namespace NetUtils {
 			if (_schemaCache.TryGetValue(schemaId, out RecordSchema cachedSchema)) {
 				return cachedSchema;
 			}
-
 			var schemaRequest = new SchemaRequest { SchemaId = schemaId };
 			var callOptions = new CallOptions(credentials: CustomGrpcCredentials.Create(token, instanceUrl, tenantId));
 			try {
 				var schemaResponse = await _client.GetSchemaAsync(schemaRequest, callOptions);
 				var schema = Schema.Parse(schemaResponse.SchemaJson) as RecordSchema;
 				_schemaCache[schemaId] = schema;
-
 				return schema;
 			} catch (RpcException ex) {
 				throw;
 			}
 		}
-
 		private List<string> DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
 			try {
 				using var stream = new MemoryStream(payload);
 				var reader = new BinaryDecoder(stream);
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
-
-				// Use fieldsToFilter from config
-				var filterSet = new HashSet<string>(fieldsToFilter);
-
-				// Get ChangeEventHeader
+				var filterSet = new HashSet<string>(fieldsToFilter);// Use fieldsToFilter from config
+																	// Get ChangeEventHeader
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					//	return "{Error: No ChangeEventHeader found}";
 					return new List<string> { "Error: No Header on ChangeEvent " };
@@ -146,16 +138,12 @@ namespace NetUtils {
 				if (changedFields.Any()) {
 					fields.Add($"changedFields: [{string.Join(", ", changedFields)}]");
 				}
-				// Handle DELETE specifically
-				if (changeType == "DELETE") {
+				if (changeType == "DELETE") {// Handle DELETE specifically
 					if (recordIds.Any()) {
-						//return $"{{Deleted Record - entityName: {entityName}, recordId: {recordIds[0]}, changeType: {changeType}}}";
-						return fields;
+						return fields;//return $"{{Deleted Record - entityName: {entityName}, recordId: {recordIds[0]}, changeType: {changeType}}}";
 					}
-					//return $"{{Deleted Record - entityName: {entityName}, recordId: Not Available, changeType: {changeType}}}";
-					return fields;
+					return fields;  //return $"{{Deleted Record - entityName: {entityName}, recordId: Not Available, changeType: {changeType}}}";
 				}
-
 				// For non-DELETE events, include filtered fields
 				foreach (var field in schema.Fields) {
 					if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
@@ -166,12 +154,9 @@ namespace NetUtils {
 						}
 					}
 				}
-				//return fields.Any() ? $"{{{string.Join(", ", fields)}}}" : "{No filtered fields changed}";
-				return fields;
+				return fields;//return fields.Any() ? $"{{{string.Join(", ", fields)}}}" : "{No filtered fields changed}";
 			} catch (Exception ex) {
-				//return $"Error decoding event: {ex.Message}";
-
-				return new List<string> { ex.Message };
+				return new List<string> { ex.Message };//return $"Error decoding event: {ex.Message}";
 			}
 		}
 		#region required but has no application specific functionality

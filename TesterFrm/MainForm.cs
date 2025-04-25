@@ -67,10 +67,13 @@ namespace TesterFrm {
 			try {
 
 				await _pubSubService.StartSubscriptionsAsync(msg => {
-					txtResult.Invoke(new Action(() => txtResult.Text = msg));
+					if (lbxCDCTopics.InvokeRequired) {
+						lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(msg)));
+					} else {
+						lbxCDCTopics.Items.Add(msg);
+					}
 				});
-				Clipboard.SetText(txtResult.Text);
-				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
+					toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
 				MessageBox.Show($"Error: {ex.Message}");
 			}
@@ -563,10 +566,10 @@ namespace TesterFrm {
 			e.DrawFocusRectangle();
 		}
 		private void lbxLog_Click(object sender, EventArgs e) {
-		
+
 			Clipboard.SetText(lbxLog.SelectedItem.ToString());
-				Log($"Copied to clipboard: {Clipboard.GetText()}", LogLevel.Debug); // optional logging
-			
+			Log($"Copied to clipboard: {Clipboard.GetText()}", LogLevel.Debug); // optional logging
+
 		}
 		#endregion lbxLog
 		#endregion lbx
@@ -593,7 +596,7 @@ namespace TesterFrm {
 		}
 		#endregion tabs
 
-		
+
 	}
 	#region utility classes
 	public class LogItem {

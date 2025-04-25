@@ -61,6 +61,14 @@
 			btnClearLog = new Button();
 			lbxLog = new ListBox();
 			rtfLog = new RichTextBox();
+			tbpCDCEvents = new TabPage();
+			tableLayoutPanel8 = new TableLayoutPanel();
+			splitContainer4 = new SplitContainer();
+			lbxCDCTopics = new ListBox();
+			lbxCDCEvents = new ListBox();
+			tableLayoutPanel9 = new TableLayoutPanel();
+			btnCDCStartSubscription = new Button();
+			lblCDCStatus = new Label();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -93,6 +101,13 @@
 			splitContainer3.SuspendLayout();
 			tableLayoutPanel6.SuspendLayout();
 			tableLayoutPanel7.SuspendLayout();
+			tbpCDCEvents.SuspendLayout();
+			tableLayoutPanel8.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitContainer4).BeginInit();
+			splitContainer4.Panel1.SuspendLayout();
+			splitContainer4.Panel2.SuspendLayout();
+			splitContainer4.SuspendLayout();
+			tableLayoutPanel9.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -148,6 +163,7 @@
 			tabControl1.Controls.Add(tbpOAuth2);
 			tabControl1.Controls.Add(tbpDescribeObject);
 			tabControl1.Controls.Add(tbpEventLog);
+			tabControl1.Controls.Add(tbpCDCEvents);
 			tabControl1.Dock = DockStyle.Fill;
 			tabControl1.Location = new Point(0, 0);
 			tabControl1.Name = "tabControl1";
@@ -749,6 +765,106 @@
 			rtfLog.TabIndex = 0;
 			rtfLog.Text = "";
 			// 
+			// tbpCDCEvents
+			// 
+			tbpCDCEvents.Controls.Add(tableLayoutPanel8);
+			tbpCDCEvents.Location = new Point(4, 24);
+			tbpCDCEvents.Name = "tbpCDCEvents";
+			tbpCDCEvents.Size = new Size(1415, 678);
+			tbpCDCEvents.TabIndex = 5;
+			tbpCDCEvents.Text = "CDC Events";
+			tbpCDCEvents.UseVisualStyleBackColor = true;
+			// 
+			// tableLayoutPanel8
+			// 
+			tableLayoutPanel8.ColumnCount = 1;
+			tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 73.5689F));
+			tableLayoutPanel8.Controls.Add(splitContainer4, 0, 0);
+			tableLayoutPanel8.Controls.Add(tableLayoutPanel9, 0, 1);
+			tableLayoutPanel8.Controls.Add(lblCDCStatus, 0, 2);
+			tableLayoutPanel8.Dock = DockStyle.Fill;
+			tableLayoutPanel8.Location = new Point(0, 0);
+			tableLayoutPanel8.Name = "tableLayoutPanel8";
+			tableLayoutPanel8.RowCount = 3;
+			tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 78.46608F));
+			tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 21.5339241F));
+			tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+			tableLayoutPanel8.Size = new Size(1415, 678);
+			tableLayoutPanel8.TabIndex = 0;
+			// 
+			// splitContainer4
+			// 
+			splitContainer4.Dock = DockStyle.Fill;
+			splitContainer4.Location = new Point(3, 3);
+			splitContainer4.Name = "splitContainer4";
+			// 
+			// splitContainer4.Panel1
+			// 
+			splitContainer4.Panel1.Controls.Add(lbxCDCTopics);
+			// 
+			// splitContainer4.Panel2
+			// 
+			splitContainer4.Panel2.Controls.Add(lbxCDCEvents);
+			splitContainer4.Size = new Size(1409, 478);
+			splitContainer4.SplitterDistance = 651;
+			splitContainer4.TabIndex = 0;
+			// 
+			// lbxCDCTopics
+			// 
+			lbxCDCTopics.Dock = DockStyle.Fill;
+			lbxCDCTopics.FormattingEnabled = true;
+			lbxCDCTopics.HorizontalScrollbar = true;
+			lbxCDCTopics.Location = new Point(0, 0);
+			lbxCDCTopics.Name = "lbxCDCTopics";
+			lbxCDCTopics.ScrollAlwaysVisible = true;
+			lbxCDCTopics.Size = new Size(651, 478);
+			lbxCDCTopics.TabIndex = 1;
+			// 
+			// lbxCDCEvents
+			// 
+			lbxCDCEvents.Dock = DockStyle.Fill;
+			lbxCDCEvents.FormattingEnabled = true;
+			lbxCDCEvents.HorizontalScrollbar = true;
+			lbxCDCEvents.Location = new Point(0, 0);
+			lbxCDCEvents.Name = "lbxCDCEvents";
+			lbxCDCEvents.ScrollAlwaysVisible = true;
+			lbxCDCEvents.Size = new Size(754, 478);
+			lbxCDCEvents.TabIndex = 0;
+			// 
+			// tableLayoutPanel9
+			// 
+			tableLayoutPanel9.ColumnCount = 3;
+			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 235F));
+			tableLayoutPanel9.Controls.Add(btnCDCStartSubscription, 0, 0);
+			tableLayoutPanel9.Location = new Point(3, 487);
+			tableLayoutPanel9.Name = "tableLayoutPanel9";
+			tableLayoutPanel9.RowCount = 1;
+			tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel9.Size = new Size(695, 41);
+			tableLayoutPanel9.TabIndex = 1;
+			// 
+			// btnCDCStartSubscription
+			// 
+			btnCDCStartSubscription.Location = new Point(3, 3);
+			btnCDCStartSubscription.Name = "btnCDCStartSubscription";
+			btnCDCStartSubscription.Size = new Size(185, 35);
+			btnCDCStartSubscription.TabIndex = 0;
+			btnCDCStartSubscription.Text = "Start Subscription";
+			btnCDCStartSubscription.UseVisualStyleBackColor = true;
+			// 
+			// lblCDCStatus
+			// 
+			lblCDCStatus.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+			lblCDCStatus.AutoSize = true;
+			lblCDCStatus.Location = new Point(3, 617);
+			lblCDCStatus.Name = "lblCDCStatus";
+			lblCDCStatus.Size = new Size(66, 61);
+			lblCDCStatus.TabIndex = 2;
+			lblCDCStatus.Text = "CDC Status";
+			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -802,6 +918,14 @@
 			splitContainer3.ResumeLayout(false);
 			tableLayoutPanel6.ResumeLayout(false);
 			tableLayoutPanel7.ResumeLayout(false);
+			tbpCDCEvents.ResumeLayout(false);
+			tableLayoutPanel8.ResumeLayout(false);
+			tableLayoutPanel8.PerformLayout();
+			splitContainer4.Panel1.ResumeLayout(false);
+			splitContainer4.Panel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer4).EndInit();
+			splitContainer4.ResumeLayout(false);
+			tableLayoutPanel9.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -861,5 +985,13 @@
 		private Button btnClearLog;
 		private ListBox lbxLog;
 		private RichTextBox rtfLog;
+		private TabPage tbpCDCEvents;
+		private TableLayoutPanel tableLayoutPanel8;
+		private SplitContainer splitContainer4;
+		private ListBox lbxCDCEvents;
+		private ListBox lbxCDCTopics;
+		private TableLayoutPanel tableLayoutPanel9;
+		private Button btnCDCStartSubscription;
+		private Label lblCDCStatus;
 	}
 }
