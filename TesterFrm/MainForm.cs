@@ -10,6 +10,16 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 namespace TesterFrm {
 	public partial class MainForm : Form {
+		#region events
+		private void PubSubService_ProgressUpdated(object sender, ProgressUpdateEventArgs e) {
+			// Ensure UI updates happen on the UI thread
+			if (lbxCDCEvents.InvokeRequired) {
+				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
+			} else {
+				lbxCDCEvents.Items.Add(e.Message);
+			}
+		}
+		#endregion events
 		#region fields
 		private readonly IMemoryCache _cache;
 		private const string CacheKey = "SalesforceAccessToken";
@@ -66,14 +76,9 @@ namespace TesterFrm {
 			//lbxResult.Items.Add("Starting subscription...");
 			try {
 
-				await _pubSubService.StartSubscriptionsAsync(msg => {
-					if (lbxCDCTopics.InvokeRequired) {
-						lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(msg)));
-					} else {
-						lbxCDCTopics.Items.Add(msg);
-					}
-				});
-					toolStripStatusLabel1.Text = "Token copied to Clipboard.";
+				await _pubSubService.StartSubscriptionsAsync();
+
+				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
 				MessageBox.Show($"Error: {ex.Message}");
 			}
@@ -347,7 +352,12 @@ namespace TesterFrm {
 			_config = config.Value;
 			//_logger = Log.ForContext<MainForm>();
 			_sqlServerLib = sqlServerLib;
-
+			_pubSubService.ProgressUpdated += (s, e) => {
+				this.Invoke((Action)(() => {
+					lbxCDCTopics.Items.Add(e.Message);
+					//Log(e.Message, LogLevel.Debug);
+				}));
+			};
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt;
 			}
