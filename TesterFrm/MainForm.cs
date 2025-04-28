@@ -15,7 +15,8 @@ namespace TesterFrm {
 		#region enums
 		enum enmRetriveFrom {
 			SalesForce,
-			SqlServer
+			SqlServer,
+			None
 		}
 		#endregion enums
 		#region fields
@@ -49,7 +50,8 @@ namespace TesterFrm {
 
 		private readonly object _lock = new object();
 
-		private static enmRetriveFrom _retriveFrom = enmRetriveFrom.SalesForce;
+		private static enmRetriveFrom _retrivedFrom = enmRetriveFrom.SalesForce;
+
 		#endregion fields
 
 		#region events
@@ -68,23 +70,23 @@ namespace TesterFrm {
 		}
 		#endregion pubsubservice events
 		#region _sqlserver events
-		private void SqlObjectExistEventOccured(object? sender, SqlObjectExist e) {
+		private void SqlObjectExistEventOccured(object? sender, SqlObjectQuery e) {
 			//	throw new NotImplementedException();
 			Log($"CDC {e.ObjectType} {e.ObjectName} exist={e.Exist}  id= {e.Id} ", LogLevel.Information);
+
+			btnReinitFieldsFromSF.Visible = e.Exist;
 			toolStripStatusLabel1.ForeColor = Color.Yellow;
 			if (e.Exist) {
 				toolStripStatusLabel1.Text += $" object in the sql server with the Id {e.Id}";
 				toolStripStatusLabel1.BackColor = Color.Green;
-				_retriveFrom = enmRetriveFrom.SqlServer;
+				_retrivedFrom = enmRetriveFrom.SqlServer;
 				btnRegisterFields.Text = "Update Fields";
-
-
 			} else {
-
-				_retriveFrom = enmRetriveFrom.SalesForce;
+				_retrivedFrom = enmRetriveFrom.SalesForce;// does not exist retrive from sf
 				toolStripStatusLabel1.BackColor = Color.Brown;
 				btnRegisterFields.Text = "Register Fields";
 			}
+			setControlColor(btnRegisterFields, e.Exist);
 		}
 
 		#endregion _sqlserver events
@@ -246,9 +248,17 @@ namespace TesterFrm {
 				}
 			}
 		}
-		private void btnRegisterExcluded_Click(object sender, EventArgs e) {
+		private void btnRegisterFields_Click(object sender, EventArgs e) {
+
+
 			DataTable? Fields = dgvObject.DataSource as DataTable;
-			//excludedFields = excludedFields?.Select("Exclude = true").CopyToDataTable();
+
+			DataTable mdt = _sqlServerLib.GetModified(Fields);
+
+			if (Fields == null) return;
+
+
+
 			Fields.TableName = ObjectFromTopic(lbxObjects.Text);
 			Fields.Columns["Exclude"].DefaultValue = false;
 			Fields.AsEnumerable()
@@ -524,7 +534,20 @@ namespace TesterFrm {
 				MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		}
+		private void setControlColor(Object sender, bool c) {
 
+			switch (sender.GetType().Name.ToLower()) {
+				case "button":
+				var o = (Button)sender;
+				o.BackColor = c ? Color.Green : Color.Brown;
+
+				break;
+				default:
+				Log($"sender gettype().name={sender.GetType().Name}", LogLevel.Information);
+				break;
+			}
+
+		}
 		#endregion helpers
 		#region lbx
 		private void LoadTopics(ListBox listBox) {
@@ -539,6 +562,7 @@ namespace TesterFrm {
 			this.UseWaitCursor = true;
 			await _semaphore.WaitAsync();
 			try {
+
 				string selectedTopic = lbxObjects.SelectedItem.ToString();
 
 				string selectedObject = ObjectFromTopic(selectedTopic);
@@ -546,7 +570,8 @@ namespace TesterFrm {
 				dgvRelations.DataSource = null;
 				_sqlServerLib.AssertCDCObjectExist(selectedObject);// this will fire event to set series of changes 
 
-				if (_retriveFrom == enmRetriveFrom.SalesForce) {
+				switch (_retrivedFrom) {// set by AssertCDCObjectExists
+					case enmRetriveFrom.SalesForce:
 					DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(selectedObject);// async operations outside the lock
 					DataTable dtObject = ds.Tables[selectedObject];
 					toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
@@ -566,21 +591,34 @@ namespace TesterFrm {
 							dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 							dgvObject.Columns["Exclude"].Width = 80;
 							lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
-
 							dgvRelations.DataSource = ds.Tables["relations"];
-
-							this.Invoke((Action)(() => {
-
-								List<string> fields = dtObject.AsEnumerable()
+							this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
+								List<string?> fields = dtObject.AsEnumerable()
 									.Select(r => r["Name"]?.ToString())
 									.Where(v => !string.IsNullOrEmpty(v))
 									.ToList();
 								lbxFields.Items.Clear();
-								lbxFields.Items.AddRange(fields.ToArray());
+								lbxFields.Items.AddRange(fields.ToArray()!);
 							}));
 						}));
 					}
+					break;
+					case enmRetriveFrom.SqlServer:
+					this.Invoke((Action)(() => {
+						dtObject = _sqlServerLib.Select($"select CDCObjectId=id,FieldName,IsExcluded from ftcdcObjectFields('{selectedObject}')");
+
+						dtObject.Columns["FieldName"].SetOrdinal(0);
+
+						dgvObject.DataSource = dtObject;
+
+						toolStripStatusLabel1.Text = $"Object {selectedObject} already exists in the SQL Server.";
+						//btnRegisterFields.Enabled = false;
+						btnReinitFieldsFromSF.Visible = true;
+						btnRegisterFields.Text = "Update Fields";
+					}));
+					break;
 				}
+
 			} catch (Exception ex) {
 				this.Invoke((Action)(() => toolStripStatusLabel1.Text = $"Error: {ex.Message}"));
 			}

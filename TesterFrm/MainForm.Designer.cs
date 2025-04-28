@@ -41,6 +41,7 @@
 			dgvObject = new DataGridView();
 			lblSelectedTable = new Label();
 			tableLayoutPanel2 = new TableLayoutPanel();
+			btnReinitFieldsFromSF = new Button();
 			btnSubscribe = new Button();
 			button1 = new Button();
 			grpFilterOptions = new GroupBox();
@@ -513,6 +514,7 @@
 			tableLayoutPanel2.ColumnCount = 2;
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
+			tableLayoutPanel2.Controls.Add(btnReinitFieldsFromSF, 0, 0);
 			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
 			tableLayoutPanel2.Controls.Add(button1, 1, 4);
 			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 3);
@@ -528,6 +530,17 @@
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel2.Size = new Size(391, 272);
 			tableLayoutPanel2.TabIndex = 3;
+			// 
+			// btnReinitFieldsFromSF
+			// 
+			btnReinitFieldsFromSF.BackColor = Color.Green;
+			btnReinitFieldsFromSF.ForeColor = Color.Yellow;
+			btnReinitFieldsFromSF.Location = new Point(3, 3);
+			btnReinitFieldsFromSF.Name = "btnReinitFieldsFromSF";
+			btnReinitFieldsFromSF.Size = new Size(155, 44);
+			btnReinitFieldsFromSF.TabIndex = 8;
+			btnReinitFieldsFromSF.Text = "Re Init from Salesforce";
+			btnReinitFieldsFromSF.UseVisualStyleBackColor = false;
 			// 
 			// btnSubscribe
 			// 
@@ -586,13 +599,15 @@
 			// 
 			// btnRegisterFields
 			// 
+			btnRegisterFields.BackColor = Color.Green;
+			btnRegisterFields.ForeColor = Color.Yellow;
 			btnRegisterFields.Location = new Point(181, 3);
 			btnRegisterFields.Name = "btnRegisterFields";
 			btnRegisterFields.Size = new Size(155, 44);
 			btnRegisterFields.TabIndex = 7;
 			btnRegisterFields.Text = "Register Fields";
-			btnRegisterFields.UseVisualStyleBackColor = true;
-			btnRegisterFields.Click += btnRegisterExcluded_Click;
+			btnRegisterFields.UseVisualStyleBackColor = false;
+			btnRegisterFields.Click += btnRegisterFields_Click;
 			// 
 			// tableLayoutPanel4
 			// 
@@ -1046,5 +1061,7 @@
 		private SplitContainer splitContainer5;
 		private DataGridView dgvFilteredFields;
 		private Button btnRegisterFields;
+		private Button button2;
+		private Button btnReinitFieldsFromSF;
 	}
 }
