@@ -8,18 +8,16 @@ using System.Diagnostics;
 using mySalesforce;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
+using System.Windows.Forms.VisualStyles;
+using System.Security.Cryptography.Xml;
 namespace TesterFrm {
 	public partial class MainForm : Form {
-		#region events
-		private void PubSubService_ProgressUpdated(object sender, ProgressUpdateEventArgs e) {
-			// Ensure UI updates happen on the UI thread
-			if (lbxCDCEvents.InvokeRequired) {
-				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
-			} else {
-				lbxCDCEvents.Items.Add(e.Message);
-			}
+		#region enums
+		enum enmRetriveFrom {
+			SalesForce,
+			SqlServer
 		}
-		#endregion events
+		#endregion enums
 		#region fields
 		private readonly IMemoryCache _cache;
 		private const string CacheKey = "SalesforceAccessToken";
@@ -50,7 +48,47 @@ namespace TesterFrm {
 		private readonly SqlServerLib _sqlServerLib;
 
 		private readonly object _lock = new object();
+
+		private static enmRetriveFrom _retriveFrom = enmRetriveFrom.SalesForce;
 		#endregion fields
+
+		#region events
+		#region pubsubservice events
+		private void PubSubService_ProgressUpdated(object sender, ProgressUpdateEventArgs e) {
+			if (lbxCDCTopics.InvokeRequired) {
+				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
+			} else lbxCDCTopics.Items.Add(e.Message);
+		}
+		private void _pubSubService_ChangeEventReceived(object? sender, ChangeEventData e) {
+			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
+
+				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
+				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.FilteredFields)));
+			} else dgvFilteredFields.DataSource = e.FilteredFields;
+		}
+		#endregion pubsubservice events
+		#region _sqlserver events
+		private void SqlObjectExistEventOccured(object? sender, SqlObjectExist e) {
+			//	throw new NotImplementedException();
+			Log($"CDC {e.ObjectType} {e.ObjectName} exist={e.Exist}  id= {e.Id} ", LogLevel.Information);
+			toolStripStatusLabel1.ForeColor = Color.Yellow;
+			if (e.Exist) {
+				toolStripStatusLabel1.Text += $" object in the sql server with the Id {e.Id}";
+				toolStripStatusLabel1.BackColor = Color.Green;
+				_retriveFrom = enmRetriveFrom.SqlServer;
+				btnRegisterFields.Text = "Update Fields";
+
+
+			} else {
+
+				_retriveFrom = enmRetriveFrom.SalesForce;
+				toolStripStatusLabel1.BackColor = Color.Brown;
+				btnRegisterFields.Text = "Register Fields";
+			}
+		}
+
+		#endregion _sqlserver events
+		#endregion events
 		#region buttons
 		private async void btnAuthenticate_Click(object sender, EventArgs e) {
 			await _semaphore.WaitAsync();
@@ -208,9 +246,22 @@ namespace TesterFrm {
 				}
 			}
 		}
+		private void btnRegisterExcluded_Click(object sender, EventArgs e) {
+			DataTable? Fields = dgvObject.DataSource as DataTable;
+			//excludedFields = excludedFields?.Select("Exclude = true").CopyToDataTable();
+			Fields.TableName = ObjectFromTopic(lbxObjects.Text);
+			Fields.Columns["Exclude"].DefaultValue = false;
+			Fields.AsEnumerable()
+				  .Where(row => row.IsNull("Exclude") || string.IsNullOrEmpty(row["Exclude"].ToString()))
+				  .ToList()
+				  .ForEach(row => row["Exclude"] = false);
+			string sxml = Fields.GetXml("Name,Exclude");
+			var (rowsInserted, tableName) = _sqlServerLib.RegisterExludedCDCFields(sxml);
+			Log($"{rowsInserted} rows inserted into {tableName}", LogLevel.Debug);
+		}
 		#endregion buttons
-
 		#region dgv
+		/*
 		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject, string columnName, List<string> fieldList) {
 			// Ensure the map exists for this DataGridView
 			if (!_rowHeaderCheckStatesMap.ContainsKey(dgvObject)) {
@@ -230,7 +281,7 @@ namespace TesterFrm {
 				}
 			}
 		}
-
+		*/
 		private void SetupDataGridViewHeaders(string tn) {
 
 
@@ -350,18 +401,12 @@ namespace TesterFrm {
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
 			_config = config.Value;
-			//_logger = Log.ForContext<MainForm>();
 			_sqlServerLib = sqlServerLib;
-			_pubSubService.ProgressUpdated += (s, e) => {
-				this.Invoke((Action)(() => {
-					lbxCDCTopics.Items.Add(e.Message);
-					//Log(e.Message, LogLevel.Debug);
-				}));
-			};
+			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated;
+			_pubSubService.ChangeEventReceived += _pubSubService_ChangeEventReceived;
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt;
 			}
-			;
 			_sqlServerLib.SqlEvent += (s, e) => {
 				Log(e.Message, e.LogLevel);
 			};
@@ -369,6 +414,7 @@ namespace TesterFrm {
 			_l = logger ?? throw new ArgumentNullException(nameof(logger));
 			_l.LogDebug("MainForm initialized.");
 			_l.LogInformation("(logInformation)MainForm initialized.");
+			_sqlServerLib.SqlObjectExist += SqlObjectExistEventOccured;
 		}
 		private void Form1_Load(object sender, EventArgs e) {
 			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
@@ -377,16 +423,12 @@ namespace TesterFrm {
 				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
 			}
 			lblPanel1.Parent = splitContainer1.Panel1;
-			//lblPanel2.Parent = splitContainer1.Panel2;
 			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
 		}
 		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
-
 			Invoke((Action)(() => {
-
 				Log($"Authenticating: {e.Message}", e.LogLevel);
-
 				btnAuthenticate.Enabled = false;
 				toolStripStatusLabel1.Text = "Authenticating...";
 			}));
@@ -453,38 +495,28 @@ namespace TesterFrm {
 		}
 		private async Task CommitObjectsAsDbArtefactsAsync(object sender, EventArgs e) {
 			try {
-				// Validate selection
-				if (lbxObjects.SelectedItem == null) {
+				if (lbxObjects.SelectedItem == null) {// Validate selection
 					toolStripStatusLabel1.Text = "Please select an object first.";
 					return;
 				}
-
-				// Get selected fields
-				List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+				List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);// Get selected fields
 				_l.LogDebug($"Selected fields: {string.Join(", ", selectedFields)}");
-
-				// Configure destination table
-				_destinationTable.TableName = "sfSObjects";
+				_destinationTable.TableName = "sfSObjects";// Configure destination table
 				_l.LogDebug($"Processing {_destinationTable.Rows.Count} rows in destination table");
-
-				// Process each row
-				foreach (DataRow row in _destinationTable.Rows) {
+				foreach (DataRow row in _destinationTable.Rows) {// Process each row
 					string tableName = row["name"]?.ToString();
 					if (string.IsNullOrEmpty(tableName)) {
 						_l.LogWarning("Encountered empty table name, skipping...");
 						continue;
 					}
-
 					try {
-						// Fetch schema and process
-						DataSet schema = await _salesforceService.GetObjectSchemaAsDataSetAsync(tableName);
+						DataSet schema = await _salesforceService.GetObjectSchemaAsDataSetAsync(tableName);// Fetch schema and process
 						lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
 					} catch (Exception ex) {
 						_l.LogError($"Failed to process table {tableName}: {ex.Message}");
 						continue;
 					}
 				}
-
 				toolStripStatusLabel1.Text = $"Processed {_destinationTable.Rows.Count} tables. Select tables and fields in pub/sub tab.";
 			} catch (Exception ex) {
 				_l.LogError($"Unexpected error during commit: {ex.Message}");
@@ -497,46 +529,67 @@ namespace TesterFrm {
 		#region lbx
 		private void LoadTopics(ListBox listBox) {
 			listBox.Items.Clear();
-			//listBox.Items.AddRange(_config.Topics.Select(topic => topic.Name).ToArray
 			DataTable dataTable = _sqlServerLib.GetAll_sfoTables();
 			listBox.Items.AddRange(_sqlServerLib.GetChangeEventUrls(dataTable).ToArray());
 		}
+
+
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
 			this.UseWaitCursor = true;
 			await _semaphore.WaitAsync();
 			try {
 				string selectedTopic = lbxObjects.SelectedItem.ToString();
-				this.Invoke((Action)(() => {
-					List<string> fields = _config.Topics.GetFieldsToFilterByName(selectedTopic);
-					lbxFields.Items.Clear();
-					lbxFields.Items.AddRange(fields.ToArray());
-				}));
+
 				string selectedObject = ObjectFromTopic(selectedTopic);
-				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(selectedObject);// async operations outside the lock
-				DataTable dtObject = ds.Tables[selectedObject];
-				toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
+				dgvObject.DataSource = null;
+				dgvRelations.DataSource = null;
+				_sqlServerLib.AssertCDCObjectExist(selectedObject);// this will fire event to set series of changes 
 
+				if (_retriveFrom == enmRetriveFrom.SalesForce) {
+					DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(selectedObject);// async operations outside the lock
+					DataTable dtObject = ds.Tables[selectedObject];
+					toolStripStatusLabel1.Text = $" {ObjectFromTopic(selectedTopic)} has {dtObject.Rows.Count} fields.";
 
-				if (rbtFilterSubscribed.Checked) {
-					dtObject = await RemoveRowsNotInColumnList(dtObject, _config.Topics.GetFieldsToFilterByName(selectedTopic));
-				}
-				lock (_dgvLock) {// Synchronize UI updates with lock
-					this.Invoke((Action)(() => {
-						dgvObject.DataSource = dtObject;
-						dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-						lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
-						UpdateRowHeaderCheckboxes(dgvObject, "name", _config.Topics.GetFieldsToFilterByName(selectedTopic));
-						dgvRelations.DataSource = ds.Tables["relations"];
-					}));
+					if (rbtFilterSubscribed.Checked) {
+						dtObject = await RemoveRowsNotInColumnList(dtObject, _config.Topics.GetFieldsToFilterByName(selectedTopic));
+					}
+					lock (_dgvLock) {// Synchronize UI updates with lock
+						this.Invoke((Action)(() => {
+							dtObject.Columns["Name"].SetOrdinal(0);
+							dtObject.Columns["type"].SetOrdinal(1);
+							dtObject.Columns["length"].SetOrdinal(2);
+							DataColumn dc = dtObject.Columns.Add("Exclude", typeof(bool));
+							dc.DefaultValue = false;
+							dc.SetOrdinal(3);
+							dgvObject.DataSource = dtObject;
+							dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+							dgvObject.Columns["Exclude"].Width = 80;
+							lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
+
+							dgvRelations.DataSource = ds.Tables["relations"];
+
+							this.Invoke((Action)(() => {
+
+								List<string> fields = dtObject.AsEnumerable()
+									.Select(r => r["Name"]?.ToString())
+									.Where(v => !string.IsNullOrEmpty(v))
+									.ToList();
+								lbxFields.Items.Clear();
+								lbxFields.Items.AddRange(fields.ToArray());
+							}));
+						}));
+					}
 				}
 			} catch (Exception ex) {
 				this.Invoke((Action)(() => toolStripStatusLabel1.Text = $"Error: {ex.Message}"));
 			}
+
 			finally {
 				_semaphore.Release();
 				this.UseWaitCursor = false;
 			}
+
 		}
 		private void filterChanged(object sender, EventArgs e) {
 			lbxObjects_SelectedIndexChanged(null, null);
@@ -578,7 +631,7 @@ namespace TesterFrm {
 		private void lbxLog_Click(object sender, EventArgs e) {
 
 			Clipboard.SetText(lbxLog.SelectedItem.ToString());
-			Log($"Copied to clipboard: {Clipboard.GetText()}", LogLevel.Debug); // optional logging
+			statusStrip1.Text = $"Copied to clipboard: {Clipboard.GetText()}"; // optional logging
 
 		}
 		#endregion lbxLog
@@ -596,6 +649,7 @@ namespace TesterFrm {
 				break;
 				case "tbppubsub":
 				LoadTopics(lbxObjects); // Load sfo Tables from sql server  topics into the listbox
+				lblPanel1.Text = $"{lbxObjects.Items.Count} registered CDC objects";
 				break;
 				default: break;
 			}
@@ -605,6 +659,7 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
+
 
 
 	}

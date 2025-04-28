@@ -11,13 +11,32 @@ using Avro.IO;
 using Avro.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
+using System.Data;
 
 namespace NetUtils {
-	// Custom EventArgs to carry progress update messages
 	public class ProgressUpdateEventArgs : EventArgs {
 		public string Message { get; }
 		public ProgressUpdateEventArgs(string message) {
 			Message = message;
+		}
+	}
+
+	public class ChangeEventData {
+		public string EntityName { get; set; }
+		public List<string> RecordIds { get; set; }
+		public string ChangeType { get; set; }
+		public List<string> ChangedFields { get; set; }
+		public DataTable FilteredFields { get; set; }
+		public string Error { get; set; }
+
+		public ChangeEventData() {
+			RecordIds = new List<string>();
+			ChangedFields = new List<string>();
+			FilteredFields = new DataTable();
+			FilteredFields.Columns.Add("FieldName", typeof(string));
+			FilteredFields.Columns.Add("Value", typeof(string));
+			//FilteredFields.Columns.Add("IsChanged", typeof(bool));
 		}
 	}
 
@@ -28,10 +47,8 @@ namespace NetUtils {
 		private readonly PubSubClient _client;
 		private readonly List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse> Call, CancellationTokenSource Cts)> _subscriptions;
 		private readonly Dictionary<string, RecordSchema> _schemaCache;
-
-		
-		public event EventHandler<ProgressUpdateEventArgs> ProgressUpdated;// Define the event for progress updates
-
+		public event EventHandler<ProgressUpdateEventArgs> ProgressUpdated;
+		public event EventHandler<ChangeEventData> ChangeEventReceived;
 		public PubSubService(ISalesforceService oauthService, IOptions<SalesforceConfig> configOptions) {
 			_oauthService = oauthService ?? throw new ArgumentNullException(nameof(oauthService));
 			_config = configOptions?.Value ?? throw new ArgumentNullException(nameof(configOptions));
@@ -39,11 +56,9 @@ namespace NetUtils {
 				Credentials = ChannelCredentials.SecureSsl
 			});
 			_client = new PubSubClient(_channel);
-
 			_subscriptions = new List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse>, CancellationTokenSource)>();
 			_schemaCache = new Dictionary<string, RecordSchema>();
 		}
-
 		public async Task<List<string>> StartSubscriptionsAsync() {
 			OnProgressUpdated("Starting subscriptions...");
 			var (token, instanceUrl, tenantId) = await _oauthService.GetAccessTokenAsync();
@@ -85,10 +100,7 @@ namespace NetUtils {
 									string payloadBase64 = eventObj.GetProperty("payload").GetString();
 									byte[] payload = Convert.FromBase64String(payloadBase64);
 									var schema = await GetSchemaAsync(schemaId, token, instanceUrl, tenantId);
-									List<string> decodedEvent = DecodeChangeEvent(payload, schema, fieldsToFilter);
-									foreach (var field in decodedEvent) {
-										OnProgressUpdated(field);
-									}
+									DecodeChangeEvent(payload, schema, fieldsToFilter);
 								}
 								await streamingCall.RequestStream.WriteAsync(fetchRequest);
 							}
@@ -120,52 +132,58 @@ namespace NetUtils {
 			}
 		}
 
-		private List<string> DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
+		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
+			var result = new ChangeEventData();
 			try {
 				using var stream = new MemoryStream(payload);
 				var reader = new BinaryDecoder(stream);
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
 				var filterSet = new HashSet<string>(fieldsToFilter);
+
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
-					return new List<string> { "Error: No Header on ChangeEvent " };
+					result.Error = "No Header on ChangeEvent";
+					ChangeEventReceived?.Invoke(this, result);
+					return;
 				}
-				string changeType = header.TryGetValue("changeType", out object ct) ? ct.ToString() : "Unknown";
-				string entityName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
-				var recordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
+
+				result.ChangeType = getChangeType(header.ToString());
+				result.EntityName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
+				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
 					? idsList.Select(id => id.ToString()).ToList()
 					: new List<string>();
-				var changedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
+				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
 					? cfList.Select(f => f.ToString()).ToList()
 					: new List<string>();
-				var fields = new List<string>
-				{
-					$"entityName: {entityName}",
-					$"recordIds: [{string.Join(", ", recordIds)}]",
-					$"changeType: {changeType}"
-				};
-				if (changedFields.Any()) {
-					fields.Add($"changedFields: [{string.Join(", ", changedFields)}]");
+
+				if (result.ChangeType == "DELETE") {
+					ChangeEventReceived?.Invoke(this, result);
+					return;
 				}
-				if (changeType == "DELETE") {
-					return fields;
-				}
+
 				foreach (var field in schema.Fields) {
 					if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
-						if (changedFields.Contains(field.Name)) {
-							fields.Add($"{field.Name}: {value} (changed)");
-						} else {
-							fields.Add($"{field.Name}: {value}");
-						}
+						//bool isChanged = result.ChangedFields.Contains(field.Name) //futile comparison
+						DataRow row = result.FilteredFields.NewRow();
+						row["FieldName"] = field.Name;
+						row["Value"] = value.ToString();
+						//row["IsChanged"] = isChanged;
+						result.FilteredFields.Rows.Add(row);
 					}
 				}
-				return fields;
+				result.FilteredFields.TableName = result.EntityName;
+				ChangeEventReceived?.Invoke(this, result);
 			} catch (Exception ex) {
-				return new List<string> { ex.Message };
+				result.Error = ex.Message;
+				ChangeEventReceived?.Invoke(this, result);
 			}
 		}
 
-		// Helper method to raise the ProgressUpdated event
+		private string getChangeType(string headerString) {
+			var match = Regex.Match(headerString, @"value:\s*(\w+)");
+			return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value : "Unknown";
+		}
+
 		protected virtual void OnProgressUpdated(string message) {
 			ProgressUpdated?.Invoke(this, new ProgressUpdateEventArgs(message));
 		}

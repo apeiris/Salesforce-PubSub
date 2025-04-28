@@ -46,6 +46,7 @@
 			grpFilterOptions = new GroupBox();
 			rbtFilterNone = new RadioButton();
 			rbtFilterSubscribed = new RadioButton();
+			btnRegisterFields = new Button();
 			tableLayoutPanel4 = new TableLayoutPanel();
 			dgvRelations = new DataGridView();
 			lblRelations = new Label();
@@ -65,7 +66,9 @@
 			tableLayoutPanel8 = new TableLayoutPanel();
 			splitContainer4 = new SplitContainer();
 			lbxCDCTopics = new ListBox();
+			splitContainer5 = new SplitContainer();
 			lbxCDCEvents = new ListBox();
+			dgvFilteredFields = new DataGridView();
 			tableLayoutPanel9 = new TableLayoutPanel();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
@@ -107,6 +110,11 @@
 			splitContainer4.Panel1.SuspendLayout();
 			splitContainer4.Panel2.SuspendLayout();
 			splitContainer4.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitContainer5).BeginInit();
+			splitContainer5.Panel1.SuspendLayout();
+			splitContainer5.Panel2.SuspendLayout();
+			splitContainer5.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).BeginInit();
 			tableLayoutPanel9.SuspendLayout();
 			SuspendLayout();
 			// 
@@ -508,6 +516,7 @@
 			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
 			tableLayoutPanel2.Controls.Add(button1, 1, 4);
 			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 3);
+			tableLayoutPanel2.Controls.Add(btnRegisterFields, 1, 0);
 			tableLayoutPanel2.Location = new Point(3, 370);
 			tableLayoutPanel2.Name = "tableLayoutPanel2";
 			tableLayoutPanel2.RowCount = 5;
@@ -574,6 +583,16 @@
 			rbtFilterSubscribed.Text = "Only subscribed";
 			rbtFilterSubscribed.UseVisualStyleBackColor = true;
 			rbtFilterSubscribed.CheckedChanged += filterChanged;
+			// 
+			// btnRegisterFields
+			// 
+			btnRegisterFields.Location = new Point(181, 3);
+			btnRegisterFields.Name = "btnRegisterFields";
+			btnRegisterFields.Size = new Size(155, 44);
+			btnRegisterFields.TabIndex = 7;
+			btnRegisterFields.Text = "Register Fields";
+			btnRegisterFields.UseVisualStyleBackColor = true;
+			btnRegisterFields.Click += btnRegisterExcluded_Click;
 			// 
 			// tableLayoutPanel4
 			// 
@@ -804,9 +823,9 @@
 			// 
 			// splitContainer4.Panel2
 			// 
-			splitContainer4.Panel2.Controls.Add(lbxCDCEvents);
+			splitContainer4.Panel2.Controls.Add(splitContainer5);
 			splitContainer4.Size = new Size(1409, 478);
-			splitContainer4.SplitterDistance = 651;
+			splitContainer4.SplitterDistance = 525;
 			splitContainer4.TabIndex = 0;
 			// 
 			// lbxCDCTopics
@@ -817,8 +836,25 @@
 			lbxCDCTopics.Location = new Point(0, 0);
 			lbxCDCTopics.Name = "lbxCDCTopics";
 			lbxCDCTopics.ScrollAlwaysVisible = true;
-			lbxCDCTopics.Size = new Size(651, 478);
+			lbxCDCTopics.Size = new Size(525, 478);
 			lbxCDCTopics.TabIndex = 1;
+			// 
+			// splitContainer5
+			// 
+			splitContainer5.Dock = DockStyle.Fill;
+			splitContainer5.Location = new Point(0, 0);
+			splitContainer5.Name = "splitContainer5";
+			// 
+			// splitContainer5.Panel1
+			// 
+			splitContainer5.Panel1.Controls.Add(lbxCDCEvents);
+			// 
+			// splitContainer5.Panel2
+			// 
+			splitContainer5.Panel2.Controls.Add(dgvFilteredFields);
+			splitContainer5.Size = new Size(880, 478);
+			splitContainer5.SplitterDistance = 401;
+			splitContainer5.TabIndex = 0;
 			// 
 			// lbxCDCEvents
 			// 
@@ -828,8 +864,17 @@
 			lbxCDCEvents.Location = new Point(0, 0);
 			lbxCDCEvents.Name = "lbxCDCEvents";
 			lbxCDCEvents.ScrollAlwaysVisible = true;
-			lbxCDCEvents.Size = new Size(754, 478);
+			lbxCDCEvents.Size = new Size(401, 478);
 			lbxCDCEvents.TabIndex = 0;
+			// 
+			// dgvFilteredFields
+			// 
+			dgvFilteredFields.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvFilteredFields.Dock = DockStyle.Fill;
+			dgvFilteredFields.Location = new Point(0, 0);
+			dgvFilteredFields.Name = "dgvFilteredFields";
+			dgvFilteredFields.Size = new Size(475, 478);
+			dgvFilteredFields.TabIndex = 0;
 			// 
 			// tableLayoutPanel9
 			// 
@@ -925,6 +970,11 @@
 			splitContainer4.Panel2.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)splitContainer4).EndInit();
 			splitContainer4.ResumeLayout(false);
+			splitContainer5.Panel1.ResumeLayout(false);
+			splitContainer5.Panel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer5).EndInit();
+			splitContainer5.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).EndInit();
 			tableLayoutPanel9.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
@@ -993,5 +1043,8 @@
 		private TableLayoutPanel tableLayoutPanel9;
 		private Button btnCDCStartSubscription;
 		private Label lblCDCStatus;
+		private SplitContainer splitContainer5;
+		private DataGridView dgvFilteredFields;
+		private Button btnRegisterFields;
 	}
 }
