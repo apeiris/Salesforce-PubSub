@@ -20,7 +20,7 @@ namespace TesterFrm {
 			SqlServer,
 			None
 		}
-		
+
 		#endregion enums
 		#region fields
 		private readonly IMemoryCache _cache;
@@ -54,7 +54,7 @@ namespace TesterFrm {
 		private readonly object _lock = new object();
 
 		private static enmRetrieveFrom _retrieveFrom = enmRetrieveFrom.SalesForce;
-		private static enmRetrievedFrom _retrievedFrom =_retrieveFrom;
+		private static enmRetrievedFrom _retrievedFrom = _retrieveFrom;
 
 		#endregion fields
 
@@ -255,15 +255,11 @@ namespace TesterFrm {
 			}
 		}
 		private void btnRegisterFields_Click(object sender, EventArgs e) {
-			var	 b = (Button)sender;
+			var b = (Button)sender;
 			if (b.Text.Contains("Update")) {
 				updateFields();
 				return;
 			}
-			//DataTable mdt = Fields.Select("", "", DataViewRowState.ModifiedCurrent).CopyToDataTable();
-			//if (mdt.Rows.Count < 1 ) return;
-			//_sqlServerLib.UpdateServerTable(mdt, "SELECT [Id],[CDCObjectId] ,[fieldName]     ,[IsExcluded] FROM [dbo].[CDCObjectFields]");
-
 			DataTable? Fields = dgvObject.DataSource as DataTable;
 			Fields.TableName = ObjectFromTopic(lbxObjects.Text);
 			Fields.Columns["Exclude"].DefaultValue = false;
@@ -275,13 +271,9 @@ namespace TesterFrm {
 			var (rowsInserted, tableName) = _sqlServerLib.RegisterExludedCDCFields(sxml);
 			Log($"{rowsInserted} rows inserted into {tableName}", LogLevel.Debug);
 		}
-		private void updateFields() { 
-		DataTable Fields = dgvObject.DataSource as DataTable;
-	//	DataTable mdt = Fields.Select("", "", DataViewRowState.ModifiedCurrent).CopyToDataTable();
-		//	if (mdt.Rows.Count < 1) return;
-		
+		private void updateFields() {
+			DataTable Fields = dgvObject.DataSource as DataTable;
 			_sqlServerLib.UpdateServerTable(Fields, "SELECT [Id],[IsExcluded]  FROM [dbo].[CDCObjectFields] ");
-		
 		}
 		#endregion buttons
 		#region dgv
@@ -615,7 +607,7 @@ namespace TesterFrm {
 					break;
 					case enmRetrievedFrom.SqlServer:
 					this.Invoke((Action)(() => {
-						string sqlSelect = $"select * from cdcObjectFields c join CDCObject p on c.CdcObjectId=p.Id where p.ObjectName='{selectedObject}'";
+						string sqlSelect = $"select * from cdcObjectFields c join CDCObject p on c.CdcObject_Id=p.Id where p.ObjectName='{selectedObject}'";
 						dtObject = _sqlServerLib.Select(sqlSelect);
 						dtObject.Columns["FieldName"]!.SetOrdinal(0);
 						dgvObject.DataSource = dtObject;
