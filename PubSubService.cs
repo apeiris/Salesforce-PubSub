@@ -21,7 +21,6 @@ namespace NetUtils {
 			Message = message;
 		}
 	}
-
 	public class ChangeEventData {
 		public string EntityName { get; set; }
 		public List<string> RecordIds { get; set; }
@@ -39,7 +38,6 @@ namespace NetUtils {
 			//FilteredFields.Columns.Add("IsChanged", typeof(bool));
 		}
 	}
-
 	public class PubSubService : IDisposable {
 		private readonly ISalesforceService _oauthService;
 		private readonly SalesforceConfig _config;
@@ -70,7 +68,6 @@ namespace NetUtils {
 			t.Add("Subscription started successfully..");
 			return t;
 		}
-
 		private async Task SubscribeToTopicAsync(string topic, string token, string instanceUrl, string tenantId, List<string> fieldsToFilter) {
 			OnProgressUpdated($"Subscribing to {topic}...");
 			var fetchRequest = new FetchRequest {
@@ -115,7 +112,6 @@ namespace NetUtils {
 				Debug.WriteLine($"Unexpected error for {topic}: {ex.Message}\r\n");
 			}
 		}
-
 		public async Task<RecordSchema> GetSchemaAsync(string schemaId, string token, string instanceUrl, string tenantId) {
 			if (_schemaCache.TryGetValue(schemaId, out RecordSchema cachedSchema)) {
 				return cachedSchema;
@@ -131,7 +127,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
 			var result = new ChangeEventData();
 			try {
@@ -140,13 +135,11 @@ namespace NetUtils {
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
 				var filterSet = new HashSet<string>(fieldsToFilter);
-
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					result.Error = "No Header on ChangeEvent";
 					ChangeEventReceived?.Invoke(this, result);
 					return;
 				}
-
 				result.ChangeType = getChangeType(header.ToString());
 				result.EntityName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
 				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
@@ -155,19 +148,15 @@ namespace NetUtils {
 				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
 					? cfList.Select(f => f.ToString()).ToList()
 					: new List<string>();
-
 				if (result.ChangeType == "DELETE") {
 					ChangeEventReceived?.Invoke(this, result);
 					return;
 				}
-
 				foreach (var field in schema.Fields) {
 					if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
-						//bool isChanged = result.ChangedFields.Contains(field.Name) //futile comparison
 						DataRow row = result.FilteredFields.NewRow();
 						row["FieldName"] = field.Name;
 						row["Value"] = value.ToString();
-						//row["IsChanged"] = isChanged;
 						result.FilteredFields.Rows.Add(row);
 					}
 				}
@@ -178,16 +167,13 @@ namespace NetUtils {
 				ChangeEventReceived?.Invoke(this, result);
 			}
 		}
-
 		private string getChangeType(string headerString) {
 			var match = Regex.Match(headerString, @"value:\s*(\w+)");
 			return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value : "Unknown";
 		}
-
 		protected virtual void OnProgressUpdated(string message) {
 			ProgressUpdated?.Invoke(this, new ProgressUpdateEventArgs(message));
 		}
-
 		public void Dispose() {
 			foreach (var (call, cts) in _subscriptions) {
 				cts.Cancel();

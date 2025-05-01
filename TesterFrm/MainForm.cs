@@ -13,6 +13,9 @@ using System.Security.Cryptography.Xml;
 using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
 using Newtonsoft.Json;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using ToolTip = System.Windows.Forms.ToolTip;
+using Button = System.Windows.Forms.Button;
 //using DocumentFormat.OpenXml.Wordprocessing;
 namespace TesterFrm {
 	public partial class MainForm : Form {
@@ -404,7 +407,33 @@ namespace TesterFrm {
 
 			}
 		}
-
+		private void dgvObject_CellContentClick_1(object sender, DataGridViewCellEventArgs e) {
+			if (e.ColumnIndex < 0) return;
+			if (dgvObject.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn) {
+				dgvObject.CommitEdit(DataGridViewDataErrorContexts.Commit);
+				DataTable dtObject = (DataTable)dgvObject.DataSource;
+				bool currentValue = Convert.ToBoolean(dgvObject.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
+				if (dtObject.Columns.Contains("IsExcluded")) { // if it is a sql server table
+					this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
+						List<string?> fields = dtObject.AsEnumerable()
+							.Where(r => !(r["IsExcluded"] is bool b && b)) // filter out rows where Exclude == true 
+							.Select(r => r["FieldName"]?.ToString())
+							.Where(v => !string.IsNullOrEmpty(v))
+							.ToList();
+						rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+					}));
+				} else {
+					this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
+						List<string?> fields = dtObject.AsEnumerable()
+							.Where(r => !(r["Exclude"] is bool b && b)) // filter out rows where Exclude == true 
+							.Select(r => r["Name"]?.ToString())
+							.Where(v => !string.IsNullOrEmpty(v))
+							.ToList();
+						rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+					}));
+				}
+			}
+		}
 		private async Task LoadSfObjectsAsync() {
 			Log("LoadSFObjectsAsync", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
@@ -440,6 +469,31 @@ namespace TesterFrm {
 		#region form
 		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
 			InitializeComponent();
+		ToolTip tt = new ToolTip();
+			tt.OwnerDraw = true;
+			tt.InitialDelay = 1;
+			tt.IsBalloon = false;
+			tt.Draw += (s, e) =>
+			{
+				e.Graphics.FillRectangle(Brushes.LightCyan, e.Bounds);
+				e.Graphics.DrawRectangle(Pens.SteelBlue, e.Bounds);
+				e.Graphics.DrawString(e.ToolTipText, SystemFonts.DefaultFont, Brushes.Black, e.Bounds);
+			};
+			string ttText = "Schemas of selected Salesforce objects must be persisted in SQL Server.\n" +
+				"These objects are selected from the Objects tab.\n" +
+				"Only objects marked as CDC Candidates are eligible for Pub/Sub operations.\n" +
+				"To view all registered schemas, select 'Filter None' from the filter radio buttons.\n" +
+				"In the Pub/Sub tab, choose the objects that require subscription.\n" +
+				"Selected objects are automatically converted into gRPC topic format.\n" +
+				"Select the excluded fields (IsExcluded) that should still be transferred\n" +
+				"to SQL Server when a gRPC change event is received from Salesforce Service Bus.";
+
+
+			tt.SetToolTip(lbxObjects, ttText);
+			tt.SetToolTip(dgvObject,ttText);
+			tt.SetToolTip(lblSelectedTable, ttText);
+
+
 			_cache = cache;
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
@@ -459,6 +513,7 @@ namespace TesterFrm {
 			_l.LogInformation("(logInformation)MainForm initialized.");
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
+
 		}
 
 
@@ -586,6 +641,14 @@ namespace TesterFrm {
 			}
 
 		}
+		private string tableColumnToJsonArray(DataTable dt,string sColumn,string fColumn) {
+			List<string?> fields = dt.AsEnumerable()
+								.Where(r => !(r[fColumn] is bool b && b))
+									.Select(r => r[sColumn]?.ToString())
+									.Where(v => !string.IsNullOrEmpty(v))
+									.ToList();
+			return JsonConvert.SerializeObject(fields);
+		}
 		#endregion helpers
 		#region litBoxes
 
@@ -623,12 +686,9 @@ namespace TesterFrm {
 							lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
 							dgvRelations.DataSource = ds.Tables["relations"];
 							this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
-								List<string?> fields = dtObject.AsEnumerable()
-								.Where(r => !(r["Exclude"] is bool b && b))
-									.Select(r => r["Name"]?.ToString())
-									.Where(v => !string.IsNullOrEmpty(v))
-									.ToList();
-								rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+
+								//txFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+								rtxFieldsJsonArray.Text = tableColumnToJsonArray(dtObject,"Name","Exclude");
 
 							}));
 						}));
@@ -642,9 +702,11 @@ namespace TesterFrm {
 						dtObject = _sqlServerLib.Select(sqlSelect);
 						dtObject.Columns["FieldName"]!.SetOrdinal(0);
 						dgvObject.DataSource = dtObject;
+						lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
 						toolStripStatusLabel1.Text = $"Object {selectedObject} already exists in the SQL Server.";
 						btnDeleteCDCRegistration.Visible = true;
 						btnRegisterFields.Text = "Update Fields";
+						rtxFieldsJsonArray.Text = tableColumnToJsonArray(dtObject, "FieldName", "IsExcluded");
 					}));
 					break;
 				}
@@ -659,16 +721,7 @@ namespace TesterFrm {
 			}
 
 		}
-		private void filterChanged(object sender, EventArgs e) {
-			//lbxObjects_SelectedIndexChanged(null, null);
-			var x = (RadioButton)sender;
-			if (!x.Checked) return;
-			bool showOnlySubscribed = (x == rbtFilterSubscribed);
-			LoadTopics(lbxObjects, showOnlySubscribed);
-			lblPanel1.Text = $"{lbxObjects.Items.Count} {(showOnlySubscribed == true ? "Subscribed" : "Registered")} CDC objects";
-
-
-		}
+		
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
@@ -711,6 +764,20 @@ namespace TesterFrm {
 		}
 		#endregion lbxLog
 		#endregion listBoxes
+		#region radio buttons
+		private void filterChanged(object sender, EventArgs e) {
+			dgvObject.DataSource = null;
+			lblSelectedTable.Text = ""; // clethe dgvObject panel label
+			rtxFieldsJsonArray.Text = "";
+			var x = (RadioButton)sender;
+			if (!x.Checked) return;
+			bool showOnlySubscribed = (x == rbtFilterSubscribed);
+
+			LoadTopics(lbxObjects, showOnlySubscribed);
+			lblPanel1.Text = $"{lbxObjects.Items.Count} {(showOnlySubscribed == true ? "Subscribed" : "Registered")} CDC objects";
+			
+		}
+		#endregion radio buttons
 		#region tabs
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
@@ -736,35 +803,9 @@ namespace TesterFrm {
 		}
 		#endregion tabs
 
-
-
-
-
-
-		private void dgvObject_CellContentClick(object sender, DataGridViewCellEventArgs e) {
-
-		}
-
-		private void dgvObject_CellContentClick_1(object sender, DataGridViewCellEventArgs e) {
-			if (dgvObject.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn) {
-				// Optionally commit edit to update value right away
-				dgvObject.CommitEdit(DataGridViewDataErrorContexts.Commit);
-				DataTable dtObject = (DataTable)dgvObject.DataSource;
-				bool currentValue = Convert.ToBoolean(dgvObject.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
-				//MessageBox.Show($"Checkbox clicked. New value: {currentValue}");
-
-
-				this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
-					List<string?> fields = dtObject.AsEnumerable()
-						.Where(r => !(r["Exclude"] is bool b && b)) // filter out rows where Exclude == true
-						.Select(r => r["Name"]?.ToString())
-						.Where(v => !string.IsNullOrEmpty(v))
-						.ToList();
-					rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
-
-				}));
-			}
-		}
+		#region tooltip
+	
+		#endregion tooltip
 
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
 
@@ -772,22 +813,22 @@ namespace TesterFrm {
 	}
 	#region utility classes
 	public class LogItem {
-			public string Message { get; set; }
-			public LogLevel Level { get; set; }
-			public LogItem(string message, LogLevel level) {
-				Message = message;
-				Level = level;
-			}
-			public override string ToString() {
-				return Message;
-			}
+		public string Message { get; set; }
+		public LogLevel Level { get; set; }
+		public LogItem(string message, LogLevel level) {
+			Message = message;
+			Level = level;
 		}
-
-
-
-		#endregion utility classes
-
+		public override string ToString() {
+			return Message;
+		}
 	}
+
+
+
+	#endregion utility classes
+
+}
 
 
 
