@@ -37,20 +37,20 @@
 			splitContainer2 = new SplitContainer();
 			lbxObjects = new ListBox();
 			lblPanel1 = new Label();
-			lbxFields = new ListBox();
+			rtxFieldsJsonArray = new RichTextBox();
 			dgvObject = new DataGridView();
 			lblSelectedTable = new Label();
 			tableLayoutPanel2 = new TableLayoutPanel();
-			btnReinitFieldsFromSF = new Button();
 			btnSubscribe = new Button();
 			button1 = new Button();
-			grpFilterOptions = new GroupBox();
-			rbtFilterNone = new RadioButton();
-			rbtFilterSubscribed = new RadioButton();
 			btnRegisterFields = new Button();
+			btnDeleteCDCRegistration = new Button();
 			tableLayoutPanel4 = new TableLayoutPanel();
 			dgvRelations = new DataGridView();
 			lblRelations = new Label();
+			grpFilterOptions = new GroupBox();
+			rbtFilterNone = new RadioButton();
+			rbtFilterSubscribed = new RadioButton();
 			tbpOAuth2 = new TabPage();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
@@ -92,9 +92,9 @@
 			splitContainer2.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvObject).BeginInit();
 			tableLayoutPanel2.SuspendLayout();
-			grpFilterOptions.SuspendLayout();
 			tableLayoutPanel4.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvRelations).BeginInit();
+			grpFilterOptions.SuspendLayout();
 			tbpOAuth2.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
@@ -400,19 +400,20 @@
 			// tableLayoutPanel1
 			// 
 			tableLayoutPanel1.ColumnCount = 2;
-			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.176012F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.17601F));
 			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 71.82399F));
-			tableLayoutPanel1.Controls.Add(splitContainer1, 0, 0);
-			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
-			tableLayoutPanel1.Controls.Add(tableLayoutPanel4, 1, 1);
+			tableLayoutPanel1.Controls.Add(splitContainer1, 0, 1);
+			tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 2);
+			tableLayoutPanel1.Controls.Add(tableLayoutPanel4, 1, 2);
+			tableLayoutPanel1.Controls.Add(grpFilterOptions, 0, 0);
 			tableLayoutPanel1.Dock = DockStyle.Fill;
 			tableLayoutPanel1.Location = new Point(3, 3);
 			tableLayoutPanel1.Name = "tableLayoutPanel1";
-			tableLayoutPanel1.RowCount = 3;
+			tableLayoutPanel1.RowCount = 4;
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 47F));
 			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 55.35445F));
 			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 44.64555F));
 			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 8F));
-			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel1.Size = new Size(1409, 672);
 			tableLayoutPanel1.TabIndex = 0;
 			// 
@@ -420,7 +421,7 @@
 			// 
 			tableLayoutPanel1.SetColumnSpan(splitContainer1, 2);
 			splitContainer1.Dock = DockStyle.Fill;
-			splitContainer1.Location = new Point(3, 3);
+			splitContainer1.Location = new Point(3, 50);
 			splitContainer1.Name = "splitContainer1";
 			// 
 			// splitContainer1.Panel1
@@ -431,7 +432,7 @@
 			// 
 			splitContainer1.Panel2.Controls.Add(dgvObject);
 			splitContainer1.Panel2.Controls.Add(lblSelectedTable);
-			splitContainer1.Size = new Size(1403, 361);
+			splitContainer1.Size = new Size(1403, 335);
 			splitContainer1.SplitterDistance = 392;
 			splitContainer1.TabIndex = 6;
 			// 
@@ -449,9 +450,9 @@
 			// 
 			// splitContainer2.Panel2
 			// 
-			splitContainer2.Panel2.Controls.Add(lbxFields);
-			splitContainer2.Size = new Size(392, 361);
-			splitContainer2.SplitterDistance = 180;
+			splitContainer2.Panel2.Controls.Add(rtxFieldsJsonArray);
+			splitContainer2.Size = new Size(392, 335);
+			splitContainer2.SplitterDistance = 167;
 			splitContainer2.TabIndex = 7;
 			// 
 			// lbxObjects
@@ -460,7 +461,7 @@
 			lbxObjects.FormattingEnabled = true;
 			lbxObjects.Location = new Point(0, 21);
 			lbxObjects.Name = "lbxObjects";
-			lbxObjects.Size = new Size(392, 159);
+			lbxObjects.Size = new Size(392, 146);
 			lbxObjects.TabIndex = 5;
 			lbxObjects.SelectedIndexChanged += lbxObjects_SelectedIndexChanged;
 			// 
@@ -476,14 +477,13 @@
 			lblPanel1.Text = "CDC Subscriptions";
 			lblPanel1.TextAlign = ContentAlignment.MiddleCenter;
 			// 
-			// lbxFields
+			// rtxFieldsJsonArray
 			// 
-			lbxFields.Dock = DockStyle.Fill;
-			lbxFields.FormattingEnabled = true;
-			lbxFields.Location = new Point(0, 0);
-			lbxFields.Name = "lbxFields";
-			lbxFields.Size = new Size(392, 177);
-			lbxFields.TabIndex = 6;
+			rtxFieldsJsonArray.Location = new Point(0, 3);
+			rtxFieldsJsonArray.Name = "rtxFieldsJsonArray";
+			rtxFieldsJsonArray.Size = new Size(389, 158);
+			rtxFieldsJsonArray.TabIndex = 0;
+			rtxFieldsJsonArray.Text = "";
 			// 
 			// dgvObject
 			// 
@@ -494,8 +494,9 @@
 			dgvObject.Dock = DockStyle.Fill;
 			dgvObject.Location = new Point(0, 21);
 			dgvObject.Name = "dgvObject";
-			dgvObject.Size = new Size(1007, 340);
+			dgvObject.Size = new Size(1007, 314);
 			dgvObject.TabIndex = 4;
+			dgvObject.CellContentClick += dgvObject_CellContentClick_1;
 			// 
 			// lblSelectedTable
 			// 
@@ -514,12 +515,11 @@
 			tableLayoutPanel2.ColumnCount = 2;
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
-			tableLayoutPanel2.Controls.Add(btnReinitFieldsFromSF, 0, 0);
 			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
 			tableLayoutPanel2.Controls.Add(button1, 1, 4);
-			tableLayoutPanel2.Controls.Add(grpFilterOptions, 0, 3);
 			tableLayoutPanel2.Controls.Add(btnRegisterFields, 1, 0);
-			tableLayoutPanel2.Location = new Point(3, 370);
+			tableLayoutPanel2.Controls.Add(btnDeleteCDCRegistration, 0, 0);
+			tableLayoutPanel2.Location = new Point(3, 391);
 			tableLayoutPanel2.Name = "tableLayoutPanel2";
 			tableLayoutPanel2.RowCount = 5;
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 51.6129036F));
@@ -528,23 +528,12 @@
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel2.Size = new Size(391, 272);
+			tableLayoutPanel2.Size = new Size(391, 269);
 			tableLayoutPanel2.TabIndex = 3;
-			// 
-			// btnReinitFieldsFromSF
-			// 
-			btnReinitFieldsFromSF.BackColor = Color.Green;
-			btnReinitFieldsFromSF.ForeColor = Color.Yellow;
-			btnReinitFieldsFromSF.Location = new Point(3, 3);
-			btnReinitFieldsFromSF.Name = "btnReinitFieldsFromSF";
-			btnReinitFieldsFromSF.Size = new Size(155, 44);
-			btnReinitFieldsFromSF.TabIndex = 8;
-			btnReinitFieldsFromSF.Text = "Re Init from Salesforce";
-			btnReinitFieldsFromSF.UseVisualStyleBackColor = false;
 			// 
 			// btnSubscribe
 			// 
-			btnSubscribe.Location = new Point(3, 224);
+			btnSubscribe.Location = new Point(3, 221);
 			btnSubscribe.Name = "btnSubscribe";
 			btnSubscribe.Size = new Size(104, 44);
 			btnSubscribe.TabIndex = 0;
@@ -554,48 +543,12 @@
 			// 
 			// button1
 			// 
-			button1.Location = new Point(181, 224);
+			button1.Location = new Point(181, 221);
 			button1.Name = "button1";
 			button1.Size = new Size(145, 44);
 			button1.TabIndex = 2;
 			button1.Text = "Clear";
 			button1.UseVisualStyleBackColor = true;
-			// 
-			// grpFilterOptions
-			// 
-			tableLayoutPanel2.SetColumnSpan(grpFilterOptions, 2);
-			grpFilterOptions.Controls.Add(rbtFilterNone);
-			grpFilterOptions.Controls.Add(rbtFilterSubscribed);
-			grpFilterOptions.Location = new Point(3, 172);
-			grpFilterOptions.Name = "grpFilterOptions";
-			grpFilterOptions.Size = new Size(233, 46);
-			grpFilterOptions.TabIndex = 6;
-			grpFilterOptions.TabStop = false;
-			grpFilterOptions.Text = "Filter";
-			// 
-			// rbtFilterNone
-			// 
-			rbtFilterNone.AutoSize = true;
-			rbtFilterNone.Checked = true;
-			rbtFilterNone.Location = new Point(6, 22);
-			rbtFilterNone.Name = "rbtFilterNone";
-			rbtFilterNone.Size = new Size(54, 19);
-			rbtFilterNone.TabIndex = 4;
-			rbtFilterNone.TabStop = true;
-			rbtFilterNone.Text = "None";
-			rbtFilterNone.UseVisualStyleBackColor = true;
-			rbtFilterNone.CheckedChanged += filterChanged;
-			// 
-			// rbtFilterSubscribed
-			// 
-			rbtFilterSubscribed.AutoSize = true;
-			rbtFilterSubscribed.Location = new Point(66, 22);
-			rbtFilterSubscribed.Name = "rbtFilterSubscribed";
-			rbtFilterSubscribed.Size = new Size(110, 19);
-			rbtFilterSubscribed.TabIndex = 5;
-			rbtFilterSubscribed.Text = "Only subscribed";
-			rbtFilterSubscribed.UseVisualStyleBackColor = true;
-			rbtFilterSubscribed.CheckedChanged += filterChanged;
 			// 
 			// btnRegisterFields
 			// 
@@ -605,9 +558,21 @@
 			btnRegisterFields.Name = "btnRegisterFields";
 			btnRegisterFields.Size = new Size(155, 44);
 			btnRegisterFields.TabIndex = 7;
-			btnRegisterFields.Text = "Register Fields";
+			btnRegisterFields.Text = "Subscribe";
 			btnRegisterFields.UseVisualStyleBackColor = false;
 			btnRegisterFields.Click += btnRegisterFields_Click;
+			// 
+			// btnDeleteCDCRegistration
+			// 
+			btnDeleteCDCRegistration.BackColor = Color.Green;
+			btnDeleteCDCRegistration.ForeColor = Color.Yellow;
+			btnDeleteCDCRegistration.Location = new Point(3, 3);
+			btnDeleteCDCRegistration.Name = "btnDeleteCDCRegistration";
+			btnDeleteCDCRegistration.Size = new Size(155, 44);
+			btnDeleteCDCRegistration.TabIndex = 8;
+			btnDeleteCDCRegistration.Text = "Delete Subscription";
+			btnDeleteCDCRegistration.UseVisualStyleBackColor = false;
+			btnDeleteCDCRegistration.Click += btnDeleteCDCSubscription_Click;
 			// 
 			// tableLayoutPanel4
 			// 
@@ -616,13 +581,13 @@
 			tableLayoutPanel4.Controls.Add(dgvRelations, 0, 1);
 			tableLayoutPanel4.Controls.Add(lblRelations, 0, 0);
 			tableLayoutPanel4.Dock = DockStyle.Fill;
-			tableLayoutPanel4.Location = new Point(400, 370);
+			tableLayoutPanel4.Location = new Point(400, 391);
 			tableLayoutPanel4.Name = "tableLayoutPanel4";
 			tableLayoutPanel4.RowCount = 2;
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 11.8942728F));
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 88.10573F));
 			tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel4.Size = new Size(1006, 290);
+			tableLayoutPanel4.Size = new Size(1006, 269);
 			tableLayoutPanel4.TabIndex = 7;
 			// 
 			// dgvRelations
@@ -632,9 +597,9 @@
 			dgvRelations.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
 			dgvRelations.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvRelations.Dock = DockStyle.Fill;
-			dgvRelations.Location = new Point(3, 37);
+			dgvRelations.Location = new Point(3, 34);
 			dgvRelations.Name = "dgvRelations";
-			dgvRelations.Size = new Size(1000, 250);
+			dgvRelations.Size = new Size(1000, 232);
 			dgvRelations.TabIndex = 10;
 			// 
 			// lblRelations
@@ -647,6 +612,41 @@
 			lblRelations.TabIndex = 9;
 			lblRelations.Text = "lblRelations";
 			lblRelations.TextAlign = ContentAlignment.TopCenter;
+			// 
+			// grpFilterOptions
+			// 
+			grpFilterOptions.Controls.Add(rbtFilterNone);
+			grpFilterOptions.Controls.Add(rbtFilterSubscribed);
+			grpFilterOptions.Location = new Point(3, 3);
+			grpFilterOptions.Name = "grpFilterOptions";
+			grpFilterOptions.Size = new Size(233, 41);
+			grpFilterOptions.TabIndex = 6;
+			grpFilterOptions.TabStop = false;
+			grpFilterOptions.Text = "Filter";
+			// 
+			// rbtFilterNone
+			// 
+			rbtFilterNone.AutoSize = true;
+			rbtFilterNone.Checked = true;
+			rbtFilterNone.Location = new Point(6, 16);
+			rbtFilterNone.Name = "rbtFilterNone";
+			rbtFilterNone.Size = new Size(54, 19);
+			rbtFilterNone.TabIndex = 4;
+			rbtFilterNone.TabStop = true;
+			rbtFilterNone.Text = "None";
+			rbtFilterNone.UseVisualStyleBackColor = true;
+			rbtFilterNone.CheckedChanged += filterChanged;
+			// 
+			// rbtFilterSubscribed
+			// 
+			rbtFilterSubscribed.AutoSize = true;
+			rbtFilterSubscribed.Location = new Point(66, 16);
+			rbtFilterSubscribed.Name = "rbtFilterSubscribed";
+			rbtFilterSubscribed.Size = new Size(110, 19);
+			rbtFilterSubscribed.TabIndex = 5;
+			rbtFilterSubscribed.Text = "Only subscribed";
+			rbtFilterSubscribed.UseVisualStyleBackColor = true;
+			rbtFilterSubscribed.CheckedChanged += filterChanged;
 			// 
 			// tbpOAuth2
 			// 
@@ -913,6 +913,7 @@
 			btnCDCStartSubscription.TabIndex = 0;
 			btnCDCStartSubscription.Text = "Start Subscription";
 			btnCDCStartSubscription.UseVisualStyleBackColor = true;
+			btnCDCStartSubscription.Click += btnCDCStartSubscription_Click;
 			// 
 			// lblCDCStatus
 			// 
@@ -961,11 +962,11 @@
 			splitContainer2.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvObject).EndInit();
 			tableLayoutPanel2.ResumeLayout(false);
-			grpFilterOptions.ResumeLayout(false);
-			grpFilterOptions.PerformLayout();
 			tableLayoutPanel4.ResumeLayout(false);
 			tableLayoutPanel4.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)dgvRelations).EndInit();
+			grpFilterOptions.ResumeLayout(false);
+			grpFilterOptions.PerformLayout();
 			tbpOAuth2.ResumeLayout(false);
 			tbpOAuth2.PerformLayout();
 			tbpDescribeObject.ResumeLayout(false);
@@ -1011,7 +1012,6 @@
 		private DataGridView dgvObject;
 		private ListBox lbxObjects;
 		private SplitContainer splitContainer1;
-		private ListBox lbxFields;
 		private Label lblPanel1;
 		private Label lblPanel2;
 		private RadioButton rbtFilterSubscribed;
@@ -1062,6 +1062,7 @@
 		private DataGridView dgvFilteredFields;
 		private Button btnRegisterFields;
 		private Button button2;
-		private Button btnReinitFieldsFromSF;
+		private Button btnDeleteCDCRegistration;
+		private RichTextBox rtxFieldsJsonArray;
 	}
 }

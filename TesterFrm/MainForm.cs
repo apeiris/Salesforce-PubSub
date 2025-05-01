@@ -11,6 +11,8 @@ using System.Runtime.CompilerServices;
 using System.Windows.Forms.VisualStyles;
 using System.Security.Cryptography.Xml;
 using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
+using Newtonsoft.Json;
+using System.Windows.Forms;
 //using DocumentFormat.OpenXml.Wordprocessing;
 namespace TesterFrm {
 	public partial class MainForm : Form {
@@ -74,11 +76,11 @@ namespace TesterFrm {
 		}
 		#endregion pubsubservice events
 		#region _sqlserver events
-		private void SqlObjectExistEventOccured(object? sender, SqlObjectQuery e) {
+		private void SqlEventObjectExist(object? sender, SqlObjectQuery e) {
 			//	throw new NotImplementedException();
 			Log($"CDC {e.ObjectType} {e.ObjectName} exist={e.Exist}  id= {e.Id} ", LogLevel.Information);
 
-			btnReinitFieldsFromSF.Visible = e.Exist;
+			btnDeleteCDCRegistration.Visible = e.Exist;
 			toolStripStatusLabel1.ForeColor = Color.Yellow;
 			if (e.Exist) {
 				toolStripStatusLabel1.Text += $" object in the sql server with the Id {e.Id}";
@@ -94,6 +96,28 @@ namespace TesterFrm {
 			}
 			setControlColor(btnRegisterFields, e.Exist);
 		}
+
+		private void _sqlServerLib_SqlEvent(object? sender, SqlEventArg e) {
+			//throw new NotImplementedException();
+			Log(e.Message, LogLevel.Debug);
+			if (!e.HasErrors) {
+				switch (e.ReturningFrom) {
+					case "RegisterExludedCDCFields":
+					lbxObjects_SelectedIndexChanged(sender, e);// redo it to refresh UI
+					break;
+					case "DeleteCDCObject":
+					//LoadTopics(lbxCDCTopics, false);
+					lbxObjects_SelectedIndexChanged(sender, e);// redo it to refresh UI	
+					lbxObjects.Items.Remove(lbxObjects.SelectedItem);
+
+					lblPanel1.Text = $"{lbxObjects.Items.Count} Subscribed CDC Object";
+					break;
+
+
+				}
+			}
+		}
+
 
 		#endregion _sqlserver events
 		#endregion events
@@ -275,6 +299,9 @@ namespace TesterFrm {
 			DataTable Fields = dgvObject.DataSource as DataTable;
 			_sqlServerLib.UpdateServerTable(Fields, "SELECT [Id],[IsExcluded]  FROM [dbo].[CDCObjectFields] ");
 		}
+		private void btnDeleteCDCSubscription_Click(object sender, EventArgs e) {
+			_sqlServerLib.DeleteCDCObject(ObjectFromTopic(lbxObjects.Text));
+		}
 		#endregion buttons
 		#region dgv
 		/*
@@ -430,8 +457,11 @@ namespace TesterFrm {
 			_l = logger ?? throw new ArgumentNullException(nameof(logger));
 			_l.LogDebug("MainForm initialized.");
 			_l.LogInformation("(logInformation)MainForm initialized.");
-			_sqlServerLib.SqlObjectExist += SqlObjectExistEventOccured;
+			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
+			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
 		}
+
+
 		private void Form1_Load(object sender, EventArgs e) {
 			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
 			if (!string.IsNullOrEmpty(savedTab) && tabControl1.TabPages.ContainsKey(savedTab)) {
@@ -458,11 +488,13 @@ namespace TesterFrm {
 			Properties.Settings.Default.Save();
 		}
 		#endregion	 form	
-		#region groupbox
-		private void grpFilterOptions_EnabledChanged(object sender, EventArgs e) {
-		}
-		#endregion groupbox
+
 		#region helpers
+		private void LoadTopics(ListBox listBox, bool filtered) {
+			listBox.Items.Clear();
+			DataTable dataTable = filtered ? _sqlServerLib.Select("select * from dbo.ftcdcObjects()") : _sqlServerLib.GetAll_sfoTables();
+			listBox.Items.AddRange(_sqlServerLib.GetChangeEventUrls(dataTable).ToArray());
+		}
 		public string ObjectFromTopic(string topicName) {
 			var match = Regex.Match(topicName, @"/data/(\w+)ChangeEvent");
 			return match.Success ? match.Groups[1].Value : throw new ArgumentException($"Invalid topic name format: {topicName}");
@@ -555,12 +587,8 @@ namespace TesterFrm {
 
 		}
 		#endregion helpers
-		#region lbx
-		private void LoadTopics(ListBox listBox) {
-			listBox.Items.Clear();
-			DataTable dataTable = _sqlServerLib.GetAll_sfoTables();
-			listBox.Items.AddRange(_sqlServerLib.GetChangeEventUrls(dataTable).ToArray());
-		}
+		#region litBoxes
+
 
 
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
@@ -596,23 +624,26 @@ namespace TesterFrm {
 							dgvRelations.DataSource = ds.Tables["relations"];
 							this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
 								List<string?> fields = dtObject.AsEnumerable()
+								.Where(r => !(r["Exclude"] is bool b && b))
 									.Select(r => r["Name"]?.ToString())
 									.Where(v => !string.IsNullOrEmpty(v))
 									.ToList();
-								lbxFields.Items.Clear();
-								lbxFields.Items.AddRange(fields.ToArray()!);
+								rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+
 							}));
 						}));
 					}
 					break;
 					case enmRetrievedFrom.SqlServer:
 					this.Invoke((Action)(() => {
-						string sqlSelect = $"select * from cdcObjectFields c join CDCObject p on c.CdcObject_Id=p.Id where p.ObjectName='{selectedObject}'";
+						//string sqlSelect = $"select * from cdcObjectFields c join CDCObject p on c.CdcObject_Id=p.Id where p.ObjectName='{selectedObject}'";
+
+						string sqlSelect = $"select * from ftcdcObjectFields('{selectedObject}',1)";
 						dtObject = _sqlServerLib.Select(sqlSelect);
 						dtObject.Columns["FieldName"]!.SetOrdinal(0);
 						dgvObject.DataSource = dtObject;
 						toolStripStatusLabel1.Text = $"Object {selectedObject} already exists in the SQL Server.";
-						btnReinitFieldsFromSF.Visible = true;
+						btnDeleteCDCRegistration.Visible = true;
 						btnRegisterFields.Text = "Update Fields";
 					}));
 					break;
@@ -629,7 +660,14 @@ namespace TesterFrm {
 
 		}
 		private void filterChanged(object sender, EventArgs e) {
-			lbxObjects_SelectedIndexChanged(null, null);
+			//lbxObjects_SelectedIndexChanged(null, null);
+			var x = (RadioButton)sender;
+			if (!x.Checked) return;
+			bool showOnlySubscribed = (x == rbtFilterSubscribed);
+			LoadTopics(lbxObjects, showOnlySubscribed);
+			lblPanel1.Text = $"{lbxObjects.Items.Count} {(showOnlySubscribed == true ? "Subscribed" : "Registered")} CDC objects";
+
+
 		}
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
@@ -672,7 +710,7 @@ namespace TesterFrm {
 
 		}
 		#endregion lbxLog
-		#endregion lbx
+		#endregion listBoxes
 		#region tabs
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
@@ -685,7 +723,8 @@ namespace TesterFrm {
 				}
 				break;
 				case "tbppubsub":
-				LoadTopics(lbxObjects); // Load sfo Tables from sql server  topics into the listbox
+
+				LoadTopics(lbxObjects, rbtFilterSubscribed.Checked); // Load sfo Tables from sql server  topics into the listbox
 				lblPanel1.Text = $"{lbxObjects.Items.Count} registered CDC objects";
 				break;
 				default: break;
@@ -699,25 +738,56 @@ namespace TesterFrm {
 
 
 
+
+
+
+		private void dgvObject_CellContentClick(object sender, DataGridViewCellEventArgs e) {
+
+		}
+
+		private void dgvObject_CellContentClick_1(object sender, DataGridViewCellEventArgs e) {
+			if (dgvObject.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn) {
+				// Optionally commit edit to update value right away
+				dgvObject.CommitEdit(DataGridViewDataErrorContexts.Commit);
+				DataTable dtObject = (DataTable)dgvObject.DataSource;
+				bool currentValue = Convert.ToBoolean(dgvObject.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
+				//MessageBox.Show($"Checkbox clicked. New value: {currentValue}");
+
+
+				this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
+					List<string?> fields = dtObject.AsEnumerable()
+						.Where(r => !(r["Exclude"] is bool b && b)) // filter out rows where Exclude == true
+						.Select(r => r["Name"]?.ToString())
+						.Where(v => !string.IsNullOrEmpty(v))
+						.ToList();
+					rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+
+				}));
+			}
+		}
+
+		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
+
+		}
 	}
 	#region utility classes
 	public class LogItem {
-		public string Message { get; set; }
-		public LogLevel Level { get; set; }
-		public LogItem(string message, LogLevel level) {
-			Message = message;
-			Level = level;
+			public string Message { get; set; }
+			public LogLevel Level { get; set; }
+			public LogItem(string message, LogLevel level) {
+				Message = message;
+				Level = level;
+			}
+			public override string ToString() {
+				return Message;
+			}
 		}
-		public override string ToString() {
-			return Message;
-		}
+
+
+
+		#endregion utility classes
+
 	}
-
-
-
-	#endregion utility classes
-
-}
 
 
 
