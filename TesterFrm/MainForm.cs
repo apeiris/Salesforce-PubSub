@@ -62,7 +62,6 @@ namespace TesterFrm {
 		private static enmRetrievedFrom _retrievedFrom = _retrieveFrom;
 
 		#endregion fields
-
 		#region events
 		#region pubsubservice events
 		private void PubSubService_ProgressUpdated(object sender, ProgressUpdateEventArgs e) {
@@ -70,7 +69,7 @@ namespace TesterFrm {
 				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
 			} else lbxCDCTopics.Items.Add(e.Message);
 		}
-		private void _pubSubService_ChangeEventReceived(object? sender, ChangeEventData e) {
+		private void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
 			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
 
 				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
@@ -500,7 +499,7 @@ namespace TesterFrm {
 			_config = config.Value;
 			_sqlServerLib = sqlServerLib;
 			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated;
-			_pubSubService.ChangeEventReceived += _pubSubService_ChangeEventReceived;
+			_pubSubService.CDCEvent += _pubSubService_ChangeEventReceived;
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt;
 			}

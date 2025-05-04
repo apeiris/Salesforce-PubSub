@@ -11,20 +11,16 @@ option csharp_namespace = "NetUtils";
  * Contains information about a topic and uniquely identifies it. TopicInfo is returned by the GetTopic RPC method.
  */
 message TopicInfo {
-  // Topic name
-  string topic_name = 1;
-  // Tenant/org GUID
-  string tenant_guid = 2;
-  // Is publishing allowed?
-  bool can_publish = 3;
-  // Is subscription allowed?
-  bool can_subscribe = 4;
+ 
+  string topic_name = 1; // Topic name
+  string tenant_guid = 2;  // Tenant/org GUID
+  bool can_publish = 3;// Is publishing allowed?
+  bool can_subscribe = 4;// Is subscription allowed?
   /* ID of the current topic schema, which can be used for
    * publishing of generically serialized events.
    */
   string schema_id = 5;
-  // RPC ID used to trace errors.
-  string rpc_id = 6;
+  string rpc_id = 6; // RPC ID used to trace errors.
 }
 
 /*
@@ -32,8 +28,7 @@ message TopicInfo {
  * in the request, but is implicitly identified by the authentication headers.
  */
 message TopicRequest {
-  // The name of the topic to retrieve.
-  string topic_name = 1;
+  string topic_name = 1; // The name of the topic to retrieve.
 }
 
 /*
@@ -51,14 +46,10 @@ message EventHeader {
  * Represents an event that an event publishing app creates.
  */
 message ProducerEvent {
-  // Either a user-provided ID or a system generated guid
-  string id = 1;
-  // Schema fingerprint for this event which is hash of the schema
-  string schema_id = 2;
-  // The message data field
-  bytes payload = 3;
-  // Reserved for future use. Key-value pairs of headers.
-  repeated EventHeader headers = 4;
+  string id = 1;  // Either a user-provided ID or a system generated guid 
+  string schema_id = 2;// Schema fingerprint for this event which is hash of the schema
+  bytes payload = 3;// The message data field
+  repeated EventHeader headers = 4;// Reserved for future use. Key-value pairs of headers.
 }
 
 /*
@@ -79,20 +70,15 @@ message ConsumerEvent {
  * Event publish result that the Publish RPC method returns. The result contains replay_id or a publish error.
  */
 message PublishResult {
-  // Replay ID of the event
-  bytes replay_id = 1;
-  // Publish error if any
-  Error error = 2;
-  // Correlation key of the ProducerEvent
-  string correlationKey = 3;
+  bytes replay_id = 1;// Replay ID of the event
+  Error error = 2;// Publish error if any
+  string correlationKey = 3; // Correlation key of the ProducerEvent
 }
 
 // Contains error information for an error that an RPC method returns.
 message Error {
-  // Error code
-  ErrorCode code = 1;
-  // Error message
-  string msg = 2;
+  ErrorCode code = 1; // Error code
+  string msg = 2;// Error message
 }
 
 // Supported error codes
@@ -106,12 +92,9 @@ enum ErrorCode {
  * By default, the subscription will start at the tip of the stream if ReplayPreset is not specified.
  */
 enum ReplayPreset {
-  // Start the subscription at the tip of the stream.
-  LATEST = 0;
-  // Start the subscription at the earliest point in the stream.
-  EARLIEST = 1;
-  // Start the subscription after a custom point in the stream. This must be set with a valid replay_id in the FetchRequest.
-  CUSTOM = 2;
+  LATEST = 0;  // Start the subscription at the tip of the stream.
+  EARLIEST = 1;// Start the subscription at the earliest point in the stream.
+  CUSTOM = 2;  // Start the subscription after a custom point in the stream. This must be set with a valid replay_id in the FetchRequest.
 }
 
 /*
@@ -160,45 +143,35 @@ message FetchRequest {
  * server and the latest replay ID.
  */
 message FetchResponse {
-  // Received events for subscription for client consumption
-  repeated ConsumerEvent events = 1;
+  repeated ConsumerEvent events = 1; // Received events for subscription for client consumption
   // Latest replay ID of a subscription. Enables clients with an updated replay value so that they can keep track
   // of their last consumed replay. Clients will not have to start a subscription at a very old replay in the case where a resubscribe is necessary.
   bytes latest_replay_id = 2;
-  // RPC ID used to trace errors.
-  string rpc_id = 3;
-  // Number of remaining events to be delivered to the client for a Subscribe RPC call.
-  int32 pending_num_requested = 4;
+  string rpc_id = 3;  // RPC ID used to trace errors.
+  int32 pending_num_requested = 4;// Number of remaining events to be delivered to the client for a Subscribe RPC call.
 }
 
 /*
  * Request for the GetSchema RPC method. The schema request is based on the event schema ID.
  */
 message SchemaRequest {
-  // Schema fingerprint for this event, which is a hash of the schema.
-  string schema_id = 1;
+  string schema_id = 1;// Schema fingerprint for this event, which is a hash of the schema.
 }
 
 /*
  * Response for the GetSchema RPC method. This returns the schema ID and schema of an event.
  */
 message SchemaInfo {
-  // Avro schema in JSON format
-  string schema_json = 1;
-  // Schema fingerprint
-  string schema_id = 2;
-  // RPC ID used to trace errors.
-  string rpc_id = 3;
+  string schema_json = 1;  // Avro schema in JSON format
+  string schema_id = 2; // Schema fingerprint
+  string rpc_id = 3;// RPC ID used to trace errors.
 }
 
 // Request for the Publish and PublishStream RPC method.
 message PublishRequest {
-  // Topic to publish on
-  string topic_name = 1;
-  // Batch of ProducerEvent(s) to send
-  repeated ProducerEvent events = 2;
-  // For internal Salesforce use only.
-  string auth_refresh = 3;
+  string topic_name = 1;  // Topic to publish on
+  repeated ProducerEvent events = 2; // Batch of ProducerEvent(s) to send
+  string auth_refresh = 3; // For internal Salesforce use only.
 }
 
 /*
@@ -209,12 +182,9 @@ message PublishRequest {
  * the ProducerEvents in the PublishRequest.
  */
 message PublishResponse {
-  // Publish results
-  repeated PublishResult results = 1;
-  // Schema fingerprint for this event, which is a hash of the schema
-  string schema_id = 2;
-  // RPC ID used to trace errors.
-  string rpc_id = 3;
+  repeated PublishResult results = 1;// Publish results
+  string schema_id = 2; // Schema fingerprint for this event, which is a hash of the schema
+  string rpc_id = 3; // RPC ID used to trace errors.
 }
 
 /*

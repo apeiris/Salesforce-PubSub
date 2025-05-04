@@ -21,7 +21,7 @@ namespace NetUtils {
 			Message = message;
 		}
 	}
-	public class ChangeEventData {
+	public class CDCEventArgs {
 		public string EntityName { get; set; }
 		public List<string> RecordIds { get; set; }
 		public string ChangeType { get; set; }
@@ -29,7 +29,7 @@ namespace NetUtils {
 		public DataTable FilteredFields { get; set; }
 		public string Error { get; set; }
 
-		public ChangeEventData() {
+		public CDCEventArgs() {
 			RecordIds = new List<string>();
 			ChangedFields = new List<string>();
 			FilteredFields = new DataTable();
@@ -46,7 +46,7 @@ namespace NetUtils {
 		private readonly List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse> Call, CancellationTokenSource Cts)> _subscriptions;
 		private readonly Dictionary<string, RecordSchema> _schemaCache;
 		public event EventHandler<ProgressUpdateEventArgs> ProgressUpdated;
-		public event EventHandler<ChangeEventData> ChangeEventReceived;
+		public event EventHandler<CDCEventArgs> CDCEvent;
 		public PubSubService(ISalesforceService oauthService, IOptions<SalesforceConfig> configOptions) {
 			_oauthService = oauthService ?? throw new ArgumentNullException(nameof(oauthService));
 			_config = configOptions?.Value ?? throw new ArgumentNullException(nameof(configOptions));
@@ -128,7 +128,7 @@ namespace NetUtils {
 			}
 		}
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
-			var result = new ChangeEventData();
+			var result = new CDCEventArgs();
 			try {
 				using var stream = new MemoryStream(payload);
 				var reader = new BinaryDecoder(stream);
@@ -137,7 +137,7 @@ namespace NetUtils {
 				var filterSet = new HashSet<string>(fieldsToFilter);
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					result.Error = "No Header on ChangeEvent";
-					ChangeEventReceived?.Invoke(this, result);
+					CDCEvent?.Invoke(this, result);
 					return;
 				}
 				result.ChangeType = getChangeType(header.ToString());
@@ -149,7 +149,7 @@ namespace NetUtils {
 					? cfList.Select(f => f.ToString()).ToList()
 					: new List<string>();
 				if (result.ChangeType == "DELETE") {
-					ChangeEventReceived?.Invoke(this, result);
+					CDCEvent?.Invoke(this, result);
 					return;
 				}
 				foreach (var field in schema.Fields) {
@@ -161,10 +161,10 @@ namespace NetUtils {
 					}
 				}
 				result.FilteredFields.TableName = result.EntityName;
-				ChangeEventReceived?.Invoke(this, result);
+				CDCEvent?.Invoke(this, result);
 			} catch (Exception ex) {
 				result.Error = ex.Message;
-				ChangeEventReceived?.Invoke(this, result);
+				CDCEvent?.Invoke(this, result);
 			}
 		}
 		private string getChangeType(string headerString) {
