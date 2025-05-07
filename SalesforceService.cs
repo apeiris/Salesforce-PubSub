@@ -26,7 +26,6 @@ namespace NetUtils {
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
 		}
-
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
@@ -164,14 +163,11 @@ namespace NetUtils {
 			var response = await _httpClient.SendAsync(request);
 			var responseContent = await response.Content.ReadAsStringAsync();
 			if (!response.IsSuccessStatusCode) {
-				//throw new HttpRequestException($"OAuth failed: {response.StatusCode}, {responseContent}");
-			//	AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(false, $"Authentication failed: {responseContent}"));
-				RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
+					RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
 				return (null, null, null);
 			}
 			var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseContent);
 			var tenantId = data!["id"].Split('/')[^2];
-			//AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(true, "Authentication successful", data["instance_url"]));
 			RaiseAuthenticationAttempt(LogLevel.Information, $"Authenticated {responseContent}");
 			return (data["access_token"], data["instance_url"], tenantId);
 		}
@@ -180,7 +176,6 @@ namespace NetUtils {
 			string detailedMessage = $"{message} [Method: {callerMemberName}, Line: {callerLineNumber}]";
 			AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(ll, detailedMessage, instanceUrl));
 		}
-
 		public async Task<DataTable> GetAllObjects() {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
@@ -198,24 +193,15 @@ namespace NetUtils {
 					.GetProperty("sobjects")
 					.EnumerateArray()
 					.Where(obj => {
-						//bool isCustom = obj.GetProperty("custom").GetBoolean();
-						//bool isQueryable = obj.GetProperty("queryable").GetBoolean();
-						//bool isCreateable = obj.GetProperty("createable").GetBoolean();
 						string name = obj.GetProperty("name").GetString();
-
-						// Include custom objects or standard objects that are queryable and createable
-						// Exclude specific system objects like 'Name'
-						//return (isCustom || (isQueryable && isCreateable)) && name != "Name";
 						return name != "Name";
 					})
 					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
-
 				var root = new XElement("Objects",
 					objects.Select(f => new XElement("Object",
 						new XElement("Name", f.Name)
 					))
 				);
-
 				var dataSet = new DataSet();
 				using (var reader = root.CreateReader()) {
 					dataSet.ReadXml(reader);
@@ -235,45 +221,6 @@ namespace NetUtils {
 				throw new Exception($"Unexpected error: {ex.Message}", ex);
 			}
 		}
-
-		//public async Task<DataTable> GetAllObjects() {
-		//	var (token, instanceUrl, _) = await GetAccessTokenAsync();
-		//	string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
-		//	using var request = new HttpRequestMessage(HttpMethod.Get, url);
-		//	request.Headers.Add("Authorization", $"Bearer {token}");
-		//	request.Headers.Add("Accept", "application/json");
-		//	try {
-		//		HttpResponseMessage response = await _httpClient.SendAsync(request);
-		//		response.EnsureSuccessStatusCode();
-		//		string jsonResponse = await response.Content.ReadAsStringAsync();
-		//		using var jdoc = JsonDocument.Parse(jsonResponse);
-		//		var objects = jdoc.RootElement
-		//			.GetProperty("sobjects")
-		//			.EnumerateArray()
-		//			.Select(obj => new { Name = obj.GetProperty("name").GetString() });
-		//		var root = new XElement("Objects",
-		//			objects.Select(f => new XElement("Object",
-		//				new XElement("Name", f.Name)
-		//			))
-		//		);
-		//		var dataSet = new DataSet();
-		//		using (var reader = root.CreateReader()) {
-		//			dataSet.ReadXml(reader);
-		//		}
-		//		if (dataSet.Tables.Count > 0) {
-		//			dataSet.Tables[0].TableName = "sobjects";
-		//			return dataSet.Tables[0];
-		//		} else {
-		//			throw new Exception("No table created from XML.");
-		//		}
-		//	} catch (HttpRequestException ex) {
-		//		throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
-		//	} catch (JsonException ex) {
-		//		throw new Exception($"Failed to parse JSON response:\n{ex.Message}", ex);
-		//	} catch (Exception ex) {
-		//		throw new Exception($"Unexpected error: {ex.Message}", ex);
-		//	}
-		//}
 		public async Task<string> GetObjectSchemaSummaryAsync(string objectName) {
 			JsonElement schema = await GetObjectSchemaAsync(objectName);
 			var sb = new System.Text.StringBuilder();
@@ -343,8 +290,6 @@ namespace NetUtils {
 		}
 		//====================================================================================
 		#region helpers
-		
-		
 		public class AuthenticationEventArgs : EventArgs {
 			public LogLevel LogLevel { get; }
 			public string Message { get; }
@@ -357,7 +302,6 @@ namespace NetUtils {
 				InstanceUrl = instanceUrl;
 			}
 		}
-
 		public class SchemaFetchedEventArgs : EventArgs {
 			public string ObjectName { get; }
 			public DataTable Schema { get; }
@@ -372,7 +316,6 @@ namespace NetUtils {
 			}
 		}
 		#endregion	helpers
-
 		// ===================================================================================
 		public class TokenResponse {
 			public string access_token { get; set; }

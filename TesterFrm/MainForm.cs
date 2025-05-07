@@ -73,6 +73,17 @@ namespace TesterFrm {
 			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
 
 				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
+				switch (e.ChangeType) {
+					case "UPDATE":
+					_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
+					break;//------------------------------------------------------
+					case "CREATE":
+					
+					break;//------------------------------------------------------
+					case "DELETE":
+					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'}");
+					break;
+				}
 				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.FilteredFields)));
 			} else dgvFilteredFields.DataSource = e.FilteredFields;
 		}
@@ -411,6 +422,7 @@ namespace TesterFrm {
 			if (dgvObject.Columns[e.ColumnIndex] is DataGridViewCheckBoxColumn) {
 				dgvObject.CommitEdit(DataGridViewDataErrorContexts.Commit);
 				DataTable dtObject = (DataTable)dgvObject.DataSource;
+				dtObject.TableName = lbxObjects.Text;
 				bool currentValue = Convert.ToBoolean(dgvObject.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
 				if (dtObject.Columns.Contains("IsExcluded")) { // if it is a sql server table
 					this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
@@ -420,6 +432,7 @@ namespace TesterFrm {
 							.Where(v => !string.IsNullOrEmpty(v))
 							.ToList();
 						rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+						lblSelectedTable.Text = $"{dtObject.TableName} - filtered: {fields.Count}";
 					}));
 				} else {
 					this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
@@ -429,6 +442,7 @@ namespace TesterFrm {
 							.Where(v => !string.IsNullOrEmpty(v))
 							.ToList();
 						rtxFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
+						lblSelectedTable.Text = $"{dtObject.TableName} - filtered: {fields.Count}";
 					}));
 				}
 			}
@@ -468,12 +482,11 @@ namespace TesterFrm {
 		#region form
 		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
 			InitializeComponent();
-		ToolTip tt = new ToolTip();
+			ToolTip tt = new ToolTip();
 			tt.OwnerDraw = true;
 			tt.InitialDelay = 1;
 			tt.IsBalloon = false;
-			tt.Draw += (s, e) =>
-			{
+			tt.Draw += (s, e) => {
 				e.Graphics.FillRectangle(Brushes.LightCyan, e.Bounds);
 				e.Graphics.DrawRectangle(Pens.SteelBlue, e.Bounds);
 				e.Graphics.DrawString(e.ToolTipText, SystemFonts.DefaultFont, Brushes.Black, e.Bounds);
@@ -489,7 +502,7 @@ namespace TesterFrm {
 
 
 			tt.SetToolTip(lbxObjects, ttText);
-			tt.SetToolTip(dgvObject,ttText);
+			tt.SetToolTip(dgvObject, ttText);
 			tt.SetToolTip(lblSelectedTable, ttText);
 
 
@@ -640,13 +653,14 @@ namespace TesterFrm {
 			}
 
 		}
-		private string tableColumnToJsonArray(DataTable dt,string sColumn,string fColumn) {
+		private (string jsonString, int count) tableColumnToJsonArray(DataTable dt, string sColumn, string fColumn) {
+
 			List<string?> fields = dt.AsEnumerable()
 								.Where(r => !(r[fColumn] is bool b && b))
 									.Select(r => r[sColumn]?.ToString())
 									.Where(v => !string.IsNullOrEmpty(v))
 									.ToList();
-			return JsonConvert.SerializeObject(fields);
+			return (JsonConvert.SerializeObject(fields), fields.Count);
 		}
 		#endregion helpers
 		#region litBoxes
@@ -685,10 +699,14 @@ namespace TesterFrm {
 							lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
 							dgvRelations.DataSource = ds.Tables["relations"];
 							this.Invoke((Action)(() =>/* get only the field Names for the lbxFields*/  {
-
-								//txFieldsJsonArray.Text = JsonConvert.SerializeObject(fields);
-								rtxFieldsJsonArray.Text = tableColumnToJsonArray(dtObject,"Name","Exclude");
-
+								lblSelectedTable.Text = ObjectFromTopic(selectedTopic);
+								var r = tableColumnToJsonArray(dtObject, "Name", "Exclude");
+								lblSelectedTable.Text += " - filtered:" + r.count.ToString();
+								rtxFieldsJsonArray.Text = r.jsonString;
+								//rtxFieldsJsonArray.Text = tableColumnToJsonArray(dtObject,"Name","Exclude");
+								//	var r = tableColumnToJsonArray(ds.Tables["relations"], "Name", "Exclude");
+								//	rtxFieldsJsonArray.Text = r.jsonString;
+								//		lblSelectedTable.Text +=" - filtered:"+ r.count.ToString();
 							}));
 						}));
 					}
@@ -705,7 +723,9 @@ namespace TesterFrm {
 						toolStripStatusLabel1.Text = $"Object {selectedObject} already exists in the SQL Server.";
 						btnDeleteCDCRegistration.Visible = true;
 						btnRegisterFields.Text = "Update Fields";
-						rtxFieldsJsonArray.Text = tableColumnToJsonArray(dtObject, "FieldName", "IsExcluded");
+						var r = tableColumnToJsonArray(dtObject, "FieldName", "IsExcluded");
+						rtxFieldsJsonArray.Text = r.jsonString;
+						lblSelectedTable.Text += " - filtered:" + r.count.ToString();
 					}));
 					break;
 				}
@@ -720,7 +740,7 @@ namespace TesterFrm {
 			}
 
 		}
-		
+
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
@@ -774,7 +794,7 @@ namespace TesterFrm {
 
 			LoadTopics(lbxObjects, showOnlySubscribed);
 			lblPanel1.Text = $"{lbxObjects.Items.Count} {(showOnlySubscribed == true ? "Subscribed" : "Registered")} CDC objects";
-			
+
 		}
 		#endregion radio buttons
 		#region tabs
@@ -803,7 +823,7 @@ namespace TesterFrm {
 		#endregion tabs
 
 		#region tooltip
-	
+
 		#endregion tooltip
 
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {

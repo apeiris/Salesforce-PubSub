@@ -13,6 +13,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 using System.Data;
+using Microsoft.AspNetCore.Http;
 
 namespace NetUtils {
 	public class ProgressUpdateEventArgs : EventArgs {
@@ -67,6 +68,84 @@ namespace NetUtils {
 			}
 			t.Add("Subscription started successfully..");
 			return t;
+		}
+
+		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
+			var result = new CDCEventArgs();
+			try {
+				using var stream = new MemoryStream(payload);
+				var reader = new BinaryDecoder(stream);
+				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
+				var record = datumReader.Read(null, reader);
+				var filterSet = new HashSet<string>(fieldsToFilter);
+				string recordId = "";
+
+				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
+					result.Error = "No Header on ChangeEvent";
+					CDCEvent?.Invoke(this, result);
+					return;
+				}
+
+				result.ChangeType = getChangeType(header.ToString());
+				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
+					? idsList.Select(id => id.ToString()).ToList()
+					: new List<string>();
+				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
+					? cfList.Select(f => f.ToString()).ToList()
+					: new List<string>();
+
+				switch (result.ChangeType) {
+					case "CREATE":
+					CDCEvent?.Invoke(this, result);
+					break;
+					case "DELETE":
+					CDCEvent?.Invoke(this, result);
+					return;
+					default:
+					foreach (var field in schema.Fields) {
+						if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
+							DataRow row = result.FilteredFields.NewRow();
+							row["FieldName"] = field.Name;
+							row["Value"] = value.ToString();
+							result.FilteredFields.Rows.Add(row);
+						}
+					}
+					result.FilteredFields.TableName = result.EntityName;
+					CDCEvent?.Invoke(this, result);
+					break;
+					case "UPDATE":
+					var projectedTable = schema.Fields
+						.Where(field => field.Name != "ChangeEventHeader" && record.TryGetValue(field.Name, out object value) && value != null)
+						.Aggregate(new DataTable(), (table, field) => {
+							if (table.Columns.Count == 0) {
+								table.Columns.Add("FieldName", typeof(string));
+								table.Columns.Add("Value", typeof(string));
+								table.Columns.Add("DataType", typeof(string)); 
+							}
+							var row = table.NewRow();
+							row["FieldName"] = field.Name;
+							row["Value"] = record[field.Name]?.ToString();
+							string dataType = field.Documentation?.Split(':').LastOrDefault() ?? "Unknown";// Extract data type from Documentation (e.g., "Data:DateTime" -> "DateTime")
+							row["DataType"] = dataType;
+							table.Rows.Add(row);
+							return table;
+						});
+					var idRow = projectedTable.NewRow();
+					idRow["FieldName"] = "Id";
+					idRow["Value"] = result.RecordIds[0];
+					projectedTable.Rows.Add(idRow);
+					projectedTable.TableName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
+					result.FilteredFields = projectedTable;
+
+					CDCEvent?.Invoke(this, result);
+					break;
+
+
+				}
+			} catch (Exception ex) {
+				result.Error = ex.Message;
+				CDCEvent?.Invoke(this, result);
+			}
 		}
 		private async Task SubscribeToTopicAsync(string topic, string token, string instanceUrl, string tenantId, List<string> fieldsToFilter) {
 			OnProgressUpdated($"Subscribing to {topic}...");
@@ -127,46 +206,7 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
-			var result = new CDCEventArgs();
-			try {
-				using var stream = new MemoryStream(payload);
-				var reader = new BinaryDecoder(stream);
-				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
-				var record = datumReader.Read(null, reader);
-				var filterSet = new HashSet<string>(fieldsToFilter);
-				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
-					result.Error = "No Header on ChangeEvent";
-					CDCEvent?.Invoke(this, result);
-					return;
-				}
-				result.ChangeType = getChangeType(header.ToString());
-				result.EntityName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
-				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
-					? idsList.Select(id => id.ToString()).ToList()
-					: new List<string>();
-				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
-					? cfList.Select(f => f.ToString()).ToList()
-					: new List<string>();
-				if (result.ChangeType == "DELETE") {
-					CDCEvent?.Invoke(this, result);
-					return;
-				}
-				foreach (var field in schema.Fields) {
-					if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
-						DataRow row = result.FilteredFields.NewRow();
-						row["FieldName"] = field.Name;
-						row["Value"] = value.ToString();
-						result.FilteredFields.Rows.Add(row);
-					}
-				}
-				result.FilteredFields.TableName = result.EntityName;
-				CDCEvent?.Invoke(this, result);
-			} catch (Exception ex) {
-				result.Error = ex.Message;
-				CDCEvent?.Invoke(this, result);
-			}
-		}
+
 		private string getChangeType(string headerString) {
 			var match = Regex.Match(headerString, @"value:\s*(\w+)");
 			return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value : "Unknown";
