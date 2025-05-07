@@ -12,13 +12,10 @@ namespace NetUtils {
 		private readonly HttpClient _httpClient;
 		private readonly SalesforceConfig _settings;
 		private readonly ILogger<SalesforceService> _logger;
-
 		private static readonly object _tokenLock = new object();
 		private static string _cachedToken;
 		private static string _cachedInstanceUrl;
 		private static DateTimeOffset? _tokenExpiresAt;
-
-		//public event Func<object, AuthenticationEventArgs, Task> AuthenticationAttempt;
 		public event EventHandler<AuthenticationEventArgs> AuthenticationAttempt;
 		public SalesforceService(HttpClient httpClient, IOptions<SalesforceConfig> settings, ILogger<SalesforceService> logger) {
 			_httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -129,27 +126,11 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		public async Task<string> GetSFTokenAsync() {
-			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
-			var parameters = new Dictionary<string, string>
-			{
-				{ "grant_type", "password" },
-				{ "client_id", _settings.ClientId },
-				{ "client_secret", _settings.ClientSecret },
-				{ "username", _settings.Username },
-				{ "password", _settings.Password }
-			};
-			request.Content = new FormUrlEncodedContent(parameters);
-			var response = await _httpClient.SendAsync(request);
-			if (!response.IsSuccessStatusCode) {
-				var errorContent = await response.Content.ReadAsStringAsync();
-				throw new Exception($"Authentication failed with status {response.StatusCode}: {errorContent}");
-			}
-			var content = await response.Content.ReadAsStringAsync();
-			var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(content);
-			return tokenResponse.access_token;
-		}
+		private AccessTokenCache _tokenCache;
 		public async Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync() {
+			if (_tokenCache != null && _tokenCache.Expiry > DateTime.UtcNow.AddMinutes(5)) {// Check if cache exists and is not expired, with 5-minute buffer to account for call processing time
+				return (_tokenCache.Token, _tokenCache.InstanceUrl, _tokenCache.TenantId);
+			}
 			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token") {
 				Content = new FormUrlEncodedContent(new Dictionary<string, string>
 				{
@@ -160,16 +141,25 @@ namespace NetUtils {
 					{ "password", _settings.Password }
 				})
 			};
+
 			var response = await _httpClient.SendAsync(request);
 			var responseContent = await response.Content.ReadAsStringAsync();
+
 			if (!response.IsSuccessStatusCode) {
-					RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
+				RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
 				return (null, null, null);
 			}
+
 			var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseContent);
 			var tenantId = data!["id"].Split('/')[^2];
+			_tokenCache = new AccessTokenCache {// Cache the token with 1 hour expiry, minus 5-minute buffer
+				Token = data["access_token"],
+				InstanceUrl = data["instance_url"],
+				TenantId = tenantId,
+				Expiry = DateTime.UtcNow.AddMinutes(115) // 2 hour expiry with 5-minute buffer
+			};
 			RaiseAuthenticationAttempt(LogLevel.Information, $"Authenticated {responseContent}");
-			return (data["access_token"], data["instance_url"], tenantId);
+			return (_tokenCache.Token, _tokenCache.InstanceUrl, _tokenCache.TenantId);
 		}
 		private void RaiseAuthenticationAttempt(LogLevel ll, string message, string instanceUrl = null,
 		[CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0) {
@@ -177,7 +167,7 @@ namespace NetUtils {
 			AuthenticationAttempt?.Invoke(this, new AuthenticationEventArgs(ll, detailedMessage, instanceUrl));
 		}
 		public async Task<DataTable> GetAllObjects() {
-			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects";
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
@@ -279,7 +269,7 @@ namespace NetUtils {
 								new XElement("ChildSObject", cr.Child ?? ""),
 								new XElement("Field", cr.field ?? ""),
 								new XElement("Cascade", cr.Cascade)
-							)) );
+							)));
 				using (XmlReader xr = schemaRoot.CreateReader()) ds.ReadXml(xr);
 			} catch (Exception ex) {
 				_logger.LogError(ex.Message);
@@ -296,7 +286,7 @@ namespace NetUtils {
 			public string InstanceUrl { get; }
 
 			public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
-			//_logger.Logle
+				//_logger.Logle
 				LogLevel = ll;
 				Message = message;
 				InstanceUrl = instanceUrl;
@@ -321,6 +311,12 @@ namespace NetUtils {
 			public string access_token { get; set; }
 			public string instance_url { get; set; }
 			public string id { get; set; }
+		}
+		public class AccessTokenCache {
+			public string Token { get; set; }
+			public string InstanceUrl { get; set; }
+			public string TenantId { get; set; }
+			public DateTime Expiry { get; set; }
 		}
 	}
 }

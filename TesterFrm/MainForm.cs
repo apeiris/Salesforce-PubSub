@@ -81,7 +81,7 @@ namespace TesterFrm {
 					
 					break;//------------------------------------------------------
 					case "DELETE":
-					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'}");
+					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
 					break;
 				}
 				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.FilteredFields)));
@@ -140,7 +140,9 @@ namespace TesterFrm {
 			try {
 				btnAuthenticate.Enabled = false;
 				this.Invoke((Action)(() => txtResult.Clear()));
-				var token = await _salesforceService.GetSFTokenAsync();
+				//	var token = await _salesforceService.GetSFTokenAsync();
+				//string token, instanceUrl, tenantId;
+				var(token,instanceUrl,tenantId) = await _salesforceService.GetAccessTokenAsync();
 				this.Invoke((Action)(() => txtResult.Text = $"Token copied to clipboard: {token}..."));
 				Clipboard.SetText(token);
 
@@ -744,7 +746,7 @@ namespace TesterFrm {
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
-			lbxLog.Items.Add(new LogItem(msg, l));
+			lbxLog.Invoke(new Action(() => lbxLog.Items.Add(new LogItem(msg,l))));
 		}
 		private void lbxLog_DrawItem(object sender, DrawItemEventArgs e) {
 			if (e.Index < 0) return;

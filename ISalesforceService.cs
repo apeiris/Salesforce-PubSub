@@ -4,7 +4,7 @@ namespace NetUtils;
 
 public interface ISalesforceService
 	{
-	Task<string> GetSFTokenAsync();
+	
 	Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync();
 	Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default);
 	Task<string> GetObjectSchemaSummaryAsync(string objectName);
