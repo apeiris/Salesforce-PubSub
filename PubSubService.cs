@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
+using Avro;
+using Avro.Generic;
+using Avro.IO;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Avro;
+using Microsoft.Extensions.Options;
 using static NetUtils.PubSub;
-using System.Text;
-using Avro.IO;
-using Avro.Generic;
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using System.Text.RegularExpressions;
-using System.Data;
-using Microsoft.AspNetCore.Http;
 
 namespace NetUtils {
 	public class ProgressUpdateEventArgs : EventArgs {
@@ -87,13 +82,8 @@ namespace NetUtils {
 				}
 
 				result.ChangeType = getChangeType(header.ToString());
-				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList
-					? idsList.Select(id => id.ToString()).ToList()
-					: new List<string>();
-				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList
-					? cfList.Select(f => f.ToString()).ToList()
-					: new List<string>();
-
+				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList ? idsList.Select(id => id.ToString()).ToList() : new List<string>();
+				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList ? cfList.Select(f => f.ToString()).ToList() : new List<string>();
 				switch (result.ChangeType) {
 					case "CREATE":
 					CDCEvent?.Invoke(this, result);
@@ -120,7 +110,7 @@ namespace NetUtils {
 							if (table.Columns.Count == 0) {
 								table.Columns.Add("FieldName", typeof(string));
 								table.Columns.Add("Value", typeof(string));
-								table.Columns.Add("DataType", typeof(string)); 
+								table.Columns.Add("DataType", typeof(string));
 							}
 							var row = table.NewRow();
 							row["FieldName"] = field.Name;
@@ -136,11 +126,8 @@ namespace NetUtils {
 					projectedTable.Rows.Add(idRow);
 					projectedTable.TableName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
 					result.FilteredFields = projectedTable;
-
 					CDCEvent?.Invoke(this, result);
 					break;
-
-
 				}
 			} catch (Exception ex) {
 				result.Error = ex.Message;

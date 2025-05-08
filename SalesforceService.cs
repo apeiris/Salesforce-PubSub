@@ -279,6 +279,61 @@ namespace NetUtils {
 			return ds;
 		}
 		//====================================================================================
+		public async Task<DataTable> GetSalesforceRecord(string objectName, string recordId) {
+			try {
+				// Get access token and instance URL
+				var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
+
+				// Construct the REST API endpoint for the record
+				string endpoint = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
+
+				// Set up the HTTP request
+				_httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+				var response = await _httpClient.GetAsync(endpoint);
+
+				if (!response.IsSuccessStatusCode) {
+					throw new Exception($"Failed to retrieve data: {response.StatusCode}");
+				}
+
+				// Parse JSON response
+				string jsonResponse = await response.Content.ReadAsStringAsync();
+				using var jsonDoc = JsonDocument.Parse(jsonResponse);
+
+				// Project JSON properties to a dictionary (avoiding foreach)
+				var fields = jsonDoc.RootElement.EnumerateObject()
+					.Where(prop => prop.Name != "attributes") // Exclude metadata
+					.Select(prop => new KeyValuePair<string, string>(prop.Name, prop.Value.ToString()))
+					.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+				// Convert to XML
+				var xmlElement = new XElement("Record",
+					fields.Select(kvp => new XElement(kvp.Key, kvp.Value))
+				);
+				string xmlString = xmlElement.ToString();
+
+				// Load XML into DataTable
+				DataTable dataTable = new DataTable(objectName);
+				using (var xmlReader = new System.IO.StringReader(xmlString)) {
+					var xdoc = XDocument.Parse(xmlString);
+					var columns = xdoc.Descendants("Record").Elements()
+						.Select(e => e.Name.LocalName)
+						.Distinct();
+
+					// Create columns in DataTable
+					columns.ToList().ForEach(col => dataTable.Columns.Add(col));
+
+					// Add row to DataTable
+					var row = dataTable.NewRow();
+					fields.ToList().ForEach(kvp => row[kvp.Key] = kvp.Value);
+					dataTable.Rows.Add(row);
+				}
+
+				return dataTable;
+			} catch (Exception ex) {
+				throw new Exception($"Error retrieving Salesforce data: {ex.Message}", ex);
+			}
+		}
+		//====================================================================================
 		#region helpers
 		public class AuthenticationEventArgs : EventArgs {
 			public LogLevel LogLevel { get; }

@@ -69,16 +69,22 @@ namespace TesterFrm {
 				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
 			} else lbxCDCTopics.Items.Add(e.Message);
 		}
-		private void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
+		private async void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
 			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
 
 				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
 				switch (e.ChangeType) {
 					case "UPDATE":
-					_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
+					//_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
+					string tableName = e.FilteredFields.TableName;
+					if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) { 
+						DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
+						_sqlServerLib.InsertRecordAsync(dt);
+						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+					}
 					break;//------------------------------------------------------
 					case "CREATE":
-					
+
 					break;//------------------------------------------------------
 					case "DELETE":
 					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
@@ -142,7 +148,7 @@ namespace TesterFrm {
 				this.Invoke((Action)(() => txtResult.Clear()));
 				//	var token = await _salesforceService.GetSFTokenAsync();
 				//string token, instanceUrl, tenantId;
-				var(token,instanceUrl,tenantId) = await _salesforceService.GetAccessTokenAsync();
+				var (token, instanceUrl, tenantId) = await _salesforceService.GetAccessTokenAsync();
 				this.Invoke((Action)(() => txtResult.Text = $"Token copied to clipboard: {token}..."));
 				Clipboard.SetText(token);
 
@@ -161,7 +167,7 @@ namespace TesterFrm {
 			//lbxResult.Items.Add("Starting subscription...");
 			try {
 
-				await _pubSubService.StartSubscriptionsAsync();
+				//	await _pubSubService.StartSubscriptionsAsync(); // done @ form load dont bother
 
 				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
@@ -506,8 +512,6 @@ namespace TesterFrm {
 			tt.SetToolTip(lbxObjects, ttText);
 			tt.SetToolTip(dgvObject, ttText);
 			tt.SetToolTip(lblSelectedTable, ttText);
-
-
 			_cache = cache;
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
@@ -527,8 +531,12 @@ namespace TesterFrm {
 			_l.LogInformation("(logInformation)MainForm initialized.");
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
-
+			subscribe();
 		}
+		private async void subscribe() {
+			await _pubSubService.StartSubscriptionsAsync();
+		}
+
 
 
 		private void Form1_Load(object sender, EventArgs e) {
@@ -746,7 +754,7 @@ namespace TesterFrm {
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
-			lbxLog.Invoke(new Action(() => lbxLog.Items.Add(new LogItem(msg,l))));
+			lbxLog.Invoke(new Action(() => lbxLog.Items.Add(new LogItem(msg, l))));
 		}
 		private void lbxLog_DrawItem(object sender, DrawItemEventArgs e) {
 			if (e.Index < 0) return;
