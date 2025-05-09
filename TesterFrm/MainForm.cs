@@ -81,8 +81,17 @@ namespace TesterFrm {
 						DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
 						_sqlServerLib.InsertRecordAsync(dt);
 						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+					} else {
+						//_sqlServerLib.UpdateAsyncWithFill(dt);
+
+						DataTable dt=e.FilteredFields.Transpose();
+						//await _sqlServerLib.UpdateAsync(dt);
+
+						//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.FilteredFields.TableName} where Id='{e.RecordIds[0]}'");
+						_sqlServerLib.UpdateRecordAsync(dt,"sfo");
+						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
 					}
-					break;//------------------------------------------------------
+						break;//------------------------------------------------------
 					case "CREATE":
 
 					break;//------------------------------------------------------
