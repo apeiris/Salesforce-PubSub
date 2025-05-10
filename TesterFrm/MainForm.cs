@@ -302,11 +302,27 @@ namespace TesterFrm {
 					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SqlSchemaName, tblName);
 					_sqlServerLib.ExecuteNoneQuery(script);
 					rtfLog.Text = script;
-				} else {
-					Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
-					//Debugger.Break();
-				}
+				} else 	Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
 			}
+			// now check for if there are unregistered objects in the database than the that of _destinationTable
+			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
+			var rowsInDestination = new HashSet<string?>(
+				_destinationTable.AsEnumerable()
+				.Where(r => !r.IsNull("name"))
+				.Select(r => r.Field<string>("name")));
+
+			var rowsToDelete = dtSfTables.AsEnumerable()
+				.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
+				.ToList();
+			string sql = "";
+			foreach(DataRow dr in rowsToDelete) {
+				sql = $"DROP TABLE sfo.{dr["name"]}";
+
+				_sqlServerLib.ExecuteNoneQuery(sql);
+				Console.WriteLine($"Executiong:  {sql}");
+				
+			}
+
 		}
 		private void btnRegisterFields_Click(object sender, EventArgs e) {
 			var b = (Button)sender;
