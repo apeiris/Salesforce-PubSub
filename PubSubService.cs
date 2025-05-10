@@ -73,7 +73,7 @@ namespace NetUtils {
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
 				var filterSet = new HashSet<string>(fieldsToFilter);
-				string recordId = "";
+				
 
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					result.Error = "No Header on ChangeEvent";
@@ -159,9 +159,9 @@ namespace NetUtils {
 								var eventsArray = eventsElement.EnumerateArray();
 								foreach (var evt in eventsArray) {
 									var eventObj = evt.GetProperty("event");
-									string schemaId = eventObj.GetProperty("schemaId").GetString();
-									string payloadBase64 = eventObj.GetProperty("payload").GetString();
-									byte[] payload = Convert.FromBase64String(payloadBase64);
+									string schemaId = eventObj.GetProperty("schemaId").GetString()!;
+									string payloadBase64 = eventObj.GetProperty("payload").GetString()!;
+									byte[] payload = Convert.FromBase64String(payloadBase64)!;
 									var schema = await GetSchemaAsync(schemaId, token, instanceUrl, tenantId);
 									DecodeChangeEvent(payload, schema, fieldsToFilter);
 								}
