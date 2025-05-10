@@ -77,21 +77,21 @@ namespace TesterFrm {
 					case "UPDATE":
 					//_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
 					string tableName = e.FilteredFields.TableName;
-					if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) { 
+					if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) {
 						DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
 						_sqlServerLib.InsertRecordAsync(dt);
 						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
 					} else {
 						//_sqlServerLib.UpdateAsyncWithFill(dt);
 
-						DataTable dt=e.FilteredFields.Transpose();
+						DataTable dt = e.FilteredFields.Transpose();
 						//await _sqlServerLib.UpdateAsync(dt);
 
 						//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.FilteredFields.TableName} where Id='{e.RecordIds[0]}'");
-						_sqlServerLib.UpdateRecordAsync(dt,"sfo");
+						_sqlServerLib.UpdateRecordAsync(dt, "sfo");
 						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
 					}
-						break;//------------------------------------------------------
+					break;//------------------------------------------------------
 					case "CREATE":
 
 					break;//------------------------------------------------------
@@ -846,6 +846,28 @@ namespace TesterFrm {
 		#endregion tooltip
 
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
+
+		}
+
+		private void bs_Click(object sender, EventArgs e) {
+			Button b = (Button)sender;
+			char l = b.Text[0];
+			_sourceTable.DefaultView.Sort = $"name ASC"; // Sort the source table by name
+			int ti = -1;
+			for(int i=0; i < _sourceTable.Rows.Count; i++) {
+				string tn =_sourceTable.Rows[i][0].ToString();
+				if (l == tn[0]) {
+					ti = i;
+					break;
+				}
+			}
+			if(ti >= 0 && ti < _sourceTable.Rows.Count)
+
+			{
+				dgvSource.FirstDisplayedScrollingRowIndex = ti;
+				dgvSource.ClearSelection();
+				dgvSource.Rows[ti].Selected = true;
+			}
 
 		}
 	}
