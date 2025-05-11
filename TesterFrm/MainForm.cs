@@ -25,6 +25,14 @@ namespace TesterFrm {
 			SqlServer,
 			None
 		}
+		public enum tbp {
+			objects,
+			pubsub,
+			Oauth2,
+			DescribeO,
+			EventLog,
+			CDCEvents
+		}
 
 		#endregion enums
 		#region fields
@@ -177,7 +185,10 @@ namespace TesterFrm {
 			try {
 
 				//	await _pubSubService.StartSubscriptionsAsync(); // done @ form load dont bother
-
+				var topics = new HashSet<string?>(
+					_destinationTable.AsEnumerable()//.Where(r => !r.IsNull("name"))
+					.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
+				await _pubSubService.StartSubscriptionsAsync(topics);
 				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
 				MessageBox.Show($"Error: {ex.Message}");
@@ -302,7 +313,7 @@ namespace TesterFrm {
 					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SqlSchemaName, tblName);
 					_sqlServerLib.ExecuteNoneQuery(script);
 					rtfLog.Text = script;
-				} else 	Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
+				} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
 			}
 			// now check for if there are unregistered objects in the database than the that of _destinationTable
 			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
@@ -315,12 +326,12 @@ namespace TesterFrm {
 				.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
 				.ToList();
 			string sql = "";
-			foreach(DataRow dr in rowsToDelete) {
-				sql = $"DROP TABLE sfo.{dr["name"]}";
+			foreach (DataRow dr in rowsToDelete) {
+				sql = $"DROP TABLE sfo.[{dr["name"]}]";
 
 				_sqlServerLib.ExecuteNoneQuery(sql);
 				Console.WriteLine($"Executiong:  {sql}");
-				
+
 			}
 
 		}
@@ -347,6 +358,24 @@ namespace TesterFrm {
 		}
 		private void btnDeleteCDCSubscription_Click(object sender, EventArgs e) {
 			_sqlServerLib.DeleteCDCObject(ObjectFromTopic(lbxObjects.Text));
+		}
+		private void bs_Click(object sender, EventArgs e) {
+			Button b = (Button)sender;
+			char l = b.Text[0];
+			_sourceTable.DefaultView.Sort = $"name ASC"; // Sort the source table by name
+			int ti = -1;
+			for (int i = 0; i < _sourceTable.Rows.Count; i++) {
+				string tn = _sourceTable.Rows[i][0].ToString();
+				if (l == tn[0]) {
+					ti = i;
+					break;
+				}
+			}
+			if (ti >= 0 && ti < _sourceTable.Rows.Count) {
+				dgvSource.FirstDisplayedScrollingRowIndex = ti;
+				dgvSource.ClearSelection();
+				dgvSource.Rows[ti].Selected = true;
+			}
 		}
 		#endregion buttons
 		#region dgv
@@ -500,13 +529,17 @@ namespace TesterFrm {
 							Log($"Registered rowcount {_dtRegistered.Rows.Count}", LogLevel.Debug);
 							_destinationTable = _dtRegistered;
 							dgvDestination.DataSource = _destinationTable;
+							
 						}
 					}));
+					_sfsObjectsLoaded = true;
 				}
 			} catch (Exception ex) {
 				Debug.WriteLine($"Error: {ex.Message}");
+				_sfsObjectsLoaded = false;
 			}
 			finally {
+			
 				_semaphore.Release();
 				this.Invoke((Action)(() => Cursor.Current = Cursors.Default));
 			}
@@ -556,7 +589,13 @@ namespace TesterFrm {
 			_l.LogInformation("(logInformation)MainForm initialized.");
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
-			subscribe();
+			tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
+			tabControl1.DrawItem += (s, e) => {
+				TabPage tbp = tabControl1.TabPages[e.Index];
+				Rectangle paddedBounds = new Rectangle(e.Bounds.X + 2, e.Bounds.Y + 2, e.Bounds.Width - 4, e.Bounds.Height - 4);
+				e.Graphics.FillRectangle(Brushes.LightCyan, paddedBounds);
+				e.Graphics.DrawString(tbp.Text, e.Font, Brushes.Black, paddedBounds);
+			};
 		}
 		private async void subscribe() {
 			await _pubSubService.StartSubscriptionsAsync();
@@ -590,7 +629,6 @@ namespace TesterFrm {
 			Properties.Settings.Default.Save();
 		}
 		#endregion	 form	
-
 		#region helpers
 		private void LoadTopics(ListBox listBox, bool filtered) {
 			listBox.Items.Clear();
@@ -833,13 +871,19 @@ namespace TesterFrm {
 		}
 		#endregion radio buttons
 		#region tabs
+		private void tabControl1_DrawItem(object sender, DrawItemEventArgs e) {
+			TabPage tbp = tabControl1.TabPages[e.Index];
+			Rectangle paddedBounds = new Rectangle(e.Bounds.X + 2, e.Bounds.Y + 2, e.Bounds.Width - 4, e.Bounds.Height - 4);
+			e.Graphics.FillRectangle(Brushes.LightCyan, paddedBounds);
+			e.Graphics.DrawString(tbp.Text, e.Font, Brushes.Black, paddedBounds);
+		}
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
 					await LoadSfObjectsAsync();
-					_sfsObjectsLoaded = true;
+				
 					CopySourceScheama(dgvSource, dgvDestination);
 				}
 				break;
@@ -856,57 +900,32 @@ namespace TesterFrm {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
-
 		#region tooltip
 
 		#endregion tooltip
-
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
-
 		}
 
-		private void bs_Click(object sender, EventArgs e) {
-			Button b = (Button)sender;
-			char l = b.Text[0];
-			_sourceTable.DefaultView.Sort = $"name ASC"; // Sort the source table by name
-			int ti = -1;
-			for(int i=0; i < _sourceTable.Rows.Count; i++) {
-				string tn =_sourceTable.Rows[i][0].ToString();
-				if (l == tn[0]) {
-					ti = i;
-					break;
-				}
+		#region utility classes
+		public class LogItem {
+			public string Message { get; set; }
+			public LogLevel Level { get; set; }
+			public LogItem(string message, LogLevel level) {
+				Message = message;
+				Level = level;
 			}
-			if(ti >= 0 && ti < _sourceTable.Rows.Count)
-
-			{
-				dgvSource.FirstDisplayedScrollingRowIndex = ti;
-				dgvSource.ClearSelection();
-				dgvSource.Rows[ti].Selected = true;
+			public override string ToString() {
+				return Message;
 			}
-
 		}
+
+
+
+		#endregion utility classes
+
 	}
-	#region utility classes
-	public class LogItem {
-		public string Message { get; set; }
-		public LogLevel Level { get; set; }
-		public LogItem(string message, LogLevel level) {
-			Message = message;
-			Level = level;
-		}
-		public override string ToString() {
-			return Message;
-		}
-	}
-
-
-
-	#endregion utility classes
 
 }
-
-
 
 
 

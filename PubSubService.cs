@@ -54,15 +54,28 @@ namespace NetUtils {
 			_schemaCache = new Dictionary<string, RecordSchema>();
 		}
 		public async Task<List<string>> StartSubscriptionsAsync() {
-			OnProgressUpdated("Starting subscriptions...");
+			OnProgressUpdated("Starting subscriptions...");// "Name": "/data/AccountChangeEvent"
 			var (token, instanceUrl, tenantId) = await _oauthService.GetAccessTokenAsync();
 			List<string> t = new List<string>();
 			foreach (var topic in _config.Topics) {
-				t.Add("Subscribing to topic:" + topic.Name);
+				t.Add("Subscribing to topic: " + topic.Name);
 				await SubscribeToTopicAsync(topic.Name, token, instanceUrl, tenantId, topic.FieldsToFilter);
 			}
 			t.Add("Subscription started successfully..");
 			return t;
+		}
+		public async Task StartSubscriptionsAsync(HashSet<string?> topics) {//                StartSubscriptionAsync
+			var (token, instanceUrl, tenantId) = await _oauthService.GetAccessTokenAsync();
+			try {
+				foreach (var t in topics) {
+					await SubscribeToTopicAsync(t, token, instanceUrl, tenantId, null);
+					Console.WriteLine($"subscribed to topic ={t}");
+				}
+				OnProgressUpdated($"StartSubscriptionAsync(topics) completed for {topics.Count} channels.");
+			}
+			catch(Exception ex) {
+				throw new Exception(ex.Message);
+			}
 		}
 
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
@@ -72,8 +85,8 @@ namespace NetUtils {
 				var reader = new BinaryDecoder(stream);
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
-				var filterSet = new HashSet<string>(fieldsToFilter);
-				
+				var filterSet = (fieldsToFilter != null) ? new HashSet<string>(fieldsToFilter) : null;
+
 
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					result.Error = "No Header on ChangeEvent";

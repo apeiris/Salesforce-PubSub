@@ -19,19 +19,8 @@
 			tbpSfObjects = new TabPage();
 			tableLayoutPanel3 = new TableLayoutPanel();
 			dgvSource = new DataGridView();
-			btnMoveRight = new Button();
-			dgvDestination = new DataGridView();
-			btnMoveLeft = new Button();
-			label2 = new Label();
-			lblDestinationList = new Label();
-			grpPrimaryKey = new GroupBox();
-			label3 = new Label();
-			textBox1 = new TextBox();
-			chkAddIdentityField = new CheckBox();
-			btnCommitToDB = new Button();
-			btnClearDestination = new Button();
-			lblSourceList = new Label();
 			tableLayoutPanel10 = new TableLayoutPanel();
+			button26 = new Button();
 			button25 = new Button();
 			button24 = new Button();
 			button23 = new Button();
@@ -57,6 +46,18 @@
 			button3 = new Button();
 			button2 = new Button();
 			bsA = new Button();
+			btnMoveRight = new Button();
+			dgvDestination = new DataGridView();
+			btnMoveLeft = new Button();
+			label2 = new Label();
+			lblDestinationList = new Label();
+			grpPrimaryKey = new GroupBox();
+			label3 = new Label();
+			textBox1 = new TextBox();
+			chkAddIdentityField = new CheckBox();
+			btnCommitToDB = new Button();
+			btnClearDestination = new Button();
+			lblSourceList = new Label();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			splitContainer1 = new SplitContainer();
@@ -99,15 +100,14 @@
 			tableLayoutPanel9 = new TableLayoutPanel();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			button26 = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
 			tableLayoutPanel3.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSource).BeginInit();
+			tableLayoutPanel10.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).BeginInit();
 			grpPrimaryKey.SuspendLayout();
-			tableLayoutPanel10.SuspendLayout();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
@@ -267,153 +267,6 @@
 			dgvSource.RowsAdded += dgvRowCountChanged;
 			dgvSource.RowsRemoved += dgvRowCountChanged;
 			// 
-			// btnMoveRight
-			// 
-			btnMoveRight.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveRight.Location = new Point(479, 199);
-			btnMoveRight.Name = "btnMoveRight";
-			btnMoveRight.Size = new Size(75, 40);
-			btnMoveRight.TabIndex = 0;
-			btnMoveRight.Text = ">";
-			btnMoveRight.UseVisualStyleBackColor = true;
-			btnMoveRight.Click += btnMoveRight_Click;
-			// 
-			// dgvDestination
-			// 
-			dgvDestination.AllowUserToAddRows = false;
-			dgvDestination.AllowUserToDeleteRows = false;
-			dgvDestination.AllowUserToOrderColumns = true;
-			dgvDestination.AllowUserToResizeColumns = false;
-			dgvDestination.AllowUserToResizeRows = false;
-			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			tableLayoutPanel3.SetColumnSpan(dgvDestination, 2);
-			dgvDestination.Location = new Point(571, 44);
-			dgvDestination.Name = "dgvDestination";
-			tableLayoutPanel3.SetRowSpan(dgvDestination, 4);
-			dgvDestination.Size = new Size(449, 352);
-			dgvDestination.TabIndex = 2;
-			dgvDestination.RowsAdded += dgvRowCountChanged;
-			dgvDestination.RowsRemoved += dgvRowCountChanged;
-			// 
-			// btnMoveLeft
-			// 
-			btnMoveLeft.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveLeft.Location = new Point(479, 260);
-			btnMoveLeft.Name = "btnMoveLeft";
-			btnMoveLeft.Size = new Size(75, 40);
-			btnMoveLeft.TabIndex = 1;
-			btnMoveLeft.Text = "<";
-			btnMoveLeft.UseVisualStyleBackColor = true;
-			btnMoveLeft.Click += btnMoveLeft_Click;
-			// 
-			// label2
-			// 
-			label2.AutoSize = true;
-			tableLayoutPanel3.SetColumnSpan(label2, 5);
-			label2.Dock = DockStyle.Fill;
-			label2.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			label2.ForeColor = Color.Blue;
-			label2.Location = new Point(3, 0);
-			label2.Name = "label2";
-			label2.Size = new Size(1017, 41);
-			label2.TabIndex = 5;
-			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
-			label2.TextAlign = ContentAlignment.MiddleCenter;
-			// 
-			// lblDestinationList
-			// 
-			lblDestinationList.AutoSize = true;
-			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
-			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			lblDestinationList.ForeColor = Color.Brown;
-			lblDestinationList.Location = new Point(571, 452);
-			lblDestinationList.Name = "lblDestinationList";
-			lblDestinationList.Size = new Size(96, 21);
-			lblDestinationList.TabIndex = 8;
-			lblDestinationList.Text = "Placeholder";
-			lblDestinationList.TextAlign = ContentAlignment.MiddleCenter;
-			// 
-			// grpPrimaryKey
-			// 
-			grpPrimaryKey.AccessibleRole = AccessibleRole.None;
-			tableLayoutPanel3.SetColumnSpan(grpPrimaryKey, 2);
-			grpPrimaryKey.Controls.Add(label3);
-			grpPrimaryKey.Controls.Add(textBox1);
-			grpPrimaryKey.Controls.Add(chkAddIdentityField);
-			grpPrimaryKey.Controls.Add(btnCommitToDB);
-			grpPrimaryKey.Controls.Add(btnClearDestination);
-			grpPrimaryKey.Location = new Point(571, 491);
-			grpPrimaryKey.Name = "grpPrimaryKey";
-			tableLayoutPanel3.SetRowSpan(grpPrimaryKey, 2);
-			grpPrimaryKey.Size = new Size(449, 90);
-			grpPrimaryKey.TabIndex = 10;
-			grpPrimaryKey.TabStop = false;
-			// 
-			// label3
-			// 
-			label3.AutoSize = true;
-			label3.Location = new Point(142, 12);
-			label3.Name = "label3";
-			label3.Size = new Size(60, 15);
-			label3.TabIndex = 11;
-			label3.Text = "Col.Name";
-			// 
-			// textBox1
-			// 
-			textBox1.AccessibleRole = AccessibleRole.None;
-			textBox1.Location = new Point(208, 8);
-			textBox1.Name = "textBox1";
-			textBox1.Size = new Size(100, 23);
-			textBox1.TabIndex = 10;
-			textBox1.Text = "Id";
-			// 
-			// chkAddIdentityField
-			// 
-			chkAddIdentityField.AccessibleRole = AccessibleRole.None;
-			chkAddIdentityField.AutoSize = true;
-			chkAddIdentityField.Checked = true;
-			chkAddIdentityField.CheckState = CheckState.Checked;
-			chkAddIdentityField.Location = new Point(6, 10);
-			chkAddIdentityField.Name = "chkAddIdentityField";
-			chkAddIdentityField.Size = new Size(114, 19);
-			chkAddIdentityField.TabIndex = 9;
-			chkAddIdentityField.Text = "Add Primary Key";
-			chkAddIdentityField.UseVisualStyleBackColor = true;
-			// 
-			// btnCommitToDB
-			// 
-			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnCommitToDB.Location = new Point(0, 35);
-			btnCommitToDB.Name = "btnCommitToDB";
-			btnCommitToDB.Size = new Size(173, 32);
-			btnCommitToDB.TabIndex = 4;
-			btnCommitToDB.Text = "Commit to Database";
-			btnCommitToDB.UseVisualStyleBackColor = true;
-			btnCommitToDB.Click += btnCommitToDB_Click;
-			// 
-			// btnClearDestination
-			// 
-			btnClearDestination.Location = new Point(208, 35);
-			btnClearDestination.Name = "btnClearDestination";
-			btnClearDestination.Size = new Size(86, 32);
-			btnClearDestination.TabIndex = 3;
-			btnClearDestination.Text = "Clear";
-			btnClearDestination.UseVisualStyleBackColor = true;
-			btnClearDestination.Click += btnClearDestination_Click;
-			// 
-			// lblSourceList
-			// 
-			lblSourceList.AutoSize = true;
-			lblSourceList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			lblSourceList.ForeColor = Color.Brown;
-			lblSourceList.Location = new Point(3, 488);
-			lblSourceList.Name = "lblSourceList";
-			lblSourceList.Size = new Size(96, 21);
-			lblSourceList.TabIndex = 6;
-			lblSourceList.Text = "Placeholder";
-			lblSourceList.TextAlign = ContentAlignment.MiddleCenter;
-			// 
 			// tableLayoutPanel10
 			// 
 			tableLayoutPanel10.ColumnCount = 26;
@@ -476,6 +329,16 @@
 			tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 			tableLayoutPanel10.Size = new Size(562, 30);
 			tableLayoutPanel10.TabIndex = 11;
+			// 
+			// button26
+			// 
+			button26.Location = new Point(503, 3);
+			button26.Name = "button26";
+			button26.Size = new Size(14, 23);
+			button26.TabIndex = 25;
+			button26.Text = "Z";
+			button26.UseVisualStyleBackColor = true;
+			button26.Click += bs_Click;
 			// 
 			// button25
 			// 
@@ -726,6 +589,153 @@
 			bsA.Text = "A";
 			bsA.UseVisualStyleBackColor = true;
 			bsA.Click += bs_Click;
+			// 
+			// btnMoveRight
+			// 
+			btnMoveRight.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnMoveRight.Location = new Point(479, 199);
+			btnMoveRight.Name = "btnMoveRight";
+			btnMoveRight.Size = new Size(75, 40);
+			btnMoveRight.TabIndex = 0;
+			btnMoveRight.Text = ">";
+			btnMoveRight.UseVisualStyleBackColor = true;
+			btnMoveRight.Click += btnMoveRight_Click;
+			// 
+			// dgvDestination
+			// 
+			dgvDestination.AllowUserToAddRows = false;
+			dgvDestination.AllowUserToDeleteRows = false;
+			dgvDestination.AllowUserToOrderColumns = true;
+			dgvDestination.AllowUserToResizeColumns = false;
+			dgvDestination.AllowUserToResizeRows = false;
+			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			tableLayoutPanel3.SetColumnSpan(dgvDestination, 2);
+			dgvDestination.Location = new Point(571, 44);
+			dgvDestination.Name = "dgvDestination";
+			tableLayoutPanel3.SetRowSpan(dgvDestination, 4);
+			dgvDestination.Size = new Size(449, 352);
+			dgvDestination.TabIndex = 2;
+			dgvDestination.RowsAdded += dgvRowCountChanged;
+			dgvDestination.RowsRemoved += dgvRowCountChanged;
+			// 
+			// btnMoveLeft
+			// 
+			btnMoveLeft.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnMoveLeft.Location = new Point(479, 260);
+			btnMoveLeft.Name = "btnMoveLeft";
+			btnMoveLeft.Size = new Size(75, 40);
+			btnMoveLeft.TabIndex = 1;
+			btnMoveLeft.Text = "<";
+			btnMoveLeft.UseVisualStyleBackColor = true;
+			btnMoveLeft.Click += btnMoveLeft_Click;
+			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			tableLayoutPanel3.SetColumnSpan(label2, 5);
+			label2.Dock = DockStyle.Fill;
+			label2.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			label2.ForeColor = Color.Blue;
+			label2.Location = new Point(3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(1017, 41);
+			label2.TabIndex = 5;
+			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
+			label2.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// lblDestinationList
+			// 
+			lblDestinationList.AutoSize = true;
+			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
+			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblDestinationList.ForeColor = Color.Brown;
+			lblDestinationList.Location = new Point(571, 452);
+			lblDestinationList.Name = "lblDestinationList";
+			lblDestinationList.Size = new Size(96, 21);
+			lblDestinationList.TabIndex = 8;
+			lblDestinationList.Text = "Placeholder";
+			lblDestinationList.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// grpPrimaryKey
+			// 
+			grpPrimaryKey.AccessibleRole = AccessibleRole.None;
+			tableLayoutPanel3.SetColumnSpan(grpPrimaryKey, 2);
+			grpPrimaryKey.Controls.Add(label3);
+			grpPrimaryKey.Controls.Add(textBox1);
+			grpPrimaryKey.Controls.Add(chkAddIdentityField);
+			grpPrimaryKey.Controls.Add(btnCommitToDB);
+			grpPrimaryKey.Controls.Add(btnClearDestination);
+			grpPrimaryKey.Location = new Point(571, 491);
+			grpPrimaryKey.Name = "grpPrimaryKey";
+			tableLayoutPanel3.SetRowSpan(grpPrimaryKey, 2);
+			grpPrimaryKey.Size = new Size(449, 90);
+			grpPrimaryKey.TabIndex = 10;
+			grpPrimaryKey.TabStop = false;
+			// 
+			// label3
+			// 
+			label3.AutoSize = true;
+			label3.Location = new Point(142, 12);
+			label3.Name = "label3";
+			label3.Size = new Size(60, 15);
+			label3.TabIndex = 11;
+			label3.Text = "Col.Name";
+			// 
+			// textBox1
+			// 
+			textBox1.AccessibleRole = AccessibleRole.None;
+			textBox1.Location = new Point(208, 8);
+			textBox1.Name = "textBox1";
+			textBox1.Size = new Size(100, 23);
+			textBox1.TabIndex = 10;
+			textBox1.Text = "Id";
+			// 
+			// chkAddIdentityField
+			// 
+			chkAddIdentityField.AccessibleRole = AccessibleRole.None;
+			chkAddIdentityField.AutoSize = true;
+			chkAddIdentityField.Checked = true;
+			chkAddIdentityField.CheckState = CheckState.Checked;
+			chkAddIdentityField.Location = new Point(6, 10);
+			chkAddIdentityField.Name = "chkAddIdentityField";
+			chkAddIdentityField.Size = new Size(114, 19);
+			chkAddIdentityField.TabIndex = 9;
+			chkAddIdentityField.Text = "Add Primary Key";
+			chkAddIdentityField.UseVisualStyleBackColor = true;
+			// 
+			// btnCommitToDB
+			// 
+			btnCommitToDB.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			btnCommitToDB.Location = new Point(0, 35);
+			btnCommitToDB.Name = "btnCommitToDB";
+			btnCommitToDB.Size = new Size(173, 32);
+			btnCommitToDB.TabIndex = 4;
+			btnCommitToDB.Text = "Commit to Database";
+			btnCommitToDB.UseVisualStyleBackColor = true;
+			btnCommitToDB.Click += btnCommitToDB_Click;
+			// 
+			// btnClearDestination
+			// 
+			btnClearDestination.Location = new Point(208, 35);
+			btnClearDestination.Name = "btnClearDestination";
+			btnClearDestination.Size = new Size(86, 32);
+			btnClearDestination.TabIndex = 3;
+			btnClearDestination.Text = "Clear";
+			btnClearDestination.UseVisualStyleBackColor = true;
+			btnClearDestination.Click += btnClearDestination_Click;
+			// 
+			// lblSourceList
+			// 
+			lblSourceList.AutoSize = true;
+			lblSourceList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblSourceList.ForeColor = Color.Brown;
+			lblSourceList.Location = new Point(3, 488);
+			lblSourceList.Name = "lblSourceList";
+			lblSourceList.Size = new Size(96, 21);
+			lblSourceList.TabIndex = 6;
+			lblSourceList.Text = "Placeholder";
+			lblSourceList.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// tbpPubSub
 			// 
@@ -1267,16 +1277,6 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// button26
-			// 
-			button26.Location = new Point(503, 3);
-			button26.Name = "button26";
-			button26.Size = new Size(14, 23);
-			button26.TabIndex = 25;
-			button26.Text = "Z";
-			button26.UseVisualStyleBackColor = true;
-			button26.Click += bs_Click;
-			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1296,10 +1296,10 @@
 			tableLayoutPanel3.ResumeLayout(false);
 			tableLayoutPanel3.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSource).EndInit();
+			tableLayoutPanel10.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvDestination).EndInit();
 			grpPrimaryKey.ResumeLayout(false);
 			grpPrimaryKey.PerformLayout();
-			tableLayoutPanel10.ResumeLayout(false);
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
 			splitContainer1.Panel1.ResumeLayout(false);
