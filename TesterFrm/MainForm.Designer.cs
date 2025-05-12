@@ -207,7 +207,8 @@
 			tabControl1.SelectedIndex = 0;
 			tabControl1.Size = new Size(1423, 706);
 			tabControl1.TabIndex = 4;
-			tabControl1.Selected += TabControl1_Selected;
+			tabControl1.Selected += TabControl1_Selected1;
+	
 			// 
 			// tbpSfObjects
 			// 
@@ -1348,6 +1349,7 @@
 			PerformLayout();
 		}
 
+		
 
 		private System.Windows.Forms.Button btnAuthenticate;
 		private System.Windows.Forms.TextBox txtResult;

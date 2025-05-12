@@ -43,6 +43,7 @@ namespace TesterFrm {
 		private readonly PubSubService _pubSubService;
 		private readonly SalesforceConfig _config;
 		private readonly ILogger<MainForm> _l;
+		private HashSet<int> _higlightTabs = new();
 
 		static string _token = "";
 		static string _instanceUrl = "";
@@ -68,7 +69,9 @@ namespace TesterFrm {
 
 		private static enmRetrieveFrom _retrieveFrom = enmRetrieveFrom.SalesForce;
 		private static enmRetrievedFrom _retrievedFrom = _retrieveFrom;
-
+		private Color _dfBColor;
+		private Color _dfFColor;
+		private Dictionary<TabPage, (Color bcolor, Color fcolor)> _tabColors = new Dictionary<TabPage, (Color, Color)>();
 		#endregion fields
 		#region events
 		#region pubsubservice events
@@ -79,8 +82,11 @@ namespace TesterFrm {
 		}
 		private async void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
 			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
-
+				_higlightTabs.Add((int)tbp.CDCEvents);// color it on owner draw
+				tabControl1.Invalidate(); //trigger redraw 
 				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
+
+				lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.FilteredFields.TableName}")));
 				switch (e.ChangeType) {
 					case "UPDATE":
 					//_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
@@ -509,41 +515,7 @@ namespace TesterFrm {
 				}
 			}
 		}
-		private async Task LoadSfObjectsAsync() {
-			Log("LoadSFObjectsAsync", LogLevel.Debug);
-			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
-			await _semaphore.WaitAsync();
-			try {
-				_sourceTable = await _salesforceService.GetAllObjects();
-				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
-				Log($"the registed from Sql server contains {_dtRegistered.Rows.Count} ", LogLevel.Debug);
-				_sourceTable = _dtRegistered.ExcludeRegistered(_sourceTable, "name");
-				_l.LogDebug($"after exluding registered={_dtRegistered.Rows.Count}");
-				_sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
-				lock (_dgvLock) {
-					this.Invoke((Action)(() => {
-						dgvSource.DataSource = _sourceTable;
-						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
-						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
-						if (_dtRegistered.Rows.Count > 0) {
-							Log($"Registered rowcount {_dtRegistered.Rows.Count}", LogLevel.Debug);
-							_destinationTable = _dtRegistered;
-							dgvDestination.DataSource = _destinationTable;
-							
-						}
-					}));
-					_sfsObjectsLoaded = true;
-				}
-			} catch (Exception ex) {
-				Debug.WriteLine($"Error: {ex.Message}");
-				_sfsObjectsLoaded = false;
-			}
-			finally {
-			
-				_semaphore.Release();
-				this.Invoke((Action)(() => Cursor.Current = Cursors.Default));
-			}
-		}
+
 		#endregion dgv
 		#region form
 		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
@@ -575,10 +547,10 @@ namespace TesterFrm {
 			_pubSubService = pubSubService;
 			_config = config.Value;
 			_sqlServerLib = sqlServerLib;
-			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated;
+			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
 			_pubSubService.CDCEvent += _pubSubService_ChangeEventReceived;
 			if (_salesforceService is SalesforceService cs) {
-				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt;
+				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
 			}
 			_sqlServerLib.SqlEvent += (s, e) => {
 				Log(e.Message, e.LogLevel);
@@ -589,13 +561,11 @@ namespace TesterFrm {
 			_l.LogInformation("(logInformation)MainForm initialized.");
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
+
+			this.Load += async (sender, e) => await LoadSfObjectsAsync();
 			tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
-			tabControl1.DrawItem += (s, e) => {
-				TabPage tbp = tabControl1.TabPages[e.Index];
-				Rectangle paddedBounds = new Rectangle(e.Bounds.X + 2, e.Bounds.Y + 2, e.Bounds.Width - 4, e.Bounds.Height - 4);
-				e.Graphics.FillRectangle(Brushes.LightCyan, paddedBounds);
-				e.Graphics.DrawString(tbp.Text, e.Font, Brushes.Black, paddedBounds);
-			};
+			tabControl1.DrawItem += tabControl1_DrawItem!;
+			saveTabPageColors();
 		}
 		private async void subscribe() {
 			await _pubSubService.StartSubscriptionsAsync();
@@ -630,6 +600,9 @@ namespace TesterFrm {
 		}
 		#endregion	 form	
 		#region helpers
+		private void saveTabPageColors() {
+			foreach (TabPage page in tabControl1.TabPages) _tabColors[page] = (page.BackColor, page.ForeColor);
+		}
 		private void LoadTopics(ListBox listBox, bool filtered) {
 			listBox.Items.Clear();
 			DataTable dataTable = filtered ? _sqlServerLib.Select("select * from dbo.ftcdcObjects()") : _sqlServerLib.GetAll_sfoTables();
@@ -736,6 +709,43 @@ namespace TesterFrm {
 			return (JsonConvert.SerializeObject(fields), fields.Count);
 		}
 		#endregion helpers
+
+
+		private async Task LoadSfObjectsAsync() {
+			Log("LoadSFObjectsAsync", LogLevel.Debug);
+			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
+			await _semaphore.WaitAsync();
+			try {
+				_sourceTable = await _salesforceService.GetAllObjects();
+				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
+				Log($"the registed from Sql server contains {_dtRegistered.Rows.Count} ", LogLevel.Debug);
+				_sourceTable = _dtRegistered.ExcludeRegistered(_sourceTable, "name");
+				_l.LogDebug($"after exluding registered={_dtRegistered.Rows.Count}");
+				_sourceTable.DefaultView.Sort = "name ASC"; // Sort the source table by name
+				lock (_dgvLock) {
+					this.Invoke((Action)(() => {
+						dgvSource.DataSource = _sourceTable;
+						dgvSource.Columns[0].HeaderText = "Salesforce Objects";
+						toolStripStatusLabel1.Text = $"Schema for {_sourceTable.TableName} having {_sourceTable.Rows.Count} rows loaded successfully.";
+						if (_dtRegistered.Rows.Count > 0) {
+							Log($"Registered rowcount {_dtRegistered.Rows.Count}", LogLevel.Debug);
+							_destinationTable = _dtRegistered;
+							dgvDestination.DataSource = _destinationTable;
+
+						}
+					}));
+					_sfsObjectsLoaded = true;
+				}
+			} catch (Exception ex) {
+				Debug.WriteLine($"Error: {ex.Message}");
+				_sfsObjectsLoaded = false;
+			}
+			finally {
+
+				_semaphore.Release();
+				this.Invoke((Action)(() => Cursor.Current = Cursors.Default));
+			}
+		}
 		#region litBoxes
 
 
@@ -874,8 +884,10 @@ namespace TesterFrm {
 		private void tabControl1_DrawItem(object sender, DrawItemEventArgs e) {
 			TabPage tbp = tabControl1.TabPages[e.Index];
 			Rectangle paddedBounds = new Rectangle(e.Bounds.X + 2, e.Bounds.Y + 2, e.Bounds.Width - 4, e.Bounds.Height - 4);
-			e.Graphics.FillRectangle(Brushes.LightCyan, paddedBounds);
-			e.Graphics.DrawString(tbp.Text, e.Font, Brushes.Black, paddedBounds);
+			using var bgBrush = new SolidBrush(_higlightTabs.Contains(e.Index) ? Color.Red : SystemColors.Control);
+			using var tBrush = new SolidBrush(_higlightTabs.Contains(e.Index) ? Color.Yellow : SystemColors.ControlText);
+			e.Graphics.FillRectangle(bgBrush, paddedBounds);
+			e.Graphics.DrawString(tbp.Text, e.Font, tBrush, paddedBounds);
 		}
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
@@ -883,7 +895,7 @@ namespace TesterFrm {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
 					await LoadSfObjectsAsync();
-				
+
 					CopySourceScheama(dgvSource, dgvDestination);
 				}
 				break;
@@ -893,10 +905,16 @@ namespace TesterFrm {
 				lblPanel1.Text = $"{lbxObjects.Items.Count} registered CDC objects";
 				break;
 				default: break;
+				case "tbpcdcevents":
+				_higlightTabs.Remove(e.TabPageIndex);
+				tabControl1.Invalidate();
+				break;
 			}
 			tabControl1.SelectedTab = e.TabPage;
 		}
-		private async void TabControl1_Selected(object sender, TabControlEventArgs e) {
+
+		
+		private async void TabControl1_Selected1(object sender, TabControlEventArgs e) {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
 		#endregion tabs
