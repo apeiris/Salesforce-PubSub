@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Avro;
 using Avro.Generic;
 using Avro.IO;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Options;
@@ -23,6 +24,8 @@ namespace NetUtils {
 		public string ChangeType { get; set; }
 		public List<string> ChangedFields { get; set; }
 		public DataTable FilteredFields { get; set; }
+
+		public string ReplayId { get; set; }
 		public string Error { get; set; }
 
 		public CDCEventArgs() {
@@ -35,6 +38,7 @@ namespace NetUtils {
 		}
 	}
 	public class PubSubService : IDisposable {
+		private Dictionary<string, string> _replayIds = new Dictionary<string, string>();
 		private readonly ISalesforceService _oauthService;
 		private readonly SalesforceConfig _config;
 		private readonly GrpcChannel _channel;
@@ -72,12 +76,10 @@ namespace NetUtils {
 					Console.WriteLine($"subscribed to topic ={t}");
 				}
 				OnProgressUpdated($"StartSubscriptionAsync(topics) completed for {topics.Count} channels.");
-			}
-			catch(Exception ex) {
+			} catch (Exception ex) {
 				throw new Exception(ex.Message);
 			}
 		}
-
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
 			var result = new CDCEventArgs();
 			try {
@@ -97,6 +99,9 @@ namespace NetUtils {
 				result.ChangeType = getChangeType(header.ToString());
 				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList ? idsList.Select(id => id.ToString()).ToList() : new List<string>();
 				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList ? cfList.Select(f => f.ToString()).ToList() : new List<string>();
+				header.TryGetValue("ReplayId", out object replay);
+				//result.ReplayId=header.TryGetValue("")
+
 				switch (result.ChangeType) {
 					case "CREATE":
 					CDCEvent?.Invoke(this, result);
@@ -152,7 +157,8 @@ namespace NetUtils {
 			var fetchRequest = new FetchRequest {
 				TopicName = topic,
 				NumRequested = 10,
-				ReplayPreset = ReplayPreset.Latest
+				ReplayPreset = ReplayPreset.Latest,
+
 			};
 
 			var callOptions = new CallOptions(credentials: CustomGrpcCredentials.Create(token, instanceUrl, tenantId));
@@ -206,7 +212,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
 		private string getChangeType(string headerString) {
 			var match = Regex.Match(headerString, @"value:\s*(\w+)");
 			return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value : "Unknown";

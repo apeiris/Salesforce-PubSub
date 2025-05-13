@@ -98,6 +98,7 @@
 			lbxCDCEvents = new ListBox();
 			dgvFilteredFields = new DataGridView();
 			tableLayoutPanel9 = new TableLayoutPanel();
+			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
 			statusStrip1.SuspendLayout();
@@ -208,7 +209,6 @@
 			tabControl1.Size = new Size(1423, 706);
 			tabControl1.TabIndex = 4;
 			tabControl1.Selected += TabControl1_Selected1;
-	
 			// 
 			// tbpSfObjects
 			// 
@@ -1249,6 +1249,7 @@
 			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 			tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 235F));
+			tableLayoutPanel9.Controls.Add(btnGetCDCSubscriptions, 1, 0);
 			tableLayoutPanel9.Controls.Add(btnCDCStartSubscription, 0, 0);
 			tableLayoutPanel9.Location = new Point(3, 487);
 			tableLayoutPanel9.Name = "tableLayoutPanel9";
@@ -1256,6 +1257,16 @@
 			tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
 			tableLayoutPanel9.Size = new Size(695, 41);
 			tableLayoutPanel9.TabIndex = 1;
+			// 
+			// btnGetCDCSubscriptions
+			// 
+			btnGetCDCSubscriptions.Location = new Point(233, 3);
+			btnGetCDCSubscriptions.Name = "btnGetCDCSubscriptions";
+			btnGetCDCSubscriptions.Size = new Size(185, 35);
+			btnGetCDCSubscriptions.TabIndex = 1;
+			btnGetCDCSubscriptions.Text = "get CDC Subscriptions";
+			btnGetCDCSubscriptions.UseVisualStyleBackColor = true;
+			btnGetCDCSubscriptions.Click += btnGetCDCSubscriptions_Click;
 			// 
 			// btnCDCStartSubscription
 			// 
@@ -1349,7 +1360,7 @@
 			PerformLayout();
 		}
 
-		
+
 
 		private System.Windows.Forms.Button btnAuthenticate;
 		private System.Windows.Forms.TextBox txtResult;
@@ -1444,5 +1455,7 @@
 		private Button button4;
 		private Button button3;
 		private Button button26;
+		private Button button27;
+		private Button btnGetCDCSubscriptions;
 	}
 }

@@ -383,6 +383,12 @@ namespace TesterFrm {
 				dgvSource.Rows[ti].Selected = true;
 			}
 		}
+
+		private async void btnGetCDCSubscriptions_Click(object sender, EventArgs e) {
+		var x=	_salesforceService.GetCDCSubscriptions();
+		//DataTable dt =await	_salesforceService.GetAllObjects();
+		}
+
 		#endregion buttons
 		#region dgv
 		/*
@@ -567,9 +573,9 @@ namespace TesterFrm {
 			tabControl1.DrawItem += tabControl1_DrawItem!;
 			saveTabPageColors();
 		}
-		private async void subscribe() {
-			await _pubSubService.StartSubscriptionsAsync();
-		}
+		//private async void subscribe() {
+		//	await _pubSubService.StartSubscriptionsAsync();
+		//}
 
 
 
@@ -913,7 +919,7 @@ namespace TesterFrm {
 			tabControl1.SelectedTab = e.TabPage;
 		}
 
-		
+
 		private async void TabControl1_Selected1(object sender, TabControlEventArgs e) {
 			await tabControl1_Selected(sender, e); // Call the async Task method
 		}
@@ -941,6 +947,7 @@ namespace TesterFrm {
 
 		#endregion utility classes
 
+		
 	}
 
 }

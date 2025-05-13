@@ -28,13 +28,13 @@ namespace NetUtils {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
 			}
 
-			
+
 
 
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 
 
-		
+
 
 
 			// Construct URL
@@ -199,7 +199,7 @@ namespace NetUtils {
 				   Type = field.GetProperty("type").GetString(),
 				   Label = field.GetProperty("label").GetString(),
 				   Length = field.GetProperty("length").GetUInt32(),
-				   Nullable=field.GetProperty("nillable").GetBoolean(),
+				   Nullable = field.GetProperty("nillable").GetBoolean(),
 				   relationshipName = field.GetProperty("relationshipName").GetString(),
 				   referenceTo = field.TryGetProperty("referenceTo", out var refProp) && refProp.ValueKind == JsonValueKind.Array ? refProp.EnumerateArray().Select(e => e.GetString()).ToList() : new List<string>()
 			   });
@@ -219,7 +219,7 @@ namespace NetUtils {
 							new XElement("Type", f.Type ?? ""),
 							new XElement("Label", f.Label ?? ""),
 							new XElement("Length", f.Length),
-							new XElement("Nullable",f.Nullable),
+							new XElement("Nullable", f.Nullable),
 							new XElement("relationshipName", f.relationshipName ?? ""),
 							new XElement("referenceTo", string.Join(",", f.referenceTo))
 						)
@@ -292,6 +292,36 @@ namespace NetUtils {
 			} catch (Exception ex) {
 				throw new Exception($"Error retrieving Salesforce data: {ex.Message}", ex);
 			}
+		}
+		//====================================================================================
+		public async Task<DataTable> GetCDCSubscriptions() {
+			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/EventBusSubscriber";
+			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			//	var response = await _httpClient.SendAsync(request);
+			try {
+				HttpResponseMessage response = await _httpClient.SendAsync(request);
+				response.EnsureSuccessStatusCode();
+				string jsonResponse = await response.Content.ReadAsStringAsync();
+				using var jdoc = JsonDocument.Parse(jsonResponse);
+
+				var objects = jdoc.RootElement
+					.GetProperty("sobjects")
+					.EnumerateArray()
+					.Where(obj => {
+						string name = obj.GetProperty("name").GetString();
+						return name != "Name";
+					})
+					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
+				
+			} catch (HttpRequestException ex) {
+
+				throw new Exception($"Failed to retrieve subscriptions from {url}: {ex.Message}", ex);
+			}
+			return null;
+
 		}
 		//====================================================================================
 		#region helpers
