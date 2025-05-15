@@ -317,13 +317,13 @@ namespace TesterFrm {
 				Log($"Processing {dr["name"]}", LogLevel.Debug);
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
 				if (ds != null) {
-					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SqlSchemaName, tblName);
+					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], _config.SFSchemaName, tblName);
 					_sqlServerLib.ExecuteNoneQuery(script);
 					rtfLog.Text = script;
 				} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
 			}
-			// now check for if there are unregistered objects in the database than the that of _destinationTable
-			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
+			
+			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();// if there are unregistered objects in the database than the that of _destinationTable
 			var rowsInDestination = new HashSet<string?>(
 				_destinationTable.AsEnumerable()
 				.Where(r => !r.IsNull("name"))
@@ -952,10 +952,10 @@ namespace TesterFrm {
 		private async  void btnDescribe_Click(object sender, EventArgs e) {
 		//JsonElement je=await	_salesforceService.GetObjectSchemaAsync(txtObjectName.Text!.ToString());
 			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
-			if (dgvSchema.DataSource != null) {
-				dgvSchema.DataSource = ds;
+			
+				dgvSchema.DataSource = ds.Tables[0];
 				Console.WriteLine(ds.GetXml());
-			}
+			
 		}
 	}
 

@@ -14,7 +14,7 @@ namespace NetUtils {
 		public string LoginUrl { get; set; }
 		public string GrpcUrl { get; set; }
 		public string PubSubEndpoint { get; set; }
-		public string SqlSchemaName { get; set; }
+		public string SFSchemaName { get; set; }
 		public List<Topic> Topics { get; set; }
 	}
 

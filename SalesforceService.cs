@@ -23,6 +23,18 @@ namespace NetUtils {
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
 		}
+
+		public class FieldMeta {
+			public string Name { get; set; }
+			public string Type { get; set; }
+			public string Label { get; set; }
+			public uint Length { get; set; }
+			public bool Nullable { get; set; }
+			public string DefaultValue { get; set; }
+			public string RelationshipName { get; set; }
+			public List<string> ReferenceTo { get; set; }
+		}
+
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
@@ -163,25 +175,63 @@ namespace NetUtils {
 			}
 			return sb.ToString();
 		}
+		public static List<FieldMeta> GetNonNullableFields(JsonElement schema) {
+			try {
+				return schema
+					.GetProperty("fields")
+					.EnumerateArray()
+					//.Where(field => !field.GetProperty("nillable").GetBoolean()) // Only non-nullable fields
+					.Select(field => {
+						// Safely handle defaultValue
+						string defaultValue = null;
+						if (field.TryGetProperty("defaultValue", out var defaultProp)) {
+							switch (defaultProp.ValueKind) {
+								case JsonValueKind.String:
+								defaultValue = $"'{defaultProp.GetString()}'";
+								break;
+								case JsonValueKind.Number:
+								defaultValue = defaultProp.GetRawText();
+								break;
+								case JsonValueKind.True:
+								case JsonValueKind.False:
+								//defaultValue = defaultProp.GetBoolean().ToString().ToLower();
+								defaultValue = defaultProp.GetBoolean() ? "1" : "0";// so this match the T-Sql
+								break;
+								case JsonValueKind.Null:
+								defaultValue = null; // or "No default value" if preferred
+								break;
+								default:
+								defaultValue = defaultProp.GetRawText(); // Fallback for unexpected types
+								break;
+							}
+						}
+
+						return new FieldMeta {
+							Name = field.GetProperty("name").GetString(),
+							Type = field.GetProperty("type").GetString(),
+							Label = field.GetProperty("label").GetString(),
+							Length = field.GetProperty("length").GetUInt32(),
+							Nullable = field.GetProperty("nillable").GetBoolean(),
+							DefaultValue = defaultValue,
+							RelationshipName = field.TryGetProperty("relationshipName", out var relProp) && relProp.ValueKind != JsonValueKind.Null
+								? relProp.GetString()
+								: null,
+							ReferenceTo = field.TryGetProperty("referenceTo", out var refProp) && refProp.ValueKind == JsonValueKind.Array
+								? refProp.EnumerateArray().Select(e => e.GetString()).ToList()
+								: new List<string>()
+						};
+					})
+					.ToList();
+			} catch (Exception ex) {
+				throw new InvalidOperationException($"Error processing Salesforce describe schema: {ex.Message}", ex);
+			}
+		}
 		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName) {
 			var schemax = await GetObjectSchemaAsync(objectName);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
 			try {
-				var fields = schema.RootElement
-			   .GetProperty("fields")
-			   .EnumerateArray()
-			   .Where(field => !field.GetProperty("nillable").GetBoolean()) // only the non nillable fields 
-			   .Select(field => new {
-				   Name = field.GetProperty("name").GetString(),
-				   Type = field.GetProperty("type").GetString(),
-				   Label = field.GetProperty("label").GetString(),
-				   Length = field.GetProperty("length").GetUInt32(),
-				   Nullable = field.GetProperty("nillable").GetBoolean(),
-				   defaultValue = field.GetProperty("defaultValue").GetString(),
-				   relationshipName = field.GetProperty("relationshipName").GetString(),
-				   referenceTo = field.TryGetProperty("referenceTo", out var refProp) && refProp.ValueKind == JsonValueKind.Array ? refProp.EnumerateArray().Select(e => e.GetString()).ToList() : new List<string>()
-			   });
+				var fields = GetNonNullableFields(schema.RootElement);
 				var childRelationNames = schema.RootElement
 							.GetProperty("childRelationships")
 							.EnumerateArray()
@@ -199,9 +249,9 @@ namespace NetUtils {
 							new XElement("Label", f.Label ?? ""),
 							new XElement("Length", f.Length),
 							new XElement("Nullable", f.Nullable),
-							new XElement("Default",f.defaultValue),
-							new XElement("relationshipName", f.relationshipName ?? ""),
-							new XElement("referenceTo", string.Join(",", f.referenceTo))
+							new XElement("Default",f.DefaultValue),
+							new XElement("relationshipName", f.RelationshipName ?? ""),
+							new XElement("referenceTo", string.Join(",", f.ReferenceTo))
 						)
 					),
 				childRelationNames.Select(cr => new XElement($"relations",
