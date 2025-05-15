@@ -27,26 +27,13 @@ namespace NetUtils {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
 			}
-
-
-
-
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
-
-
-
-
-
-			// Construct URL
 			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
 			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
 			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
-
-			// Set up request
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
-
 			try {
 				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
 				if (!response.IsSuccessStatusCode) {
@@ -55,7 +42,6 @@ namespace NetUtils {
 						objectName, response.StatusCode, errorContent);
 					throw new Exception($"Failed to retrieve schema for {objectName}: {response.ReasonPhrase}");
 				}
-
 				await using var stream = await response.Content.ReadAsStreamAsync();
 				JsonElement schema;
 				try {
@@ -64,13 +50,10 @@ namespace NetUtils {
 					_logger.LogError("Failed to deserialize schema for {ObjectName}: {Message}", objectName, jsonEx.Message);
 					throw new Exception($"Invalid JSON response for {objectName}", jsonEx);
 				}
-
-				// Validate schema
 				if (!schema.TryGetProperty("fields", out _) || !schema.TryGetProperty("childRelationships", out _)) {
 					_logger.LogError("Schema for {ObjectName} missing required properties", objectName);
 					throw new Exception($"Invalid schema for {objectName}: missing fields or childRelationships");
 				}
-
 				_logger.LogDebug("Successfully retrieved schema for {ObjectName}", objectName);
 				return schema;
 			} catch (HttpRequestException httpEx) {
@@ -151,16 +134,11 @@ namespace NetUtils {
 					))
 				);
 				var dataSet = new DataSet();
-				using (var reader = root.CreateReader()) {
-					dataSet.ReadXml(reader);
-				}
-
+				using (var reader = root.CreateReader()) dataSet.ReadXml(reader);
 				if (dataSet.Tables.Count > 0) {
 					dataSet.Tables[0].TableName = "sobjects";
 					return dataSet.Tables[0];
-				} else {
-					throw new Exception("No table created from XML.");
-				}
+				} else 	throw new Exception("No table created from XML.");
 			} catch (HttpRequestException ex) {
 				throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
 			} catch (JsonException ex) {
@@ -175,8 +153,7 @@ namespace NetUtils {
 			sb.AppendLine($"Object: {schema.GetProperty("name").GetString()}");
 			sb.AppendLine($"Label: {schema.GetProperty("label").GetString()}");
 			sb.AppendLine("Fields:");
-			// Iterate through fields
-			foreach (JsonElement field in schema.GetProperty("fields").EnumerateArray()) {
+			foreach (JsonElement field in schema.GetProperty("fields").EnumerateArray()) {	// Iterate through fields
 				string fieldName = field.GetProperty("name").GetString();
 				string fieldType = field.GetProperty("type").GetString();
 				string fieldLabel = field.GetProperty("label").GetString();
@@ -194,12 +171,14 @@ namespace NetUtils {
 				var fields = schema.RootElement
 			   .GetProperty("fields")
 			   .EnumerateArray()
+			   .Where(field => !field.GetProperty("nillable").GetBoolean()) // only the non nillable fields 
 			   .Select(field => new {
 				   Name = field.GetProperty("name").GetString(),
 				   Type = field.GetProperty("type").GetString(),
 				   Label = field.GetProperty("label").GetString(),
 				   Length = field.GetProperty("length").GetUInt32(),
 				   Nullable = field.GetProperty("nillable").GetBoolean(),
+				   defaultValue = field.GetProperty("defaultValue").GetString(),
 				   relationshipName = field.GetProperty("relationshipName").GetString(),
 				   referenceTo = field.TryGetProperty("referenceTo", out var refProp) && refProp.ValueKind == JsonValueKind.Array ? refProp.EnumerateArray().Select(e => e.GetString()).ToList() : new List<string>()
 			   });
@@ -220,6 +199,7 @@ namespace NetUtils {
 							new XElement("Label", f.Label ?? ""),
 							new XElement("Length", f.Length),
 							new XElement("Nullable", f.Nullable),
+							new XElement("Default",f.defaultValue),
 							new XElement("relationshipName", f.relationshipName ?? ""),
 							new XElement("referenceTo", string.Join(",", f.referenceTo))
 						)
@@ -241,53 +221,30 @@ namespace NetUtils {
 		//====================================================================================
 		public async Task<DataTable> GetSalesforceRecord(string objectName, string recordId) {
 			try {
-				// Get access token and instance URL
-				var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-
-				// Construct the REST API endpoint for the record
-				string endpoint = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
-
-				// Set up the HTTP request
-				_httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+				var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();// Get access token and instance URL
+				string endpoint = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";// Construct the REST API endpoint for the record
+				_httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);   // Set up the HTTP request
 				var response = await _httpClient.GetAsync(endpoint);
-
-				if (!response.IsSuccessStatusCode) {
-					throw new Exception($"Failed to retrieve data: {response.StatusCode}");
-				}
-
-				// Parse JSON response
+				if (!response.IsSuccessStatusCode) throw new Exception($"Failed to retrieve data: {response.StatusCode}");
 				string jsonResponse = await response.Content.ReadAsStringAsync();
 				using var jsonDoc = JsonDocument.Parse(jsonResponse);
-
-				// Project JSON properties to a dictionary (avoiding foreach)
-				var fields = jsonDoc.RootElement.EnumerateObject()
+				var fields = jsonDoc.RootElement.EnumerateObject()// Project JSON properties to a dictionary (avoiding foreach)
 					.Where(prop => prop.Name != "attributes") // Exclude metadata
 					.Select(prop => new KeyValuePair<string, string>(prop.Name, prop.Value.ToString()))
 					.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-				// Convert to XML
-				var xmlElement = new XElement("Record",
-					fields.Select(kvp => new XElement(kvp.Key, kvp.Value))
-				);
+				var xmlElement = new XElement("Record", fields.Select(kvp => new XElement(kvp.Key, kvp.Value)));
 				string xmlString = xmlElement.ToString();
-
-				// Load XML into DataTable
-				DataTable dataTable = new DataTable(objectName);
+				DataTable dataTable = new DataTable(objectName);// Load XML into DataTable
 				using (var xmlReader = new System.IO.StringReader(xmlString)) {
 					var xdoc = XDocument.Parse(xmlString);
 					var columns = xdoc.Descendants("Record").Elements()
 						.Select(e => e.Name.LocalName)
 						.Distinct();
-
-					// Create columns in DataTable
-					columns.ToList().ForEach(col => dataTable.Columns.Add(col));
-
-					// Add row to DataTable
-					var row = dataTable.NewRow();
+					columns.ToList().ForEach(col => dataTable.Columns.Add(col));// Create columns in DataTable
+					var row = dataTable.NewRow();// Add row to DataTable
 					fields.ToList().ForEach(kvp => row[kvp.Key] = kvp.Value);
 					dataTable.Rows.Add(row);
 				}
-
 				return dataTable;
 			} catch (Exception ex) {
 				throw new Exception($"Error retrieving Salesforce data: {ex.Message}", ex);
@@ -300,13 +257,11 @@ namespace NetUtils {
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
-			//	var response = await _httpClient.SendAsync(request);
 			try {
 				HttpResponseMessage response = await _httpClient.SendAsync(request);
 				response.EnsureSuccessStatusCode();
 				string jsonResponse = await response.Content.ReadAsStringAsync();
 				using var jdoc = JsonDocument.Parse(jsonResponse);
-
 				var objects = jdoc.RootElement
 					.GetProperty("sobjects")
 					.EnumerateArray()
@@ -315,13 +270,10 @@ namespace NetUtils {
 						return name != "Name";
 					})
 					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
-				
 			} catch (HttpRequestException ex) {
-
 				throw new Exception($"Failed to retrieve subscriptions from {url}: {ex.Message}", ex);
 			}
 			return null;
-
 		}
 		//====================================================================================
 		#region helpers

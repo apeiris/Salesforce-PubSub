@@ -23,7 +23,7 @@ namespace NetUtils {
 		public List<string> RecordIds { get; set; }
 		public string ChangeType { get; set; }
 		public List<string> ChangedFields { get; set; }
-		public DataTable FilteredFields { get; set; }
+		public DataTable DeltaFields { get; set; }
 
 		public string ReplayId { get; set; }
 		public string Error { get; set; }
@@ -31,10 +31,9 @@ namespace NetUtils {
 		public CDCEventArgs() {
 			RecordIds = new List<string>();
 			ChangedFields = new List<string>();
-			FilteredFields = new DataTable();
-			FilteredFields.Columns.Add("FieldName", typeof(string));
-			FilteredFields.Columns.Add("Value", typeof(string));
-			//FilteredFields.Columns.Add("IsChanged", typeof(bool));
+			DeltaFields = new DataTable();
+			DeltaFields.Columns.Add("FieldName", typeof(string));
+			DeltaFields.Columns.Add("Value", typeof(string));
 		}
 	}
 	public class PubSubService : IDisposable {
@@ -112,13 +111,13 @@ namespace NetUtils {
 					default:
 					foreach (var field in schema.Fields) {
 						if (filterSet.Contains(field.Name) && record.TryGetValue(field.Name, out object value) && value != null) {
-							DataRow row = result.FilteredFields.NewRow();
+							DataRow row = result.DeltaFields.NewRow();
 							row["FieldName"] = field.Name;
 							row["Value"] = value.ToString();
-							result.FilteredFields.Rows.Add(row);
+							result.DeltaFields.Rows.Add(row);
 						}
 					}
-					result.FilteredFields.TableName = result.EntityName;
+					result.DeltaFields.TableName = result.EntityName;
 					CDCEvent?.Invoke(this, result);
 					break;
 					case "UPDATE":
@@ -143,7 +142,8 @@ namespace NetUtils {
 					idRow["Value"] = result.RecordIds[0];
 					projectedTable.Rows.Add(idRow);
 					projectedTable.TableName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
-					result.FilteredFields = projectedTable;
+					projectedTable.PrimaryKey = new[] { projectedTable.Columns["Id"]! }; 
+					result.DeltaFields = projectedTable;
 					CDCEvent?.Invoke(this, result);
 					break;
 				}

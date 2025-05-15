@@ -1,16 +1,11 @@
+using System.Diagnostics;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using mySalesforce;
-
-
 using NetUtils;
-//using NLog;
 using NLog.Extensions.Logging;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
 namespace TesterFrm {
 	static class Program {
 		[STAThread]
@@ -26,7 +21,8 @@ namespace TesterFrm {
 				var logger = loggerFactory.CreateLogger("TestFrm.Program");
 				logger.LogInformation("Host built successfully.");
 				host.Start();
-						
+
+				var sqlServerLib = host.Services.GetRequiredService<SqlServerLib>();
 				var form = host.Services.GetRequiredService<MainForm>();
 		
 				Application.Run(form);
@@ -46,17 +42,16 @@ namespace TesterFrm {
 					})
 					.ConfigureServices((context, services) => {
 						services.Configure<SalesforceConfig>(context.Configuration.GetSection("Salesforce"));
+						services.Configure<SqlServerConfig>(context.Configuration.GetSection("SqlServer")); // Add SqlServerConfig
 						services.AddMemoryCache(); // For IMemoryCache
 						services.AddScoped<ISalesforceService, SalesforceService>();
 						services.AddScoped<PubSubService>(); // Register PubSubService	
-						services.AddHttpClient();
 						services.AddScoped<SqlServerLib>();
+						services.AddHttpClient();
 						services.AddScoped<MainForm>(); // Register the form
-					
 						services.AddLogging(loggingBuilder => {
 							loggingBuilder.ClearProviders();
 							loggingBuilder.SetMinimumLevel(LogLevel.Debug);
-							//loggingBuilder.AddFilter("Microsoft.Extensions.Http.*", LogLevel.Warning);
 							loggingBuilder.AddNLog();
 						});
 					});

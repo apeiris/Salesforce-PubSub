@@ -83,6 +83,8 @@
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
 			txtObjectName = new TextBox();
+			btnDescribe = new Button();
+			dgvSchema = new DataGridView();
 			tbpEventLog = new TabPage();
 			splitContainer3 = new SplitContainer();
 			tableLayoutPanel6 = new TableLayoutPanel();
@@ -127,6 +129,7 @@
 			tbpOAuth2.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvSchema).BeginInit();
 			tbpEventLog.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)splitContainer3).BeginInit();
 			splitContainer3.Panel1.SuspendLayout();
@@ -1025,11 +1028,14 @@
 			// 
 			// tableLayoutPanel5
 			// 
-			tableLayoutPanel5.ColumnCount = 2;
+			tableLayoutPanel5.ColumnCount = 3;
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78.14685F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 1028F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 182F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 1158F));
 			tableLayoutPanel5.Controls.Add(label1, 0, 0);
 			tableLayoutPanel5.Controls.Add(txtObjectName, 1, 0);
+			tableLayoutPanel5.Controls.Add(btnDescribe, 2, 0);
+			tableLayoutPanel5.Controls.Add(dgvSchema, 0, 2);
 			tableLayoutPanel5.Dock = DockStyle.Fill;
 			tableLayoutPanel5.Location = new Point(0, 0);
 			tableLayoutPanel5.Name = "tableLayoutPanel5";
@@ -1046,7 +1052,7 @@
 			label1.Dock = DockStyle.Fill;
 			label1.Location = new Point(3, 0);
 			label1.Name = "label1";
-			label1.Size = new Size(381, 32);
+			label1.Size = new Size(69, 32);
 			label1.TabIndex = 0;
 			label1.Text = "Object Name";
 			label1.TextAlign = ContentAlignment.MiddleLeft;
@@ -1055,11 +1061,31 @@
 			// 
 			txtObjectName.AcceptsReturn = true;
 			txtObjectName.Dock = DockStyle.Fill;
-			txtObjectName.Location = new Point(390, 3);
+			txtObjectName.Location = new Point(78, 3);
 			txtObjectName.Name = "txtObjectName";
-			txtObjectName.Size = new Size(1022, 23);
+			txtObjectName.Size = new Size(176, 23);
 			txtObjectName.TabIndex = 1;
-			txtObjectName.Text = "Account";
+			txtObjectName.Text = "Case";
+			// 
+			// btnDescribe
+			// 
+			btnDescribe.Location = new Point(260, 3);
+			btnDescribe.Name = "btnDescribe";
+			btnDescribe.Size = new Size(75, 23);
+			btnDescribe.TabIndex = 2;
+			btnDescribe.Text = "Describe";
+			btnDescribe.UseVisualStyleBackColor = true;
+			btnDescribe.Click += btnDescribe_Click;
+			// 
+			// dgvSchema
+			// 
+			dgvSchema.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			tableLayoutPanel5.SetColumnSpan(dgvSchema, 3);
+			dgvSchema.Dock = DockStyle.Fill;
+			dgvSchema.Location = new Point(3, 63);
+			dgvSchema.Name = "dgvSchema";
+			dgvSchema.Size = new Size(1409, 612);
+			dgvSchema.TabIndex = 3;
 			// 
 			// tbpEventLog
 			// 
@@ -1336,6 +1362,7 @@
 			tbpDescribeObject.ResumeLayout(false);
 			tableLayoutPanel5.ResumeLayout(false);
 			tableLayoutPanel5.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)dgvSchema).EndInit();
 			tbpEventLog.ResumeLayout(false);
 			splitContainer3.Panel1.ResumeLayout(false);
 			splitContainer3.Panel2.ResumeLayout(false);
@@ -1455,7 +1482,8 @@
 		private Button button4;
 		private Button button3;
 		private Button button26;
-		private Button button27;
+		private Button btnDescribe;
 		private Button btnGetCDCSubscriptions;
+		private DataGridView dgvSchema;
 	}
 }

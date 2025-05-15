@@ -5,7 +5,7 @@ using System.Data;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
-using mySalesforce;
+//using mySalesforce;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms.VisualStyles;
@@ -16,6 +16,7 @@ using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using ToolTip = System.Windows.Forms.ToolTip;
 using Button = System.Windows.Forms.Button;
+using System.Text.Json;
 //using DocumentFormat.OpenXml.Wordprocessing;
 namespace TesterFrm {
 	public partial class MainForm : Form {
@@ -84,26 +85,26 @@ namespace TesterFrm {
 			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
 				_higlightTabs.Add((int)tbp.CDCEvents);// color it on owner draw
 				tabControl1.Invalidate(); //trigger redraw 
-				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.FilteredFields));
+				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.DeltaFields));
 
-				lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.FilteredFields.TableName}")));
+				lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.DeltaFields.TableName}")));
 				switch (e.ChangeType) {
 					case "UPDATE":
-					//_sqlServerLib.CDCUpdateOrInsert(e.FilteredFields);
-					string tableName = e.FilteredFields.TableName;
+					//_sqlServerLib.CDCUpdateOrInsert(e.DeltaFields);
+					string tableName = e.DeltaFields.TableName;
 					if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) {
 						DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
 						_sqlServerLib.InsertRecordAsync(dt);
-						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+						Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
 					} else {
 						//_sqlServerLib.UpdateAsyncWithFill(dt);
 
-						DataTable dt = e.FilteredFields.Transpose();
+						DataTable dt = e.DeltaFields.Transpose();
 						//await _sqlServerLib.UpdateAsync(dt);
 
-						//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.FilteredFields.TableName} where Id='{e.RecordIds[0]}'");
+						//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.DeltaFields.TableName} where Id='{e.RecordIds[0]}'");
 						_sqlServerLib.UpdateRecordAsync(dt, "sfo");
-						Console.WriteLine($" Table name {e.FilteredFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+						Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
 					}
 					break;//------------------------------------------------------
 					case "CREATE":
@@ -113,8 +114,8 @@ namespace TesterFrm {
 					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
 					break;
 				}
-				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.FilteredFields)));
-			} else dgvFilteredFields.DataSource = e.FilteredFields;
+				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.DeltaFields)));
+			} else dgvFilteredFields.DataSource = e.DeltaFields;
 		}
 		#endregion pubsubservice events
 		#region _sqlserver events
@@ -385,8 +386,8 @@ namespace TesterFrm {
 		}
 
 		private async void btnGetCDCSubscriptions_Click(object sender, EventArgs e) {
-		var x=	_salesforceService.GetCDCSubscriptions();
-		//DataTable dt =await	_salesforceService.GetAllObjects();
+			var x = _salesforceService.GetCDCSubscriptions();
+			//DataTable dt =await	_salesforceService.GetAllObjects();
 		}
 
 		#endregion buttons
@@ -947,7 +948,15 @@ namespace TesterFrm {
 
 		#endregion utility classes
 
-		
+
+		private async  void btnDescribe_Click(object sender, EventArgs e) {
+		//JsonElement je=await	_salesforceService.GetObjectSchemaAsync(txtObjectName.Text!.ToString());
+			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
+			if (dgvSchema.DataSource != null) {
+				dgvSchema.DataSource = ds;
+				Console.WriteLine(ds.GetXml());
+			}
+		}
 	}
 
 }
