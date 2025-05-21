@@ -1,3 +1,0 @@
-[submodule "SqlServerLib"]
-	path = SqlServerLib
-	url = https://github.com/apeiris/SqlServerLib.git
