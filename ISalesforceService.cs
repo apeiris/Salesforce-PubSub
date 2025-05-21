@@ -8,5 +8,6 @@ public interface ISalesforceService {
 	Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName);
 	Task<DataTable> GetAllObjects();
 	Task<DataTable> GetSalesforceRecord(string objectName, string recordId);
-	Task<DataTable> GetCDCSubscriptions();
+	//Task<DataTable> GetCDCSubscriptions();
+	Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default);
 }

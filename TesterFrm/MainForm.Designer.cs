@@ -81,6 +81,7 @@
 			tbpOAuth2 = new TabPage();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
+			btnGetPlatformEventChannel = new Button();
 			label1 = new Label();
 			txtObjectName = new TextBox();
 			btnDescribe = new Button();
@@ -1028,10 +1029,12 @@
 			// 
 			// tableLayoutPanel5
 			// 
-			tableLayoutPanel5.ColumnCount = 3;
+			tableLayoutPanel5.ColumnCount = 4;
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78.14685F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 182F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 1158F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 106F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 1072F));
+			tableLayoutPanel5.Controls.Add(btnGetPlatformEventChannel, 3, 0);
 			tableLayoutPanel5.Controls.Add(label1, 0, 0);
 			tableLayoutPanel5.Controls.Add(txtObjectName, 1, 0);
 			tableLayoutPanel5.Controls.Add(btnDescribe, 2, 0);
@@ -1046,13 +1049,23 @@
 			tableLayoutPanel5.Size = new Size(1415, 678);
 			tableLayoutPanel5.TabIndex = 0;
 			// 
+			// btnGetPlatformEventChannel
+			// 
+			btnGetPlatformEventChannel.Location = new Point(346, 3);
+			btnGetPlatformEventChannel.Name = "btnGetPlatformEventChannel";
+			btnGetPlatformEventChannel.Size = new Size(171, 23);
+			btnGetPlatformEventChannel.TabIndex = 4;
+			btnGetPlatformEventChannel.Text = "PlatformEventChannel ";
+			btnGetPlatformEventChannel.UseVisualStyleBackColor = true;
+			btnGetPlatformEventChannel.Click += btnGetPlatformEventChannel_Click;
+			// 
 			// label1
 			// 
 			label1.AutoSize = true;
 			label1.Dock = DockStyle.Fill;
 			label1.Location = new Point(3, 0);
 			label1.Name = "label1";
-			label1.Size = new Size(69, 32);
+			label1.Size = new Size(119, 32);
 			label1.TabIndex = 0;
 			label1.Text = "Object Name";
 			label1.TextAlign = ContentAlignment.MiddleLeft;
@@ -1061,15 +1074,15 @@
 			// 
 			txtObjectName.AcceptsReturn = true;
 			txtObjectName.Dock = DockStyle.Fill;
-			txtObjectName.Location = new Point(78, 3);
+			txtObjectName.Location = new Point(128, 3);
 			txtObjectName.Name = "txtObjectName";
-			txtObjectName.Size = new Size(176, 23);
+			txtObjectName.Size = new Size(106, 23);
 			txtObjectName.TabIndex = 1;
 			txtObjectName.Text = "Case";
 			// 
 			// btnDescribe
 			// 
-			btnDescribe.Location = new Point(260, 3);
+			btnDescribe.Location = new Point(240, 3);
 			btnDescribe.Name = "btnDescribe";
 			btnDescribe.Size = new Size(75, 23);
 			btnDescribe.TabIndex = 2;
@@ -1080,7 +1093,7 @@
 			// dgvSchema
 			// 
 			dgvSchema.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			tableLayoutPanel5.SetColumnSpan(dgvSchema, 3);
+			tableLayoutPanel5.SetColumnSpan(dgvSchema, 4);
 			dgvSchema.Dock = DockStyle.Fill;
 			dgvSchema.Location = new Point(3, 63);
 			dgvSchema.Name = "dgvSchema";
@@ -1485,5 +1498,6 @@
 		private Button btnDescribe;
 		private Button btnGetCDCSubscriptions;
 		private DataGridView dgvSchema;
+		private Button btnGetPlatformEventChannel;
 	}
 }

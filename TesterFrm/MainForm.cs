@@ -17,6 +17,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using ToolTip = System.Windows.Forms.ToolTip;
 using Button = System.Windows.Forms.Button;
 using System.Text.Json;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 //using DocumentFormat.OpenXml.Wordprocessing;
 namespace TesterFrm {
 	public partial class MainForm : Form {
@@ -81,42 +82,43 @@ namespace TesterFrm {
 				lbxCDCTopics.Invoke(new Action(() => lbxCDCTopics.Items.Add(e.Message)));
 			} else lbxCDCTopics.Items.Add(e.Message);
 		}
-		private async void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
-			if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
-				_higlightTabs.Add((int)tbp.CDCEvents);// color it on owner draw
-				tabControl1.Invalidate(); //trigger redraw 
-				dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.DeltaFields));
+		// do not handle _pubsubService.CDCEvent here, SqlServerLib will handle it
+		//private async void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
+		//	if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
+		//		_higlightTabs.Add((int)tbp.CDCEvents);// color it on owner draw
+		//		tabControl1.Invalidate(); //trigger redraw 
+		//		dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.DeltaFields));
 
-				lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.DeltaFields.TableName}")));
-				switch (e.ChangeType) {
-					case "UPDATE":
-					//_sqlServerLib.CDCUpdateOrInsert(e.DeltaFields);
-					string tableName = e.DeltaFields.TableName;
-					if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) {
-						DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
-						_sqlServerLib.InsertRecordAsync(dt);
-						Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
-					} else {
-						//_sqlServerLib.UpdateAsyncWithFill(dt);
+		//		lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.DeltaFields.TableName}")));
+		//		switch (e.ChangeType) {
+		//			case "UPDATE":
+		//			//_sqlServerLib.CDCUpdateOrInsert(e.DeltaFields);
+		//			string tableName = e.DeltaFields.TableName;
+		//			if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) {
+		//				DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
+		//				_sqlServerLib.InsertRecordAsync(dt);
+		//				Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+		//			} else {
+		//				//_sqlServerLib.UpdateAsyncWithFill(dt);
 
-						DataTable dt = e.DeltaFields.Transpose();
-						//await _sqlServerLib.UpdateAsync(dt);
+		//				DataTable dt = e.DeltaFields.Transpose();
+		//				//await _sqlServerLib.UpdateAsync(dt);
 
-						//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.DeltaFields.TableName} where Id='{e.RecordIds[0]}'");
-						_sqlServerLib.UpdateRecordAsync(dt, "sfo");
-						Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
-					}
-					break;//------------------------------------------------------
-					case "CREATE":
+		//				//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.DeltaFields.TableName} where Id='{e.RecordIds[0]}'");
+		//				_sqlServerLib.UpdateOrInsertRecordAsync(dt, "sfo");
+		//				Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
+		//			}
+		//			break;//------------------------------------------------------
+		//			case "CREATE":
 
-					break;//------------------------------------------------------
-					case "DELETE":
-					_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
-					break;
-				}
-				//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.DeltaFields)));
-			} else dgvFilteredFields.DataSource = e.DeltaFields;
-		}
+		//			break;//------------------------------------------------------
+		//			case "DELETE":
+		//			_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
+		//			break;
+		//		}
+		//		//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.DeltaFields)));
+		//	} else dgvFilteredFields.DataSource = e.DeltaFields;
+		//}
 		#endregion pubsubservice events
 		#region _sqlserver events
 		private void SqlEventObjectExist(object? sender, SqlObjectQuery e) {
@@ -163,7 +165,87 @@ namespace TesterFrm {
 
 
 		#endregion _sqlserver events
-		#endregion events
+		#endregion events	
+		#region form
+		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
+			InitializeComponent();
+			ToolTip tt = new ToolTip();
+			tt.OwnerDraw = true;
+			tt.InitialDelay = 1;
+			tt.IsBalloon = false;
+			tt.Draw += (s, e) => {
+				e.Graphics.FillRectangle(Brushes.LightCyan, e.Bounds);
+				e.Graphics.DrawRectangle(Pens.SteelBlue, e.Bounds);
+				e.Graphics.DrawString(e.ToolTipText, SystemFonts.DefaultFont, Brushes.Black, e.Bounds);
+			};
+			string ttText = "Schemas of selected Salesforce objects must be persisted in SQL Server.\n" +
+				"These objects are selected from the Objects tab.\n" +
+				"Only objects marked as CDC Candidates are eligible for Pub/Sub operations.\n" +
+				"To view all registered schemas, select 'Filter None' from the filter radio buttons.\n" +
+				"In the Pub/Sub tab, choose the objects that require subscription.\n" +
+				"Selected objects are automatically converted into gRPC topic format.\n" +
+				"Select the excluded fields (IsExcluded) that should still be transferred\n" +
+				"to SQL Server when a gRPC change event is received from Salesforce Service Bus.";
+
+
+			tt.SetToolTip(lbxObjects, ttText);
+			tt.SetToolTip(dgvObject, ttText);
+			tt.SetToolTip(lblSelectedTable, ttText);
+			_cache = cache;
+			_salesforceService = salesforceService;
+			_pubSubService = pubSubService;
+			_config = config.Value;
+			_sqlServerLib = sqlServerLib;
+			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
+		//	_pubSubService.CDCEvent += _pubSubService_ChangeEventReceived;
+			if (_salesforceService is SalesforceService cs) {
+				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
+			}
+			_sqlServerLib.SqlEvent += (s, e) => {
+				Log(e.Message, e.LogLevel);
+			};
+			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
+			_l = logger ?? throw new ArgumentNullException(nameof(logger));
+			_l.LogDebug("MainForm initialized.");
+			_l.LogInformation("(logInformation)MainForm initialized.");
+			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
+			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
+
+			this.Load += async (sender, e) => await LoadSfObjectsAsync();
+			tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
+			tabControl1.DrawItem += tabControl1_DrawItem!;
+			saveTabPageColors();
+		}
+	
+
+
+
+		private void Form1_Load(object sender, EventArgs e) {
+			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
+			if (!string.IsNullOrEmpty(savedTab) && tabControl1.TabPages.ContainsKey(savedTab)) {
+				TabPage tbp = tabControl1.TabPages[savedTab]!;
+				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
+			}
+			lblPanel1.Parent = splitContainer1.Panel1;
+			lblDestinationList.Text = "";
+			SetupDataGridViewHeaders("");
+		}
+		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
+			Invoke((Action)(() => {
+				Log($"Authenticating: {e.Message}", e.LogLevel);
+				btnAuthenticate.Enabled = false;
+				toolStripStatusLabel1.Text = "Authenticating...";
+			}));
+		}
+		protected override void OnFormClosed(FormClosedEventArgs e) {
+			base.OnFormClosed(e);
+			if (_host != null) _host.Dispose();
+		}
+		private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
+			Properties.Settings.Default.SelectedTab = tabControl1.SelectedTab.Name;
+			Properties.Settings.Default.Save();
+		}
+		#endregion	 form	
 		#region buttons
 		private async void btnAuthenticate_Click(object sender, EventArgs e) {
 			await _semaphore.WaitAsync();
@@ -191,7 +273,7 @@ namespace TesterFrm {
 			//lbxResult.Items.Add("Starting subscription...");
 			try {
 
-				//	await _pubSubService.StartSubscriptionsAsync(); // done @ form load dont bother
+				await _pubSubService.StartSubscriptionsAsync(); // done @ form load dont bother
 				var topics = new HashSet<string?>(
 					_destinationTable.AsEnumerable()//.Where(r => !r.IsNull("name"))
 					.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
@@ -322,7 +404,7 @@ namespace TesterFrm {
 					rtfLog.Text = script;
 				} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
 			}
-			
+
 			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();// if there are unregistered objects in the database than the that of _destinationTable
 			var rowsInDestination = new HashSet<string?>(
 				_destinationTable.AsEnumerable()
@@ -384,12 +466,23 @@ namespace TesterFrm {
 				dgvSource.Rows[ti].Selected = true;
 			}
 		}
-
+		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
+		}
 		private async void btnGetCDCSubscriptions_Click(object sender, EventArgs e) {
-			var x = _salesforceService.GetCDCSubscriptions();
+		//	var x = _salesforceService.GetCDCSubscriptions();
 			//DataTable dt =await	_salesforceService.GetAllObjects();
 		}
+		private async void btnGetPlatformEventChannel_Click(object sender, EventArgs e) {
+			JsonElement je =await _salesforceService.GetPlatformEventChannel();
+		}
+		private async void btnDescribe_Click(object sender, EventArgs e) {
+			//JsonElement je=await	_salesforceService.GetObjectSchemaAsync(txtObjectName.Text!.ToString());
+			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
 
+			dgvSchema.DataSource = ds.Tables[0];
+			Console.WriteLine(ds.GetXml());
+
+		}
 		#endregion buttons
 		#region dgv
 		/*
@@ -524,88 +617,7 @@ namespace TesterFrm {
 		}
 
 		#endregion dgv
-		#region form
-		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
-			InitializeComponent();
-			ToolTip tt = new ToolTip();
-			tt.OwnerDraw = true;
-			tt.InitialDelay = 1;
-			tt.IsBalloon = false;
-			tt.Draw += (s, e) => {
-				e.Graphics.FillRectangle(Brushes.LightCyan, e.Bounds);
-				e.Graphics.DrawRectangle(Pens.SteelBlue, e.Bounds);
-				e.Graphics.DrawString(e.ToolTipText, SystemFonts.DefaultFont, Brushes.Black, e.Bounds);
-			};
-			string ttText = "Schemas of selected Salesforce objects must be persisted in SQL Server.\n" +
-				"These objects are selected from the Objects tab.\n" +
-				"Only objects marked as CDC Candidates are eligible for Pub/Sub operations.\n" +
-				"To view all registered schemas, select 'Filter None' from the filter radio buttons.\n" +
-				"In the Pub/Sub tab, choose the objects that require subscription.\n" +
-				"Selected objects are automatically converted into gRPC topic format.\n" +
-				"Select the excluded fields (IsExcluded) that should still be transferred\n" +
-				"to SQL Server when a gRPC change event is received from Salesforce Service Bus.";
-
-
-			tt.SetToolTip(lbxObjects, ttText);
-			tt.SetToolTip(dgvObject, ttText);
-			tt.SetToolTip(lblSelectedTable, ttText);
-			_cache = cache;
-			_salesforceService = salesforceService;
-			_pubSubService = pubSubService;
-			_config = config.Value;
-			_sqlServerLib = sqlServerLib;
-			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
-			_pubSubService.CDCEvent += _pubSubService_ChangeEventReceived;
-			if (_salesforceService is SalesforceService cs) {
-				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
-			}
-			_sqlServerLib.SqlEvent += (s, e) => {
-				Log(e.Message, e.LogLevel);
-			};
-			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
-			_l = logger ?? throw new ArgumentNullException(nameof(logger));
-			_l.LogDebug("MainForm initialized.");
-			_l.LogInformation("(logInformation)MainForm initialized.");
-			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
-			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
-
-			this.Load += async (sender, e) => await LoadSfObjectsAsync();
-			tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
-			tabControl1.DrawItem += tabControl1_DrawItem!;
-			saveTabPageColors();
-		}
-		//private async void subscribe() {
-		//	await _pubSubService.StartSubscriptionsAsync();
-		//}
-
-
-
-		private void Form1_Load(object sender, EventArgs e) {
-			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
-			if (!string.IsNullOrEmpty(savedTab) && tabControl1.TabPages.ContainsKey(savedTab)) {
-				TabPage tbp = tabControl1.TabPages[savedTab]!;
-				tabControl1_Selected(sender, new TabControlEventArgs(tbp, tabControl1.SelectedIndex, TabControlAction.Selected));
-			}
-			lblPanel1.Parent = splitContainer1.Panel1;
-			lblDestinationList.Text = "";
-			SetupDataGridViewHeaders("");
-		}
-		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
-			Invoke((Action)(() => {
-				Log($"Authenticating: {e.Message}", e.LogLevel);
-				btnAuthenticate.Enabled = false;
-				toolStripStatusLabel1.Text = "Authenticating...";
-			}));
-		}
-		protected override void OnFormClosed(FormClosedEventArgs e) {
-			base.OnFormClosed(e);
-			if (_host != null) _host.Dispose();
-		}
-		private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-			Properties.Settings.Default.SelectedTab = tabControl1.SelectedTab.Name;
-			Properties.Settings.Default.Save();
-		}
-		#endregion	 form	
+	
 		#region helpers
 		private void saveTabPageColors() {
 			foreach (TabPage page in tabControl1.TabPages) _tabColors[page] = (page.BackColor, page.ForeColor);
@@ -716,13 +728,17 @@ namespace TesterFrm {
 			return (JsonConvert.SerializeObject(fields), fields.Count);
 		}
 		#endregion helpers
-
-
 		private async Task LoadSfObjectsAsync() {
+			
 			Log("LoadSFObjectsAsync", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
+			/*   ***** Revision required ***** 
+			 *   this should be loaded with SOQL
+			 *   SELECT QualifiedApiName, DeveloperName, publisherId, durableid FROM EntityDefinition where publisherId = 'CDC'
+			 *    instead of loading 	all objects
+			*/
 				_sourceTable = await _salesforceService.GetAllObjects();
 				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
 				Log($"the registed from Sql server contains {_dtRegistered.Rows.Count} ", LogLevel.Debug);
@@ -754,9 +770,6 @@ namespace TesterFrm {
 			}
 		}
 		#region litBoxes
-
-
-
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
 			this.UseWaitCursor = true;
@@ -830,7 +843,6 @@ namespace TesterFrm {
 			}
 
 		}
-
 		#region lbxLog
 		private void Log(string msg, LogLevel l, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0, [CallerFilePath] string fp = "") {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
@@ -928,9 +940,6 @@ namespace TesterFrm {
 		#region tooltip
 
 		#endregion tooltip
-		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
-		}
-
 		#region utility classes
 		public class LogItem {
 			public string Message { get; set; }
@@ -949,14 +958,8 @@ namespace TesterFrm {
 		#endregion utility classes
 
 
-		private async  void btnDescribe_Click(object sender, EventArgs e) {
-		//JsonElement je=await	_salesforceService.GetObjectSchemaAsync(txtObjectName.Text!.ToString());
-			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
-			
-				dgvSchema.DataSource = ds.Tables[0];
-				Console.WriteLine(ds.GetXml());
-			
-		}
+		
+
 	}
 
 }

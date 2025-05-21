@@ -1,11 +1,14 @@
-﻿using System.Data;
+﻿using System.Buffers.Text;
+using System.Data;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
+using RestSharp;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
@@ -34,6 +37,43 @@ namespace NetUtils {
 			public string RelationshipName { get; set; }
 			public List<string> ReferenceTo { get; set; }
 		}
+
+
+	
+		public async Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default) {
+			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
+
+			string objectName = "PlatformEventChannel";
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{objectName}";
+			_logger.LogDebug("Posting to {ObjectName} at {Url}", objectName, url);
+
+			using var request = new HttpRequestMessage(HttpMethod.Post, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+
+			// If needed, set Content-Type and a body (example: empty JSON object)
+			request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+			try {
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("API POST failed for {ObjectName}: Status={StatusCode}, Content={Content}",
+						objectName, response.StatusCode, errorContent);
+					throw new Exception($"Failed to POST to {objectName}: {response.ReasonPhrase}");
+				}
+
+				await using var stream = await response.Content.ReadAsStreamAsync();
+				JsonElement result = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
+
+				_logger.LogDebug("Successfully POSTed to {ObjectName}", objectName);
+				return result;
+			} catch (Exception ex) {
+				_logger.LogError("Error during POST for {ObjectName}: {Message}", objectName, ex.Message);
+				throw;
+			}
+		}
+
 
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
@@ -301,29 +341,38 @@ namespace NetUtils {
 			}
 		}
 		//====================================================================================
-		public async Task<DataTable> GetCDCSubscriptions() {
+		
+		//=========19-05-2025-1===============================================================
+		public async Task CheckDailyChangeEventsAsync() {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/EventBusSubscriber";
-			using var request = new HttpRequestMessage(HttpMethod.Get, url);
-			request.Headers.Add("Authorization", $"Bearer {token}");
-			request.Headers.Add("Accept", "application/json");
-			try {
-				HttpResponseMessage response = await _httpClient.SendAsync(request);
-				response.EnsureSuccessStatusCode();
-				string jsonResponse = await response.Content.ReadAsStringAsync();
-				using var jdoc = JsonDocument.Parse(jsonResponse);
-				var objects = jdoc.RootElement
-					.GetProperty("sobjects")
-					.EnumerateArray()
-					.Where(obj => {
-						string name = obj.GetProperty("name").GetString();
-						return name != "Name";
-					})
-					.Select(obj => new { Name = obj.GetProperty("name").GetString() });
-			} catch (HttpRequestException ex) {
-				throw new Exception($"Failed to retrieve subscriptions from {url}: {ex.Message}", ex);
+
+			var client = new RestClient($"{instanceUrl}/services/data/{_settings.ApiVersion}");
+			var request = new RestRequest("limits", Method.Get);
+			request.AddHeader("Authorization", $"Bearer {token}");
+
+			var response = await client.ExecuteAsync(request);
+			if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content)) {
+				throw new Exception($"Failed to retrieve limits: {response.StatusCode} - {response.Content}");
 			}
-			return null;
+
+			using var jsonDoc = JsonDocument.Parse(response.Content);
+			Console.WriteLine("\nDaily Change Events Limit:");
+			if (jsonDoc.RootElement.TryGetProperty("DailyChangeEvents", out var dailyEvents)) {
+				int max = dailyEvents.GetProperty("Max").GetInt32();
+				int remaining = dailyEvents.GetProperty("Remaining").GetInt32();
+				int used = max - remaining;
+				Console.WriteLine($"Max: {max} events per 24 hours");
+				Console.WriteLine($"Used: {used} events");
+				Console.WriteLine($"Remaining: {remaining} events");
+				Console.WriteLine($"Percentage Used: {(double)used / max * 100:F2}%");
+				if (remaining < max * 0.2) // Warn if less than 20% remaining
+				{
+					Console.WriteLine("Warning: Low remaining events. Consider disabling CDC for low-priority objects or contacting Salesforce to increase limits.");
+				}
+			} else {
+				Console.WriteLine("DailyChangeEvents limit not found. Your org may not support CDC, or the API version does not expose this limit.");
+				Console.WriteLine("Contact Salesforce Support to verify CDC limits for your org.");
+			}
 		}
 		//====================================================================================
 		#region helpers
