@@ -476,12 +476,9 @@ namespace TesterFrm {
 			JsonElement je =await _salesforceService.GetPlatformEventChannel();
 		}
 		private async void btnDescribe_Click(object sender, EventArgs e) {
-			//JsonElement je=await	_salesforceService.GetObjectSchemaAsync(txtObjectName.Text!.ToString());
 			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
-
 			dgvSchema.DataSource = ds.Tables[0];
 			Console.WriteLine(ds.GetXml());
-
 		}
 		#endregion buttons
 		#region dgv

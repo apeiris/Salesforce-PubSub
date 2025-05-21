@@ -266,7 +266,7 @@ namespace NetUtils {
 				throw new InvalidOperationException($"Error processing Salesforce describe schema: {ex.Message}", ex);
 			}
 		}
-		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName) {
+		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName,bool useTooling=false) {
 			var schemax = await GetObjectSchemaAsync(objectName);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
