@@ -10,4 +10,5 @@ public interface ISalesforceService {
 	Task<DataTable> GetSalesforceRecord(string objectName, string recordId);
 	//Task<DataTable> GetCDCSubscriptions();
 	Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default);
+	Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default);
 }

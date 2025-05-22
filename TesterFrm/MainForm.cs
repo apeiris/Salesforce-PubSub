@@ -731,12 +731,13 @@ namespace TesterFrm {
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
 			try {
-			/*   ***** Revision required ***** 
-			 *   this should be loaded with SOQL
-			 *   SELECT QualifiedApiName, DeveloperName, publisherId, durableid FROM EntityDefinition where publisherId = 'CDC'
-			 *    instead of loading 	all objects
-			*/
-				_sourceTable = await _salesforceService.GetAllObjects();
+				/*   ***** Revision required ***** 
+				 *   this should be loaded with SOQL
+				 *   SELECT QualifiedApiName, DeveloperName, publisherId, durableid FROM EntityDefinition where publisherId = 'CDC'
+				 *    instead of loading 	all objects
+				*/
+				//_sourceTable = await _salesforceService.GetAllObjects();
+				_sourceTable = await _salesforceService.GetCDCEnabledEntitiesAsync();
 				_dtRegistered = _sqlServerLib.GetAll_sfoTables();
 				Log($"the registed from Sql server contains {_dtRegistered.Rows.Count} ", LogLevel.Debug);
 				_sourceTable = _dtRegistered.ExcludeRegistered(_sourceTable, "name");

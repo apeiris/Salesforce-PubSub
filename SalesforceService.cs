@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,7 @@ namespace NetUtils {
 		}
 
 
-	
+
 		public async Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default) {
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 
@@ -190,7 +191,7 @@ namespace NetUtils {
 				if (dataSet.Tables.Count > 0) {
 					dataSet.Tables[0].TableName = "sobjects";
 					return dataSet.Tables[0];
-				} else 	throw new Exception("No table created from XML.");
+				} else throw new Exception("No table created from XML.");
 			} catch (HttpRequestException ex) {
 				throw new Exception($"Failed to retrieve schema from {url}: {ex.Message}", ex);
 			} catch (JsonException ex) {
@@ -205,7 +206,7 @@ namespace NetUtils {
 			sb.AppendLine($"Object: {schema.GetProperty("name").GetString()}");
 			sb.AppendLine($"Label: {schema.GetProperty("label").GetString()}");
 			sb.AppendLine("Fields:");
-			foreach (JsonElement field in schema.GetProperty("fields").EnumerateArray()) {	// Iterate through fields
+			foreach (JsonElement field in schema.GetProperty("fields").EnumerateArray()) {  // Iterate through fields
 				string fieldName = field.GetProperty("name").GetString();
 				string fieldType = field.GetProperty("type").GetString();
 				string fieldLabel = field.GetProperty("label").GetString();
@@ -266,7 +267,7 @@ namespace NetUtils {
 				throw new InvalidOperationException($"Error processing Salesforce describe schema: {ex.Message}", ex);
 			}
 		}
-		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName,bool useTooling=false) {
+		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName, bool useTooling = false) {
 			var schemax = await GetObjectSchemaAsync(objectName);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
@@ -289,7 +290,7 @@ namespace NetUtils {
 							new XElement("Label", f.Label ?? ""),
 							new XElement("Length", f.Length),
 							new XElement("Nullable", f.Nullable),
-							new XElement("Default",f.DefaultValue),
+							new XElement("Default", f.DefaultValue),
 							new XElement("relationshipName", f.RelationshipName ?? ""),
 							new XElement("referenceTo", string.Join(",", f.ReferenceTo))
 						)
@@ -340,21 +341,101 @@ namespace NetUtils {
 				throw new Exception($"Error retrieving Salesforce data: {ex.Message}", ex);
 			}
 		}
+		//------------------------------------------------------------------------------------
+		public async Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default) {
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/query/?q={Uri.EscapeDataString(soqlQuery)}";
+			_logger.LogDebug("Executing SOQL query at {Url}", url);
+
+			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+
+			try {
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("SOQL query failed: Status={StatusCode}, Content={Content}",
+						response.StatusCode, errorContent);
+					throw new Exception($"Failed to execute SOQL query: {response.ReasonPhrase}");
+				}
+
+				await using var stream = await response.Content.ReadAsStreamAsync();
+				var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+				_logger.LogDebug("Successfully executed SOQL query");
+				return jsonDoc.RootElement; // Return JsonElement, which is not disposed
+			} catch (Exception ex) {
+				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
+				throw;
+			}
+		}
 		//====================================================================================
-		
-		//=========19-05-2025-1===============================================================
+		public async Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default) {
+			string query = "SELECT QualifiedApiName, DeveloperName FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
+			JsonElement rootElement = await ExecuteSoqlQueryRawAsync(query, cancellationToken);
+			string tableName = getObjectNameFromSoql(query);//FROM is case sensitive
+			DataTable dt = new DataTable(tableName);
+			try {
+				if (!rootElement.TryGetProperty("records", out var records) || records.GetArrayLength() == 0) {
+					_logger.LogWarning("No records returned from SOQL query");
+					return dt;
+				}
+				var firstRecord = records.EnumerateArray().First();// Project column names and types from the first record
+				var columns = firstRecord.EnumerateObject()
+					.Where(prop => prop.Name != "attributes")
+					.Select(prop => new {
+						Name = prop.Name,
+						Type = prop.Value.ValueKind switch {
+							JsonValueKind.String => typeof(string),
+							JsonValueKind.True or JsonValueKind.False => typeof(bool),
+							JsonValueKind.Number => typeof(double),
+							_ => typeof(string)
+						}
+					})
+					.ToList();
+
+				
+				columns.ForEach(col => dt.Columns.Add(col.Name, col.Type));// Add columns, including baseObject
+				dt.Columns.Add("name", typeof(string));//the name is used to compare registered objects
+				var rows = records.EnumerateArray()				// Project records into rows
+					.Select(record => {
+						var row = dt.NewRow();
+						string qualifiedApiName = null;
+						foreach (var prop in record.EnumerateObject().Where(p => dt.Columns.Contains(p.Name))) {
+							row[prop.Name] = prop.Value.ValueKind switch {
+								JsonValueKind.Null => DBNull.Value,
+								JsonValueKind.String => prop.Value.GetString(),
+								JsonValueKind.True => true,
+								JsonValueKind.False => false,
+								JsonValueKind.Number => prop.Value.GetDouble(),
+								_ => prop.Value.ToString()
+							};
+							if (prop.Name == "QualifiedApiName")
+								qualifiedApiName = prop.Value.GetString();
+						}
+						row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
+						return row;
+					})
+					.ToList();
+				rows.ForEach(row => dt.Rows.Add(row));
+				_logger.LogDebug("Successfully executed SOQL query, retrieved {Count} CDC-enabled EntityDefinitions with {ColumnCount} columns",
+					dt.Rows.Count, dt.Columns.Count);
+				return dt;
+			} catch (Exception ex) {
+				_logger.LogError("Error processing SOQL query results for EntityDefinition: {Message}", ex.Message);
+				throw;
+			}
+		}
+		//===============================================================================
 		public async Task CheckDailyChangeEventsAsync() {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-
 			var client = new RestClient($"{instanceUrl}/services/data/{_settings.ApiVersion}");
 			var request = new RestRequest("limits", Method.Get);
 			request.AddHeader("Authorization", $"Bearer {token}");
-
 			var response = await client.ExecuteAsync(request);
 			if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content)) {
 				throw new Exception($"Failed to retrieve limits: {response.StatusCode} - {response.Content}");
 			}
-
 			using var jsonDoc = JsonDocument.Parse(response.Content);
 			Console.WriteLine("\nDaily Change Events Limit:");
 			if (jsonDoc.RootElement.TryGetProperty("DailyChangeEvents", out var dailyEvents)) {
@@ -376,6 +457,25 @@ namespace NetUtils {
 		}
 		//====================================================================================
 		#region helpers
+		private string getObjectNameFromSoql(string soqlQuery) {
+			if (string.IsNullOrWhiteSpace(soqlQuery)) {
+				_logger.LogWarning("SOQL query is empty or null");
+				return null;
+			}
+
+			// Regex: Match "FROM" (case-insensitive) followed by whitespace and capture the table name
+			string pattern = @"FROM\s+([a-zA-Z0-9_]+)\b";
+			Match match = Regex.Match(soqlQuery, pattern, RegexOptions.IgnoreCase);
+
+			if (match.Success) {
+				string objectName = match.Groups[1].Value;
+				_logger.LogDebug("Extracted object name: {ObjectName} from SOQL query", objectName);
+				return objectName;
+			}
+
+			_logger.LogWarning("No object name found in SOQL query: {Query}", soqlQuery);
+			return null;
+		}
 		public class AuthenticationEventArgs : EventArgs {
 			public LogLevel LogLevel { get; }
 			public string Message { get; }
