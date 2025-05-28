@@ -561,9 +561,11 @@ namespace NetUtils {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
 			string url;
 			HttpMethod method;
+			var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
 
 			if (string.IsNullOrEmpty(recordId)) {
 				// Insert: POST to /sobjects/{objectName}
+			
 				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
 				method = HttpMethod.Post;
 				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
@@ -573,7 +575,8 @@ namespace NetUtils {
 				method = new HttpMethod("PATCH");
 				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
 			}
-
+			jsonFields = JsonSerializer.Serialize(fields, new JsonSerializerOptions { WriteIndented = true });
+			
 			using var request = new HttpRequestMessage(method, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
@@ -593,36 +596,83 @@ namespace NetUtils {
 					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
 					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
 				} else {
-					// Unexpected response
+					// Handle error response
 					string errorContent = await response.Content.ReadAsStringAsync();
-					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {Content}",
-						objectName, response.StatusCode, errorContent);
-					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorContent}");
+					string errorMessage = ParseSalesforceError(errorContent);
+					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {ErrorMessage}",
+						objectName, response.StatusCode, errorMessage);
+					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorMessage}");
 				}
 
 				// Create a DataTable with the upserted record
 				DataTable resultTable = new DataTable(objectName);
-				var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
 				resultTable.Columns.Add("Id", typeof(string));
 				foreach (var field in fields) {
 					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
 				}
 
 				DataRow row = resultTable.NewRow();
-
 				row["Id"] = newRecordId;
 				foreach (var field in fields) {
 					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
-					resultTable.Rows.Add(row);
-					return resultTable;
 				}
+				resultTable.Rows.Add(row);
+
+				return resultTable;
 			} catch (Exception ex) {
 				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
 				throw;
 			}
-			return null; // Return null if no DataTable is created
 		}
-		
+
+		// Helper method to parse Salesforce error response
+		private string ParseSalesforceError(string errorContent) {
+			try {
+				using JsonDocument doc = JsonDocument.Parse(errorContent);
+				var errors = doc.RootElement.EnumerateArray();
+				var errorMessages = new List<string>();
+				foreach (var error in errors) {
+					string message = error.TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error";
+					string errorCode = error.TryGetProperty("errorCode", out var code) ? code.GetString() : "N/A";
+					string fields = error.TryGetProperty("fields", out var fieldsProp) ? string.Join(", ", fieldsProp.EnumerateArray().Select(f => f.GetString())) : "";
+					errorMessages.Add($"Error: {message} (Code: {errorCode}, Fields: {fields})");
+				}
+				return string.Join("; ", errorMessages);
+			} catch {
+				return errorContent; // Fallback to raw content if parsing fails
+			}
+		}
+		//====================================================================================
+		public async Task DeleteSobject(string objectName, string recordId) {
+			if (string.IsNullOrEmpty(objectName))
+				throw new ArgumentNullException(nameof(objectName));
+			if (string.IsNullOrEmpty(recordId))
+				throw new ArgumentNullException(nameof(recordId));
+
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
+
+			using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+
+			try {
+				using var response = await _httpClient.SendAsync(request);
+				if (response.IsSuccessStatusCode) // 204 No Content
+				{
+					_logger.LogInformation("Successfully deleted {ObjectName} record with Id {RecordId}", objectName, recordId);
+				} else {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					string errorMessage = ParseSalesforceError(errorContent);
+					_logger.LogError("Failed to delete {ObjectName} record with Id {RecordId}: {StatusCode} - {ErrorMessage}",
+						objectName, recordId, response.StatusCode, errorMessage);
+					throw new Exception($"Failed to delete {objectName} record: {response.StatusCode} - {errorMessage}");
+				}
+			} catch (Exception ex) {
+				_logger.LogError("Error deleting {ObjectName} record with Id {RecordId}: {Message}",
+					objectName, recordId, ex.Message);
+				throw;
+			}
+		}
 		//====================================================================================
 		#region helpers
 		private string getObjectNameFromSoql(string soqlQuery) {

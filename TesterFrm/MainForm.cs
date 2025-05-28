@@ -14,8 +14,9 @@ using Newtonsoft.Json;
 using Button = System.Windows.Forms.Button;
 using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
 using ToolTip = System.Windows.Forms.ToolTip;
-using Color=System.Drawing.Color;
+using Color = System.Drawing.Color;
 using Control = System.Windows.Forms.Control;
+using System.Threading.Tasks;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region enums
@@ -531,7 +532,7 @@ namespace TesterFrm {
 		}
 
 		private DialogResult commitIfConfirmed(DataRow dr, string rowId, string ChangeType = "") {
-			string json = dr.ToJson(indented:true,excludedColumns:"");
+			string json = dr.ToJson(indented: true, excludedColumns: "");
 			string msg = ChangeType == "Update" ? $"Update {rowId} with: {json} " : $"Insert{json} \nfor:{rowId} ";
 			DialogResult dR = MessageBox.Show($"Save ({ChangeType} to Salesforce?", $"", MessageBoxButtons.YesNo, MessageBoxIcon.Hand);
 			//	return dR;
@@ -1032,23 +1033,56 @@ namespace TesterFrm {
 		#endregion utility classes
 
 
-	
 
-		private void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
+
+		private async void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
 			dgvSOQLResult.EndEdit();
 			if (dgvSOQLResult.DataSource is BindingSource bindingSource) {
 				bindingSource.EndEdit();
 			} else {
 				BindingContext[dgvSOQLResult.DataSource].EndCurrentEdit();
 			}
-			//DataTable dtChangedRows = _dtSoqlResults.GetChanges(DataRowState.Added | DataRowState.Modified);
+			DataTable dtChanged = _dtSoqlResults.GetChanges(DataRowState.Modified);
+			if (dtChanged != null) {
+				foreach (DataRow dr in dtChanged.Rows) {
+					string id = dr["Id"].ToString();
 
-			string addedJason = _dtSoqlResults.GetChanges(DataRowState.Added ).ToJson(indented:true,excludedColumns:"Id"); //upsert exclude Id, force to generate
-			string changedJason = _dtSoqlResults.GetChanges(DataRowState.Modified).ToJson(indented: true);// need the Id (primary key) because this is going to be an update
-		
+					string json = dr.ToJson(indented: true, excludedColumns: "Id");
+					DataTable dt = await _salesforceService.UpsertSobject(dtChanged.TableName, id, json);
+				}
+				DataTable dtAdded = _dtSoqlResults.GetChanges(DataRowState.Added);
+
+
+				if (dtAdded != null) {
+					dtAdded.Columns.Remove("Id");
+					DataTable dt = await _salesforceService.UpsertSobject(dtAdded.TableName, null, dtAdded.ToJson());
+				
+				}
+			}
+		}
+
+		private async void btnSoqlRDelete_Click(object sender, EventArgs e) {
+			if (dgvSOQLResult.SelectedRows.Count == 0) {
+				MessageBox.Show("Please select a row to delete.", "No Row Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				return;
+			}
+			DataGridViewRow selectedRow = dgvSOQLResult.SelectedRows[0];
+			DataRowView rowView = selectedRow.DataBoundItem as DataRowView;
+
+			DataRow row = rowView.Row;
+			string rid = row["Id"]?.ToString();
+			
+
+			await _salesforceService.DeleteSobject(_dtSoqlResults.TableName, rid);
+			row.Delete();
+			_dtSoqlResults.AcceptChanges();
+			this.Invoke((Action)(() => dgvSOQLResult.Refresh()));	
+
 		}
 	}
 }
+
+
 
 
 

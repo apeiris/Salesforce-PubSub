@@ -1170,7 +1170,6 @@
 			dgvSOQLResult.Name = "dgvSOQLResult";
 			dgvSOQLResult.Size = new Size(420, 584);
 			dgvSOQLResult.TabIndex = 0;
-		//	dgvSOQLResult.CellEndEdit += dgvSOQLResult_CellEndEdit;
 			// 
 			// tableLayoutPanel14
 			// 
@@ -1195,6 +1194,7 @@
 			btnSoqlRDelete.TabIndex = 2;
 			btnSoqlRDelete.Text = "Delete";
 			btnSoqlRDelete.UseVisualStyleBackColor = true;
+			btnSoqlRDelete.Click += btnSoqlRDelete_Click;
 			// 
 			// btnSoqlSave
 			// 
