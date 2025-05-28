@@ -1,24 +1,21 @@
-﻿using Microsoft.Extensions.Hosting;
-using NetUtils;
-using Microsoft.Extensions.Caching.Memory;
-using System.Data;
-using Microsoft.Extensions.Options;
-using System.Text.RegularExpressions;
+﻿using System.Data;
 using System.Diagnostics;
-//using mySalesforce;
-using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
-using System.Windows.Forms.VisualStyles;
-using System.Security.Cryptography.Xml;
-using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
-using Newtonsoft.Json;
-using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using ToolTip = System.Windows.Forms.ToolTip;
-using Button = System.Windows.Forms.Button;
 using System.Text.Json;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
-//using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NetUtils;
+using Newtonsoft.Json;
+using Button = System.Windows.Forms.Button;
+using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
+using ToolTip = System.Windows.Forms.ToolTip;
+using Color=System.Drawing.Color;
+using Control = System.Windows.Forms.Control;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region enums
@@ -54,14 +51,17 @@ namespace TesterFrm {
 		private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 		private readonly object _dgvLock = new object();
 		static bool _sfsObjectsLoaded = false;
+		static bool _soqlLoaded = false;
 		private List<string> _sfoTables = new List<string>(); // List of Salesforce objects from SQL Server
 															  // Dictionary to store checkbox states, scoped per DataGridView
+		private List<string> _qTypeSelecter = new List<string>();
 		private readonly Dictionary<DataGridView, Dictionary<int, bool>> _rowHeaderCheckStatesMap
 			= new Dictionary<DataGridView, Dictionary<int, bool>>();
 
 		private DataTable _sourceTable; // Data source for dgvSource
 		private DataTable _destinationTable; // Data source for dgvDestination
 		private DataTable _dtRegistered; // Data source for registered tables
+		private DataTable _dtSoqlResults = new DataTable();
 		private static int _lbxLogMw = 0;
 
 		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
@@ -71,7 +71,7 @@ namespace TesterFrm {
 
 		private static enmRetrieveFrom _retrieveFrom = enmRetrieveFrom.SalesForce;
 		private static enmRetrievedFrom _retrievedFrom = _retrieveFrom;
-		private Color _dfBColor;
+		private System.Drawing.Color _dfBColor;
 		private Color _dfFColor;
 		private Dictionary<TabPage, (Color bcolor, Color fcolor)> _tabColors = new Dictionary<TabPage, (Color, Color)>();
 		#endregion fields
@@ -169,6 +169,7 @@ namespace TesterFrm {
 		#region form
 		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
 			InitializeComponent();
+			#region tt
 			ToolTip tt = new ToolTip();
 			tt.OwnerDraw = true;
 			tt.InitialDelay = 1;
@@ -186,39 +187,59 @@ namespace TesterFrm {
 				"Selected objects are automatically converted into gRPC topic format.\n" +
 				"Select the excluded fields (IsExcluded) that should still be transferred\n" +
 				"to SQL Server when a gRPC change event is received from Salesforce Service Bus.";
-
-
 			tt.SetToolTip(lbxObjects, ttText);
 			tt.SetToolTip(dgvObject, ttText);
 			tt.SetToolTip(lblSelectedTable, ttText);
+			#endregion tt
 			_cache = cache;
 			_salesforceService = salesforceService;
 			_pubSubService = pubSubService;
 			_config = config.Value;
 			_sqlServerLib = sqlServerLib;
 			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
-		//	_pubSubService.CDCEvent += _pubSubService_ChangeEventReceived;
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
 			}
 			_sqlServerLib.SqlEvent += (s, e) => {
 				Log(e.Message, e.LogLevel);
 			};
+			this.Load += async (sender, e) => await LoadSfObjectsAsync();
+			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
+			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
 			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
+
 			_l = logger ?? throw new ArgumentNullException(nameof(logger));
 			_l.LogDebug("MainForm initialized.");
 			_l.LogInformation("(logInformation)MainForm initialized.");
-			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
-			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
 
-			this.Load += async (sender, e) => await LoadSfObjectsAsync();
+
+
 			tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
 			tabControl1.DrawItem += tabControl1_DrawItem!;
 			saveTabPageColors();
+			#region soql tab & controls
+			rtSoqlQuery.Text = "";
+
+			dgvSOQLResult.DataSource = null;
+			dgvSOQLResult.AllowUserToAddRows = true;
+			dgvSOQLResult.RowsAdded += dgvSOQLResult_RowsAdded;
+			_dtSoqlResults!.RowChanged += _dtSoqlResults_RowChanged;
+			#endregion soql tab & controls
+
 		}
-	
 
+		private void _dtSoqlResults_RowChanged(object sender, DataRowChangeEventArgs e) {
+			throw new NotImplementedException();
+		}
 
+		private void dgvSOQLResult_RowsAdded(object? sender, DataGridViewRowsAddedEventArgs e) {
+			//throw new NotImplementedException();
+			if (e.RowIndex >= 0 && dgvSOQLResult.Rows[e.RowIndex].IsNewRow == false) {
+				// Example: Set a default value for a new row
+				//_dtSoqlResults.Rows[e.RowIndex]["ID"] = dataTable.Rows.Count; // Auto-increment ID
+				string colName = dgvSOQLResult.Columns[0].Name;
+			}
+		}
 
 		private void Form1_Load(object sender, EventArgs e) {
 			string savedTab = string.IsNullOrEmpty(Properties.Settings.Default.SelectedTab) ? "tbpSfObjects" : Properties.Settings.Default.SelectedTab;
@@ -469,40 +490,70 @@ namespace TesterFrm {
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
 		}
 		private async void btnGetCDCSubscriptions_Click(object sender, EventArgs e) {
-		//	var x = _salesforceService.GetCDCSubscriptions();
+			//	var x = _salesforceService.GetCDCSubscriptions();
 			//DataTable dt =await	_salesforceService.GetAllObjects();
 		}
 		private async void btnGetPlatformEventChannel_Click(object sender, EventArgs e) {
-			JsonElement je =await _salesforceService.GetPlatformEventChannel();
+			JsonElement je = await _salesforceService.GetPlatformEventChannel();
 		}
 		private async void btnDescribe_Click(object sender, EventArgs e) {
 			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
 			dgvSchema.DataSource = ds.Tables[0];
 			Console.WriteLine(ds.GetXml());
 		}
+		private void btnSaveSoql_Click(object sender, EventArgs e) {
+			string sql = "";
+			int count = 0;
+			if (_sqlServerLib.ExecuteScalar($"select count(*) from soqlQueries where qKey='{cmbSOQL.Text}'") > 0) { //existing record do update
+				sql = $"Update SoqlQueries set q='{rtSoqlQuery.Text.Replace("'", "''")}' where qKey='{cmbSOQL.Text.Replace("'", "''")}'";
+				count = _sqlServerLib.ExecuteNoneQuery(sql);
+			} else { // new record
+				sql = $"Insert into SoqlQueries (q, qKey) values ('{rtSoqlQuery.Text.Replace("'", "''")}', '{cmbSOQL.Text.Replace("'", "''")}')";
+				count = _sqlServerLib.ExecuteNoneQuery(sql);
+			}
+			_soqlLoaded = false;
+			tabControl1_Selected(this, new TabControlEventArgs(tbpSOQL, tabControl1.TabPages.IndexOf(tbpSOQL), TabControlAction.Selected)).GetAwaiter().GetResult();
+		}
+		private void btnDeleteSoql_Click(object sender, EventArgs e) {
+			string sql = "Delete from soqlQueries where qKey='" + cmbSOQL.Text + "'";
+			_sqlServerLib.ExecuteNoneQuery(sql);
+			_soqlLoaded = false;
+			tabControl1_Selected(this, new TabControlEventArgs(tbpSOQL, tabControl1.TabPages.IndexOf(tbpSOQL), TabControlAction.Selected)).GetAwaiter().GetResult();
+		}
+		private async void btnExecSoql_Click(object sender, EventArgs e) {
+			splitcSoql.Panel1Collapsed = true;
+			dgvSOQLResult.DataSource = null;
+			_dtSoqlResults = await _salesforceService.ExecSoqlToTable(rtSoqlQuery.Text, true);
+			_dtSoqlResults.Columns["Id"].ReadOnly = true;
+			_dtSoqlResults.AcceptChanges();
+			dgvSOQLResult.DataSource = _dtSoqlResults;
+
+		}
+
+		private DialogResult commitIfConfirmed(DataRow dr, string rowId, string ChangeType = "") {
+			string json = dr.ToJson(indented:true,excludedColumns:"");
+			string msg = ChangeType == "Update" ? $"Update {rowId} with: {json} " : $"Insert{json} \nfor:{rowId} ";
+			DialogResult dR = MessageBox.Show($"Save ({ChangeType} to Salesforce?", $"", MessageBoxButtons.YesNo, MessageBoxIcon.Hand);
+			//	return dR;
+			switch (dR) {
+				case DialogResult.Yes:
+				// You can pass the full row or construct the update logic here
+				// e.g., send the changed fields to Salesforce
+				//_sqlServerLib.UpdateServerTable(e.Row, $"SELECT * FROM {e.Row.Table.TableName} WHERE Id = '{rowId}'");
+
+				_salesforceService.UpsertSobject(dr.Table.TableName, rowId, json);
+				break;
+				case DialogResult.No:
+				dr.RejectChanges(); // Revert to original state
+				break;
+			}
+			return dR;
+		}
+
+
+
 		#endregion buttons
 		#region dgv
-		/*
-		private void UpdateRowHeaderCheckboxes(DataGridView dgvObject, string columnName, List<string> fieldList) {
-			// Ensure the map exists for this DataGridView
-			if (!_rowHeaderCheckStatesMap.ContainsKey(dgvObject)) {
-				_rowHeaderCheckStatesMap[dgvObject] = new Dictionary<int, bool>();
-			}
-			// Loop through all rows in the DataGridView
-			foreach (DataGridViewRow row in dgvObject.Rows) {
-				if (row.Cells["name"].Value != null) {
-					string cellValue = row.Cells[columnName].Value.ToString();
-					// Check if the cell value exists in the List<string>
-					bool shouldBeChecked = fieldList.Contains(cellValue);
-					// Update the checkbox state in the map
-					_rowHeaderCheckStatesMap[dgvObject][row.Index] = shouldBeChecked;
-					// Force the row header to redraw with the new checkbox state
-					row.HeaderCell.Value = shouldBeChecked; //.ToString();
-					dgvObject.InvalidateRow(row.Index);
-				}
-			}
-		}
-		*/
 		private void SetupDataGridViewHeaders(string tn) {
 
 
@@ -614,7 +665,6 @@ namespace TesterFrm {
 		}
 
 		#endregion dgv
-	
 		#region helpers
 		private void saveTabPageColors() {
 			foreach (TabPage page in tabControl1.TabPages) _tabColors[page] = (page.BackColor, page.ForeColor);
@@ -726,7 +776,7 @@ namespace TesterFrm {
 		}
 		#endregion helpers
 		private async Task LoadSfObjectsAsync() {
-			
+
 			Log("LoadSFObjectsAsync", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			await _semaphore.WaitAsync();
@@ -767,7 +817,15 @@ namespace TesterFrm {
 				this.Invoke((Action)(() => Cursor.Current = Cursors.Default));
 			}
 		}
-		#region litBoxes
+		private async Task LoadSOQL() {
+			Log("LoadSOQL", LogLevel.Debug);
+
+			cmbSOQL.DataSource = _sqlServerLib.Select("select qkey,q from soqlqueries");
+			cmbSOQL.DisplayMember = "qKey";
+			cmbSOQL.ValueMember = "q";
+			_soqlLoaded = true;
+		}
+		#region list and combo boxes
 		private async void lbxObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (lbxObjects.SelectedItem == null) return;
 			this.UseWaitCursor = true;
@@ -882,7 +940,24 @@ namespace TesterFrm {
 
 		}
 		#endregion lbxLog
-		#endregion listBoxes
+		private void cmbSOQL_SelectedIndexChanged(object sender, EventArgs e) {
+			if (splitcSoql.Panel1Collapsed)
+				splitcSoql.Panel1Collapsed = false;
+			splitcSoql.Panel2Collapsed = !splitcSoql.Panel1Collapsed;
+
+			if (cmbSOQL.SelectedValue == null) {
+				rtSoqlQuery.Text = string.Empty;
+				return;
+			}
+			var selectedRow = cmbSOQL.SelectedItem as DataRowView;
+			if (selectedRow != null) {
+				rtSoqlQuery.Text = selectedRow["Q"].ToString();
+			} else {
+				rtSoqlQuery.Text = string.Empty;
+			}
+			lblSoqlText.Text = $"Selected SOQL: {rtSoqlQuery.Text}";
+		}
+		#endregion  list and combo boxes
 		#region radio buttons
 		private void filterChanged(object sender, EventArgs e) {
 			dgvObject.DataSource = null;
@@ -912,12 +987,10 @@ namespace TesterFrm {
 				case "tbpsfobjects":
 				if (!_sfsObjectsLoaded) {
 					await LoadSfObjectsAsync();
-
 					CopySourceScheama(dgvSource, dgvDestination);
 				}
 				break;
 				case "tbppubsub":
-
 				LoadTopics(lbxObjects, rbtFilterSubscribed.Checked); // Load sfo Tables from sql server  topics into the listbox
 				lblPanel1.Text = $"{lbxObjects.Items.Count} registered CDC objects";
 				break;
@@ -925,6 +998,9 @@ namespace TesterFrm {
 				case "tbpcdcevents":
 				_higlightTabs.Remove(e.TabPageIndex);
 				tabControl1.Invalidate();
+				break;
+				case "tbpsoql":
+				if (!_soqlLoaded) await LoadSOQL();
 				break;
 			}
 			tabControl1.SelectedTab = e.TabPage;
@@ -956,10 +1032,22 @@ namespace TesterFrm {
 		#endregion utility classes
 
 
+	
+
+		private void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
+			dgvSOQLResult.EndEdit();
+			if (dgvSOQLResult.DataSource is BindingSource bindingSource) {
+				bindingSource.EndEdit();
+			} else {
+				BindingContext[dgvSOQLResult.DataSource].EndCurrentEdit();
+			}
+			//DataTable dtChangedRows = _dtSoqlResults.GetChanges(DataRowState.Added | DataRowState.Modified);
+
+			string addedJason = _dtSoqlResults.GetChanges(DataRowState.Added ).ToJson(indented:true,excludedColumns:"Id"); //upsert exclude Id, force to generate
+			string changedJason = _dtSoqlResults.GetChanges(DataRowState.Modified).ToJson(indented: true);// need the Id (primary key) because this is going to be an update
 		
-
+		}
 	}
-
 }
 
 

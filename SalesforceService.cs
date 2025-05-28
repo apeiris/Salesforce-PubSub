@@ -1,15 +1,16 @@
-﻿using System.Buffers.Text;
-using System.Data;
+﻿using System.Data;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RestSharp;
+using HttpMethod = System.Net.Http.HttpMethod;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
@@ -342,32 +343,93 @@ namespace NetUtils {
 			}
 		}
 		//------------------------------------------------------------------------------------
-		public async Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default) {
+		private async Task<HttpRequestMessage> setupSoqlHeader(string query, HttpMethod method, bool useTooling = false) {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
-			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/query/?q={Uri.EscapeDataString(soqlQuery)}";
-			_logger.LogDebug("Executing SOQL query at {Url}", url);
-
-			using var request = new HttpRequestMessage(HttpMethod.Get, url);
+			string url = useTooling
+				? $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/query/?q={Uri.EscapeDataString(query)}"
+				: $"{instanceUrl}/services/data/v{_settings.ApiVersion}/query/?q={Uri.EscapeDataString(query)}";
+			var request = new HttpRequestMessage(method, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
-
-			try {
-				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
-				if (!response.IsSuccessStatusCode) {
-					string errorContent = await response.Content.ReadAsStringAsync();
-					_logger.LogError("SOQL query failed: Status={StatusCode}, Content={Content}",
-						response.StatusCode, errorContent);
-					throw new Exception($"Failed to execute SOQL query: {response.ReasonPhrase}");
+			return request;
+		}
+		public async Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default, bool useTooling = true, HttpMethod? method = null) {
+			method ??= HttpMethod.Get;
+			using (HttpRequestMessage request = await setupSoqlHeader(soqlQuery, HttpMethod.Get, useTooling)) {
+				try {
+					using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+					if (!response.IsSuccessStatusCode) {
+						string errorContent = await response.Content.ReadAsStringAsync();
+						_logger.LogError("SOQL query failed: Status={StatusCode}, Content={Content}", response.StatusCode, errorContent);
+						throw new Exception($"Failed to execute SOQL query: {response.ReasonPhrase}");
+					}
+					await using var stream = await response.Content.ReadAsStreamAsync();
+					var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+					_logger.LogDebug("Successfully executed SOQL query");
+					return jsonDoc.RootElement; // Return JsonElement, which is not disposedss
+				} catch (Exception ex) {
+					_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
+					throw;
 				}
+			}
+		}
+		//====================================================================================
+		private DataTable JsonElementToDataTable(JsonElement rootElement, string tableName) {
+			DataTable dt = new DataTable(tableName);
+			try {
+				if (!rootElement.TryGetProperty("records", out var records) || records.GetArrayLength() == 0) {
+					_logger.LogWarning("No records returned from SOQL query");
+					return dt;
+				}
+				var firstRecord = records.EnumerateArray().First();// Project column names and types from the first record
+				var columns = firstRecord.EnumerateObject()
+					.Where(prop => prop.Name != "attributes")
+					.Select(prop => new {
+						Name = prop.Name,
+						Type = prop.Value.ValueKind switch {
+							JsonValueKind.String => typeof(string),
+							JsonValueKind.True or JsonValueKind.False => typeof(bool),
+							JsonValueKind.Number => typeof(double),
+							_ => typeof(string)
+						}
+					})
+					.ToList();
+				columns.ForEach(col => dt.Columns.Add(col.Name, col.Type));// Add columns, including baseObject
 
-				await using var stream = await response.Content.ReadAsStreamAsync();
-				var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-				_logger.LogDebug("Successfully executed SOQL query");
-				return jsonDoc.RootElement; // Return JsonElement, which is not disposed
+				var rows = records.EnumerateArray()             // Project records into rows
+					.Select(record => {
+						var row = dt.NewRow();
+						string qualifiedApiName = null;
+						foreach (var prop in record.EnumerateObject().Where(p => dt.Columns.Contains(p.Name))) {
+							row[prop.Name] = prop.Value.ValueKind switch {
+								JsonValueKind.Null => DBNull.Value,
+								JsonValueKind.String => prop.Value.GetString(),
+								JsonValueKind.True => true,
+								JsonValueKind.False => false,
+								JsonValueKind.Number => prop.Value.GetDouble(),
+								_ => prop.Value.ToString()
+							};
+							if (prop.Name == "QualifiedApiName")
+								qualifiedApiName = prop.Value.GetString();
+						}
+						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
+						return row;
+					})
+					.ToList();
+				rows.ForEach(row => dt.Rows.Add(row));
+				_logger.LogDebug("Successfully executed SOQL query, retrieved {Count} CDC-enabled EntityDefinitions with {ColumnCount} columns",
+					dt.Rows.Count, dt.Columns.Count);
+				return dt;
 			} catch (Exception ex) {
-				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
+				_logger.LogError("Error processing SOQL query results for EntityDefinition: {Message}", ex.Message);
 				throw;
 			}
+		}
+		//====================================================================================
+		public async Task<DataTable> ExecSoqlToTable(string soql, bool useTooling) {
+			JsonElement re = await ExecuteSoqlQueryRawAsync(soql, cancellationToken: default, useTooling = false);
+			DataTable dt = JsonElementToDataTable(re, tableName: getObjectNameFromSoql(soql)); // new DataTable(getObjectNameFromSoql(soql));
+			return dt;
 		}
 		//====================================================================================
 		public async Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default) {
@@ -393,11 +455,9 @@ namespace NetUtils {
 						}
 					})
 					.ToList();
-
-				
 				columns.ForEach(col => dt.Columns.Add(col.Name, col.Type));// Add columns, including baseObject
 				dt.Columns.Add("name", typeof(string));//the name is used to compare registered objects
-				var rows = records.EnumerateArray()				// Project records into rows
+				var rows = records.EnumerateArray()             // Project records into rows
 					.Select(record => {
 						var row = dt.NewRow();
 						string qualifiedApiName = null;
@@ -426,35 +486,143 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		//===============================================================================
-		public async Task CheckDailyChangeEventsAsync() {
+		//====================================================================================
+
+		/*
+		
+		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-			var client = new RestClient($"{instanceUrl}/services/data/{_settings.ApiVersion}");
-			var request = new RestRequest("limits", Method.Get);
-			request.AddHeader("Authorization", $"Bearer {token}");
-			var response = await client.ExecuteAsync(request);
-			if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content)) {
-				throw new Exception($"Failed to retrieve limits: {response.StatusCode} - {response.Content}");
-			}
-			using var jsonDoc = JsonDocument.Parse(response.Content);
-			Console.WriteLine("\nDaily Change Events Limit:");
-			if (jsonDoc.RootElement.TryGetProperty("DailyChangeEvents", out var dailyEvents)) {
-				int max = dailyEvents.GetProperty("Max").GetInt32();
-				int remaining = dailyEvents.GetProperty("Remaining").GetInt32();
-				int used = max - remaining;
-				Console.WriteLine($"Max: {max} events per 24 hours");
-				Console.WriteLine($"Used: {used} events");
-				Console.WriteLine($"Remaining: {remaining} events");
-				Console.WriteLine($"Percentage Used: {(double)used / max * 100:F2}%");
-				if (remaining < max * 0.2) // Warn if less than 20% remaining
-				{
-					Console.WriteLine("Warning: Low remaining events. Consider disabling CDC for low-priority objects or contacting Salesforce to increase limits.");
-				}
+			string url;
+			HttpMethod method;
+
+			if (string.IsNullOrEmpty(recordId)) {
+				// Insert: POST to /sobjects/{objectName}
+				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
+				method = HttpMethod.Post;
+				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
 			} else {
-				Console.WriteLine("DailyChangeEvents limit not found. Your org may not support CDC, or the API version does not expose this limit.");
-				Console.WriteLine("Contact Salesforce Support to verify CDC limits for your org.");
+				// Update: PATCH to /sobjects/{objectName}/{recordId}
+				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
+				method = new HttpMethod("PATCH"); // PATCH for updates
+				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
+			}
+
+			using var request = new HttpRequestMessage(method, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			request.Content = new StringContent(jsonFields, Encoding.UTF8, "application/json");
+
+			try {
+				using var response = await _httpClient.SendAsync(request);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {Content}",
+						objectName, response.StatusCode, errorContent);
+					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorContent}");
+				}
+
+				// Parse response to get the new/updated record ID
+				string responseContent = await response.Content.ReadAsStringAsync();
+				using JsonDocument responseDoc = JsonDocument.Parse(responseContent);
+				string newRecordId = recordId;
+
+				if (string.IsNullOrEmpty(recordId)) {
+					// For insert, extract the new record ID from the response
+					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
+					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
+				} else {
+					_logger.LogInformation("Updated {ObjectName} record with Id {RecordId}", objectName, recordId);
+				}
+
+				// Create a DataTable with the updated/inserted record
+				DataTable resultTable = new DataTable(objectName);
+				var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
+				resultTable.Columns.Add("Id", typeof(string));
+				foreach (var field in fields) {
+					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
+				}
+
+				DataRow row = resultTable.NewRow();
+				row["Id"] = newRecordId;
+				foreach (var field in fields) {
+					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
+				}
+				resultTable.Rows.Add(row);
+
+				return resultTable;
+			} catch (Exception ex) {
+				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
+				throw;
 			}
 		}
+		*/
+		//====================================================================================
+		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
+			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
+			string url;
+			HttpMethod method;
+
+			if (string.IsNullOrEmpty(recordId)) {
+				// Insert: POST to /sobjects/{objectName}
+				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
+				method = HttpMethod.Post;
+				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
+			} else {
+				// Update: PATCH to /sobjects/{objectName}/{recordId}
+				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
+				method = new HttpMethod("PATCH");
+				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
+			}
+
+			using var request = new HttpRequestMessage(method, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			request.Content = new StringContent(jsonFields, Encoding.UTF8, "application/json");
+
+			try {
+				using var response = await _httpClient.SendAsync(request);
+				string newRecordId = recordId;
+
+				if (response.StatusCode == System.Net.HttpStatusCode.NoContent && !string.IsNullOrEmpty(recordId)) {
+					// Update successful (204 No Content)
+					_logger.LogInformation("Updated {ObjectName} record with Id {RecordId}", objectName, recordId);
+				} else if (response.StatusCode == System.Net.HttpStatusCode.Created && string.IsNullOrEmpty(recordId)) {
+					// Insert successful (201 Created)
+					string responseContent = await response.Content.ReadAsStringAsync();
+					using JsonDocument responseDoc = JsonDocument.Parse(responseContent);
+					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
+					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
+				} else {
+					// Unexpected response
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {Content}",
+						objectName, response.StatusCode, errorContent);
+					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorContent}");
+				}
+
+				// Create a DataTable with the upserted record
+				DataTable resultTable = new DataTable(objectName);
+				var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
+				resultTable.Columns.Add("Id", typeof(string));
+				foreach (var field in fields) {
+					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
+				}
+
+				DataRow row = resultTable.NewRow();
+
+				row["Id"] = newRecordId;
+				foreach (var field in fields) {
+					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
+					resultTable.Rows.Add(row);
+					return resultTable;
+				}
+			} catch (Exception ex) {
+				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
+				throw;
+			}
+			return null; // Return null if no DataTable is created
+		}
+		
 		//====================================================================================
 		#region helpers
 		private string getObjectNameFromSoql(string soqlQuery) {
@@ -477,42 +645,42 @@ namespace NetUtils {
 			return null;
 		}
 		public class AuthenticationEventArgs : EventArgs {
-			public LogLevel LogLevel { get; }
-			public string Message { get; }
-			public string InstanceUrl { get; }
+		public LogLevel LogLevel { get; }
+		public string Message { get; }
+		public string InstanceUrl { get; }
 
-			public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
-				//_logger.Logle
-				LogLevel = ll;
-				Message = message;
-				InstanceUrl = instanceUrl;
-			}
-		}
-		public class SchemaFetchedEventArgs : EventArgs {
-			public string ObjectName { get; }
-			public DataTable Schema { get; }
-			public bool Success { get; }
-			public string ErrorMessage { get; }
-
-			public SchemaFetchedEventArgs(string objectName, DataTable schema, bool success, string errorMessage = null) {
-				ObjectName = objectName;
-				Schema = schema;
-				Success = success;
-				ErrorMessage = errorMessage;
-			}
-		}
-		#endregion	helpers
-		// ===================================================================================
-		public class TokenResponse {
-			public string access_token { get; set; }
-			public string instance_url { get; set; }
-			public string id { get; set; }
-		}
-		public class AccessTokenCache {
-			public string Token { get; set; }
-			public string InstanceUrl { get; set; }
-			public string TenantId { get; set; }
-			public DateTime Expiry { get; set; }
+		public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
+			//_logger.Logle
+			LogLevel = ll;
+			Message = message;
+			InstanceUrl = instanceUrl;
 		}
 	}
+	public class SchemaFetchedEventArgs : EventArgs {
+		public string ObjectName { get; }
+		public DataTable Schema { get; }
+		public bool Success { get; }
+		public string ErrorMessage { get; }
+
+		public SchemaFetchedEventArgs(string objectName, DataTable schema, bool success, string errorMessage = null) {
+			ObjectName = objectName;
+			Schema = schema;
+			Success = success;
+			ErrorMessage = errorMessage;
+		}
+	}
+	#endregion	helpers
+	// ===================================================================================
+	public class TokenResponse {
+		public string access_token { get; set; }
+		public string instance_url { get; set; }
+		public string id { get; set; }
+	}
+	public class AccessTokenCache {
+		public string Token { get; set; }
+		public string InstanceUrl { get; set; }
+		public string TenantId { get; set; }
+		public DateTime Expiry { get; set; }
+	}
+}
 }

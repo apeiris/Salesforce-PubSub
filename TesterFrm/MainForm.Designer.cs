@@ -79,6 +79,21 @@
 			rbtFilterNone = new RadioButton();
 			rbtFilterSubscribed = new RadioButton();
 			tbpOAuth2 = new TabPage();
+			tbpSOQL = new TabPage();
+			tableLayoutPanel11 = new TableLayoutPanel();
+			splitcSoql = new SplitContainer();
+			tableLayoutPanel12 = new TableLayoutPanel();
+			btnExecSoql = new Button();
+			rtSoqlQuery = new RichTextBox();
+			btnDeleteSoql = new Button();
+			btnSaveSoql = new Button();
+			tableLayoutPanel13 = new TableLayoutPanel();
+			dgvSOQLResult = new DataGridView();
+			tableLayoutPanel14 = new TableLayoutPanel();
+			btnSoqlRDelete = new Button();
+			btnSoqlSave = new Button();
+			cmbSOQL = new ComboBox();
+			lblSoqlText = new Label();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
@@ -128,6 +143,16 @@
 			((System.ComponentModel.ISupportInitialize)dgvRelations).BeginInit();
 			grpFilterOptions.SuspendLayout();
 			tbpOAuth2.SuspendLayout();
+			tbpSOQL.SuspendLayout();
+			tableLayoutPanel11.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitcSoql).BeginInit();
+			splitcSoql.Panel1.SuspendLayout();
+			splitcSoql.Panel2.SuspendLayout();
+			splitcSoql.SuspendLayout();
+			tableLayoutPanel12.SuspendLayout();
+			tableLayoutPanel13.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).BeginInit();
+			tableLayoutPanel14.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSchema).BeginInit();
@@ -203,6 +228,7 @@
 			tabControl1.Controls.Add(tbpSfObjects);
 			tabControl1.Controls.Add(tbpPubSub);
 			tabControl1.Controls.Add(tbpOAuth2);
+			tabControl1.Controls.Add(tbpSOQL);
 			tabControl1.Controls.Add(tbpDescribeObject);
 			tabControl1.Controls.Add(tbpEventLog);
 			tabControl1.Controls.Add(tbpCDCEvents);
@@ -1017,6 +1043,191 @@
 			tbpOAuth2.Text = "OAuth2";
 			tbpOAuth2.UseVisualStyleBackColor = true;
 			// 
+			// tbpSOQL
+			// 
+			tbpSOQL.Controls.Add(tableLayoutPanel11);
+			tbpSOQL.Location = new Point(4, 24);
+			tbpSOQL.Name = "tbpSOQL";
+			tbpSOQL.Size = new Size(1415, 678);
+			tbpSOQL.TabIndex = 6;
+			tbpSOQL.Text = "SOQL";
+			tbpSOQL.UseVisualStyleBackColor = true;
+			// 
+			// tableLayoutPanel11
+			// 
+			tableLayoutPanel11.ColumnCount = 3;
+			tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39.5882835F));
+			tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.4117165F));
+			tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 151F));
+			tableLayoutPanel11.Controls.Add(splitcSoql, 0, 1);
+			tableLayoutPanel11.Controls.Add(cmbSOQL, 0, 0);
+			tableLayoutPanel11.Controls.Add(lblSoqlText, 1, 0);
+			tableLayoutPanel11.Dock = DockStyle.Fill;
+			tableLayoutPanel11.Location = new Point(0, 0);
+			tableLayoutPanel11.Name = "tableLayoutPanel11";
+			tableLayoutPanel11.RowCount = 2;
+			tableLayoutPanel11.RowStyles.Add(new RowStyle(SizeType.Percent, 12.0943956F));
+			tableLayoutPanel11.RowStyles.Add(new RowStyle(SizeType.Percent, 87.9056F));
+			tableLayoutPanel11.Size = new Size(1415, 678);
+			tableLayoutPanel11.TabIndex = 0;
+			// 
+			// splitcSoql
+			// 
+			tableLayoutPanel11.SetColumnSpan(splitcSoql, 4);
+			splitcSoql.Location = new Point(3, 85);
+			splitcSoql.Name = "splitcSoql";
+			// 
+			// splitcSoql.Panel1
+			// 
+			splitcSoql.Panel1.Controls.Add(tableLayoutPanel12);
+			// 
+			// splitcSoql.Panel2
+			// 
+			splitcSoql.Panel2.Controls.Add(tableLayoutPanel13);
+			splitcSoql.Size = new Size(1368, 590);
+			splitcSoql.SplitterDistance = 781;
+			splitcSoql.TabIndex = 4;
+			// 
+			// tableLayoutPanel12
+			// 
+			tableLayoutPanel12.ColumnCount = 2;
+			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64.7108154F));
+			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35.28919F));
+			tableLayoutPanel12.Controls.Add(btnExecSoql, 1, 2);
+			tableLayoutPanel12.Controls.Add(rtSoqlQuery, 0, 0);
+			tableLayoutPanel12.Controls.Add(btnDeleteSoql, 1, 1);
+			tableLayoutPanel12.Controls.Add(btnSaveSoql, 1, 0);
+			tableLayoutPanel12.Dock = DockStyle.Fill;
+			tableLayoutPanel12.Location = new Point(0, 0);
+			tableLayoutPanel12.Name = "tableLayoutPanel12";
+			tableLayoutPanel12.RowCount = 4;
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 462F));
+			tableLayoutPanel12.Size = new Size(781, 590);
+			tableLayoutPanel12.TabIndex = 3;
+			// 
+			// btnExecSoql
+			// 
+			btnExecSoql.Location = new Point(508, 90);
+			btnExecSoql.Name = "btnExecSoql";
+			btnExecSoql.Size = new Size(120, 33);
+			btnExecSoql.TabIndex = 5;
+			btnExecSoql.Text = "Execute";
+			btnExecSoql.UseVisualStyleBackColor = true;
+			btnExecSoql.Click += btnExecSoql_Click;
+			// 
+			// rtSoqlQuery
+			// 
+			rtSoqlQuery.Dock = DockStyle.Fill;
+			rtSoqlQuery.Location = new Point(3, 3);
+			rtSoqlQuery.Name = "rtSoqlQuery";
+			tableLayoutPanel12.SetRowSpan(rtSoqlQuery, 4);
+			rtSoqlQuery.Size = new Size(499, 584);
+			rtSoqlQuery.TabIndex = 2;
+			rtSoqlQuery.Text = "";
+			// 
+			// btnDeleteSoql
+			// 
+			btnDeleteSoql.Location = new Point(508, 49);
+			btnDeleteSoql.Name = "btnDeleteSoql";
+			btnDeleteSoql.Size = new Size(120, 33);
+			btnDeleteSoql.TabIndex = 3;
+			btnDeleteSoql.Text = "Delete";
+			btnDeleteSoql.UseVisualStyleBackColor = true;
+			btnDeleteSoql.Click += btnDeleteSoql_Click;
+			// 
+			// btnSaveSoql
+			// 
+			btnSaveSoql.Location = new Point(508, 3);
+			btnSaveSoql.Name = "btnSaveSoql";
+			btnSaveSoql.Size = new Size(120, 33);
+			btnSaveSoql.TabIndex = 4;
+			btnSaveSoql.Text = "Save";
+			btnSaveSoql.UseVisualStyleBackColor = true;
+			btnSaveSoql.Click += btnSaveSoql_Click;
+			// 
+			// tableLayoutPanel13
+			// 
+			tableLayoutPanel13.ColumnCount = 2;
+			tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 199F));
+			tableLayoutPanel13.Controls.Add(dgvSOQLResult, 0, 0);
+			tableLayoutPanel13.Controls.Add(tableLayoutPanel14, 1, 0);
+			tableLayoutPanel13.Location = new Point(2, 0);
+			tableLayoutPanel13.Name = "tableLayoutPanel13";
+			tableLayoutPanel13.RowCount = 1;
+			tableLayoutPanel13.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			tableLayoutPanel13.Size = new Size(625, 590);
+			tableLayoutPanel13.TabIndex = 6;
+			// 
+			// dgvSOQLResult
+			// 
+			dgvSOQLResult.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvSOQLResult.Dock = DockStyle.Fill;
+			dgvSOQLResult.Location = new Point(3, 3);
+			dgvSOQLResult.Name = "dgvSOQLResult";
+			dgvSOQLResult.Size = new Size(420, 584);
+			dgvSOQLResult.TabIndex = 0;
+		//	dgvSOQLResult.CellEndEdit += dgvSOQLResult_CellEndEdit;
+			// 
+			// tableLayoutPanel14
+			// 
+			tableLayoutPanel14.ColumnCount = 1;
+			tableLayoutPanel14.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel14.Controls.Add(btnSoqlRDelete, 0, 2);
+			tableLayoutPanel14.Controls.Add(btnSoqlSave, 0, 0);
+			tableLayoutPanel14.Location = new Point(429, 3);
+			tableLayoutPanel14.Name = "tableLayoutPanel14";
+			tableLayoutPanel14.RowCount = 3;
+			tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
+			tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
+			tableLayoutPanel14.Size = new Size(114, 160);
+			tableLayoutPanel14.TabIndex = 1;
+			// 
+			// btnSoqlRDelete
+			// 
+			btnSoqlRDelete.Location = new Point(3, 108);
+			btnSoqlRDelete.Name = "btnSoqlRDelete";
+			btnSoqlRDelete.Size = new Size(108, 44);
+			btnSoqlRDelete.TabIndex = 2;
+			btnSoqlRDelete.Text = "Delete";
+			btnSoqlRDelete.UseVisualStyleBackColor = true;
+			// 
+			// btnSoqlSave
+			// 
+			btnSoqlSave.Location = new Point(3, 3);
+			btnSoqlSave.Name = "btnSoqlSave";
+			btnSoqlSave.Size = new Size(108, 44);
+			btnSoqlSave.TabIndex = 0;
+			btnSoqlSave.Text = "Save";
+			btnSoqlSave.UseVisualStyleBackColor = true;
+			btnSoqlSave.Click += btnSObjectSave;
+			// 
+			// cmbSOQL
+			// 
+			cmbSOQL.Anchor = AnchorStyles.Left;
+			cmbSOQL.FormattingEnabled = true;
+			cmbSOQL.Location = new Point(3, 29);
+			cmbSOQL.Name = "cmbSOQL";
+			cmbSOQL.Size = new Size(494, 23);
+			cmbSOQL.TabIndex = 0;
+			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
+			// 
+			// lblSoqlText
+			// 
+			lblSoqlText.AutoSize = true;
+			lblSoqlText.Dock = DockStyle.Fill;
+			lblSoqlText.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblSoqlText.ForeColor = Color.Brown;
+			lblSoqlText.Location = new Point(503, 0);
+			lblSoqlText.Name = "lblSoqlText";
+			lblSoqlText.Size = new Size(757, 82);
+			lblSoqlText.TabIndex = 5;
+			lblSoqlText.Text = "soql";
+			// 
 			// tbpDescribeObject
 			// 
 			tbpDescribeObject.Controls.Add(tableLayoutPanel5);
@@ -1373,6 +1584,17 @@
 			grpFilterOptions.PerformLayout();
 			tbpOAuth2.ResumeLayout(false);
 			tbpOAuth2.PerformLayout();
+			tbpSOQL.ResumeLayout(false);
+			tableLayoutPanel11.ResumeLayout(false);
+			tableLayoutPanel11.PerformLayout();
+			splitcSoql.Panel1.ResumeLayout(false);
+			splitcSoql.Panel2.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitcSoql).EndInit();
+			splitcSoql.ResumeLayout(false);
+			tableLayoutPanel12.ResumeLayout(false);
+			tableLayoutPanel13.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).EndInit();
+			tableLayoutPanel14.ResumeLayout(false);
 			tbpDescribeObject.ResumeLayout(false);
 			tableLayoutPanel5.ResumeLayout(false);
 			tableLayoutPanel5.PerformLayout();
@@ -1501,5 +1723,23 @@
 		private DataGridView dgvSchema;
 		private Button btnGetPlatformEventChannel;
 		private CheckBox chkUseTooling;
+		private TabPage tbpSOQL;
+		private TableLayoutPanel tableLayoutPanel11;
+		private ComboBox cmbSOQL;
+		private SplitContainer splitcSoql;
+		private RichTextBox rtSoqlQuery;
+		private TableLayoutPanel tableLayoutPanel12;
+		private Button btnDeleteSoql;
+		private Button btnSaveSoql;
+		private Button btnExecSoql;
+		private DataGridView dgvSOQLResult;
+		private Label lblSoqlText;
+		private TableLayoutPanel tableLayoutPanel13;
+		private TableLayoutPanel tableLayoutPanel14;
+		private Button button29;
+		private Button button27;
+		private Button button28;
+		private Button btnSoqlSave;
+		private Button btnSoqlRDelete;
 	}
 }

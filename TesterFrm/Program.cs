@@ -24,13 +24,13 @@ namespace TesterFrm {
 
 				var sqlServerLib = host.Services.GetRequiredService<SqlServerLib>();
 				var form = host.Services.GetRequiredService<MainForm>();
-		
+
 				Application.Run(form);
 			}
 		}
 		public class DebugTextWriter : TextWriter {
 			public override Encoding Encoding => Encoding.UTF8;
-			public override void Write(char value) => 	Debug.Write(value);
+			public override void Write(char value) => Debug.Write(value);
 			public override void Write(string? value) => Debug.Write(value);
 			public override void WriteLine(string? value) => Debug.WriteLine(value);
 		}

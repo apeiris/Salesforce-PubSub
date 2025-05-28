@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace NetUtils {
+﻿namespace NetUtils {
 	public class SalesforceConfig {
 		public string ClientId { get; set; }
 		public string ClientSecret { get; set; }

@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Avro;
 using Avro.Generic;
 using Avro.IO;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Options;
@@ -142,7 +141,7 @@ namespace NetUtils {
 					idRow["Value"] = result.RecordIds[0];
 					projectedTable.Rows.Add(idRow);
 					projectedTable.TableName = header.TryGetValue("entityName", out object en) ? en.ToString() : "Unknown";
-					projectedTable.PrimaryKey = new[] { projectedTable.Columns["Id"]! }; 
+					projectedTable.PrimaryKey = new[] { projectedTable.Columns["Id"]! };
 					result.DeltaFields = projectedTable;
 					CDCEvent?.Invoke(this, result);
 					break;
