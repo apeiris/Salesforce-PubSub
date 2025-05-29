@@ -119,6 +119,8 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
+			tableLayoutPanel15 = new TableLayoutPanel();
+			btnBuildSelect = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -175,6 +177,7 @@
 			splitContainer5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).BeginInit();
 			tableLayoutPanel9.SuspendLayout();
+			tableLayoutPanel15.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -1060,8 +1063,8 @@
 			tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60.4117165F));
 			tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 151F));
 			tableLayoutPanel11.Controls.Add(splitcSoql, 0, 1);
-			tableLayoutPanel11.Controls.Add(cmbSOQL, 0, 0);
 			tableLayoutPanel11.Controls.Add(lblSoqlText, 1, 0);
+			tableLayoutPanel11.Controls.Add(tableLayoutPanel15, 0, 0);
 			tableLayoutPanel11.Dock = DockStyle.Fill;
 			tableLayoutPanel11.Location = new Point(0, 0);
 			tableLayoutPanel11.Name = "tableLayoutPanel11";
@@ -1210,9 +1213,9 @@
 			// 
 			cmbSOQL.Anchor = AnchorStyles.Left;
 			cmbSOQL.FormattingEnabled = true;
-			cmbSOQL.Location = new Point(3, 29);
+			cmbSOQL.Location = new Point(3, 26);
 			cmbSOQL.Name = "cmbSOQL";
-			cmbSOQL.Size = new Size(494, 23);
+			cmbSOQL.Size = new Size(375, 23);
 			cmbSOQL.TabIndex = 0;
 			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
 			// 
@@ -1540,6 +1543,30 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
+			// tableLayoutPanel15
+			// 
+			tableLayoutPanel15.ColumnCount = 2;
+			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 77.1255F));
+			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22.8744946F));
+			tableLayoutPanel15.Controls.Add(btnBuildSelect, 1, 0);
+			tableLayoutPanel15.Controls.Add(cmbSOQL, 0, 0);
+			tableLayoutPanel15.Location = new Point(3, 3);
+			tableLayoutPanel15.Name = "tableLayoutPanel15";
+			tableLayoutPanel15.RowCount = 1;
+			tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel15.Size = new Size(494, 76);
+			tableLayoutPanel15.TabIndex = 6;
+			// 
+			// btnBuildSelect
+			// 
+			btnBuildSelect.Location = new Point(384, 3);
+			btnBuildSelect.Name = "btnBuildSelect";
+			btnBuildSelect.Size = new Size(107, 44);
+			btnBuildSelect.TabIndex = 1;
+			btnBuildSelect.Text = "Build Select";
+			btnBuildSelect.UseVisualStyleBackColor = true;
+			btnBuildSelect.Click += btnBuildSelect_Click;
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1619,6 +1646,7 @@
 			splitContainer5.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).EndInit();
 			tableLayoutPanel9.ResumeLayout(false);
+			tableLayoutPanel15.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -1741,5 +1769,7 @@
 		private Button button28;
 		private Button btnSoqlSave;
 		private Button btnSoqlRDelete;
+		private TableLayoutPanel tableLayoutPanel15;
+		private Button btnBuildSelect;
 	}
 }

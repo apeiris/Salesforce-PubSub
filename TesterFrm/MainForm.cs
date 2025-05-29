@@ -312,12 +312,9 @@ namespace TesterFrm {
 					MessageBox.Show("Please select a topic from the list.");
 					return;
 				}
-
-				// Perform the async operation outside the lock
-				//DataTable dt = await _salesforceService.GetObjectSchemaAsDataTableAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
-				// Now synchronize access to the UI with lock
-				DataTable dt = ds.Tables[ObjectFromTopic((string)lbxObjects.SelectedItem!)];
+				
+				DataTable dt = ds.Tables[ObjectFromTopic((string)lbxObjects.SelectedItem!)];// Now synchronize access to the UI with lock
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
 						dgvObject.DataSource = dt;
@@ -522,13 +519,65 @@ namespace TesterFrm {
 			tabControl1_Selected(this, new TabControlEventArgs(tbpSOQL, tabControl1.TabPages.IndexOf(tbpSOQL), TabControlAction.Selected)).GetAwaiter().GetResult();
 		}
 		private async void btnExecSoql_Click(object sender, EventArgs e) {
+			Size sw = new Size(tabControl1.ClientSize.Width, splitcSoql.Panel2.ClientSize.Height);
+			splitcSoql.Panel2.ClientSize = sw;
 			splitcSoql.Panel1Collapsed = true;
+			tableLayoutPanel13.Width = sw.Width;
+
 			dgvSOQLResult.DataSource = null;
 			_dtSoqlResults = await _salesforceService.ExecSoqlToTable(rtSoqlQuery.Text, true);
 			_dtSoqlResults.Columns["Id"].ReadOnly = true;
 			_dtSoqlResults.AcceptChanges();
 			dgvSOQLResult.DataSource = _dtSoqlResults;
 
+		}
+		private async void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
+			dgvSOQLResult.EndEdit();
+			if (dgvSOQLResult.DataSource is BindingSource bindingSource) {
+				bindingSource.EndEdit();
+			} else {
+				BindingContext[dgvSOQLResult.DataSource].EndCurrentEdit();
+			}
+			DataTable dtChanged = _dtSoqlResults.GetChanges(DataRowState.Modified);
+			if (dtChanged != null) {
+				foreach (DataRow dr in dtChanged.Rows) {
+					string id = dr["Id"].ToString();
+
+					string json = dr.ToJson(indented: true, excludedColumns: "Id");
+					DataTable dt = await _salesforceService.UpsertSobject(dtChanged.TableName, id, json);
+				}
+				DataTable dtAdded = _dtSoqlResults.GetChanges(DataRowState.Added);
+
+
+				if (dtAdded != null) {
+					dtAdded.Columns.Remove("Id");
+					DataTable dt = await _salesforceService.UpsertSobject(dtAdded.TableName, null, dtAdded.ToJson());
+
+				}
+			}
+		}
+		private async void btnSoqlRDelete_Click(object sender, EventArgs e) {
+			if (dgvSOQLResult.SelectedRows.Count == 0) {
+				MessageBox.Show("Please select a row to delete.", "No Row Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				return;
+			}
+			DataGridViewRow selectedRow = dgvSOQLResult.SelectedRows[0];
+			DataRowView rowView = selectedRow.DataBoundItem as DataRowView;
+
+			DataRow row = rowView.Row;
+			string rid = row["Id"]?.ToString();
+
+
+			await _salesforceService.DeleteSobject(_dtSoqlResults.TableName, rid);
+			row.Delete();
+			_dtSoqlResults.AcceptChanges();
+			this.Invoke((Action)(() => dgvSOQLResult.Refresh()));
+
+		}
+		private async void btnBuildSelect_Click(object sender, EventArgs e) {
+			string oN = "Account";
+		JsonElement je=await	_salesforceService.GetObjectSchemaAsync(oN);
+		rtSoqlQuery.Text=$"SELECT {string.Join(",",je.GetProperty("fields").EnumerateArray().Select(f=>f.GetProperty("name")))} FROM {oN}";
 		}
 
 		private DialogResult commitIfConfirmed(DataRow dr, string rowId, string ChangeType = "") {
@@ -1035,50 +1084,7 @@ namespace TesterFrm {
 
 
 
-		private async void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
-			dgvSOQLResult.EndEdit();
-			if (dgvSOQLResult.DataSource is BindingSource bindingSource) {
-				bindingSource.EndEdit();
-			} else {
-				BindingContext[dgvSOQLResult.DataSource].EndCurrentEdit();
-			}
-			DataTable dtChanged = _dtSoqlResults.GetChanges(DataRowState.Modified);
-			if (dtChanged != null) {
-				foreach (DataRow dr in dtChanged.Rows) {
-					string id = dr["Id"].ToString();
-
-					string json = dr.ToJson(indented: true, excludedColumns: "Id");
-					DataTable dt = await _salesforceService.UpsertSobject(dtChanged.TableName, id, json);
-				}
-				DataTable dtAdded = _dtSoqlResults.GetChanges(DataRowState.Added);
-
-
-				if (dtAdded != null) {
-					dtAdded.Columns.Remove("Id");
-					DataTable dt = await _salesforceService.UpsertSobject(dtAdded.TableName, null, dtAdded.ToJson());
-				
-				}
-			}
-		}
-
-		private async void btnSoqlRDelete_Click(object sender, EventArgs e) {
-			if (dgvSOQLResult.SelectedRows.Count == 0) {
-				MessageBox.Show("Please select a row to delete.", "No Row Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-				return;
-			}
-			DataGridViewRow selectedRow = dgvSOQLResult.SelectedRows[0];
-			DataRowView rowView = selectedRow.DataBoundItem as DataRowView;
-
-			DataRow row = rowView.Row;
-			string rid = row["Id"]?.ToString();
-			
-
-			await _salesforceService.DeleteSobject(_dtSoqlResults.TableName, rid);
-			row.Delete();
-			_dtSoqlResults.AcceptChanges();
-			this.Invoke((Action)(() => dgvSOQLResult.Refresh()));	
-
-		}
+		
 	}
 }
 

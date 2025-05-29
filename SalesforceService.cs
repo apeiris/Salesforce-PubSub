@@ -565,7 +565,7 @@ namespace NetUtils {
 
 			if (string.IsNullOrEmpty(recordId)) {
 				// Insert: POST to /sobjects/{objectName}
-			
+
 				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
 				method = HttpMethod.Post;
 				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
@@ -576,7 +576,7 @@ namespace NetUtils {
 				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
 			}
 			jsonFields = JsonSerializer.Serialize(fields, new JsonSerializerOptions { WriteIndented = true });
-			
+
 			using var request = new HttpRequestMessage(method, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
@@ -695,42 +695,41 @@ namespace NetUtils {
 			return null;
 		}
 		public class AuthenticationEventArgs : EventArgs {
-		public LogLevel LogLevel { get; }
-		public string Message { get; }
-		public string InstanceUrl { get; }
+			public LogLevel LogLevel { get; }
+			public string Message { get; }
+			public string InstanceUrl { get; }
 
-		public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
-			//_logger.Logle
-			LogLevel = ll;
-			Message = message;
-			InstanceUrl = instanceUrl;
+			public AuthenticationEventArgs(LogLevel ll, string message, string instanceUrl = null) {
+				LogLevel = ll;
+				Message = message;
+				InstanceUrl = instanceUrl;
+			}
+		}
+		public class SchemaFetchedEventArgs : EventArgs {
+			public string ObjectName { get; }
+			public DataTable Schema { get; }
+			public bool Success { get; }
+			public string ErrorMessage { get; }
+
+			public SchemaFetchedEventArgs(string objectName, DataTable schema, bool success, string errorMessage = null) {
+				ObjectName = objectName;
+				Schema = schema;
+				Success = success;
+				ErrorMessage = errorMessage;
+			}
+		}
+		#endregion	helpers
+		// ===================================================================================
+		public class TokenResponse {
+			public string access_token { get; set; }
+			public string instance_url { get; set; }
+			public string id { get; set; }
+		}
+		public class AccessTokenCache {
+			public string Token { get; set; }
+			public string InstanceUrl { get; set; }
+			public string TenantId { get; set; }
+			public DateTime Expiry { get; set; }
 		}
 	}
-	public class SchemaFetchedEventArgs : EventArgs {
-		public string ObjectName { get; }
-		public DataTable Schema { get; }
-		public bool Success { get; }
-		public string ErrorMessage { get; }
-
-		public SchemaFetchedEventArgs(string objectName, DataTable schema, bool success, string errorMessage = null) {
-			ObjectName = objectName;
-			Schema = schema;
-			Success = success;
-			ErrorMessage = errorMessage;
-		}
-	}
-	#endregion	helpers
-	// ===================================================================================
-	public class TokenResponse {
-		public string access_token { get; set; }
-		public string instance_url { get; set; }
-		public string id { get; set; }
-	}
-	public class AccessTokenCache {
-		public string Token { get; set; }
-		public string InstanceUrl { get; set; }
-		public string TenantId { get; set; }
-		public DateTime Expiry { get; set; }
-	}
-}
 }
