@@ -83,17 +83,22 @@
 			tableLayoutPanel11 = new TableLayoutPanel();
 			splitcSoql = new SplitContainer();
 			tableLayoutPanel12 = new TableLayoutPanel();
-			btnExecSoql = new Button();
 			rtSoqlQuery = new RichTextBox();
 			btnDeleteSoql = new Button();
 			btnSaveSoql = new Button();
+			tableLayoutPanel16 = new TableLayoutPanel();
+			btnExecSoql = new Button();
+			chkUseTooling = new CheckBox();
+			button30 = new Button();
 			tableLayoutPanel13 = new TableLayoutPanel();
 			dgvSOQLResult = new DataGridView();
 			tableLayoutPanel14 = new TableLayoutPanel();
 			btnSoqlRDelete = new Button();
 			btnSoqlSave = new Button();
-			cmbSOQL = new ComboBox();
 			lblSoqlText = new Label();
+			tableLayoutPanel15 = new TableLayoutPanel();
+			cmbSOQL = new ComboBox();
+			btnBuildSelect = new Button();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
@@ -119,8 +124,7 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			tableLayoutPanel15 = new TableLayoutPanel();
-			btnBuildSelect = new Button();
+			button31 = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -152,9 +156,11 @@
 			splitcSoql.Panel2.SuspendLayout();
 			splitcSoql.SuspendLayout();
 			tableLayoutPanel12.SuspendLayout();
+			tableLayoutPanel16.SuspendLayout();
 			tableLayoutPanel13.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).BeginInit();
 			tableLayoutPanel14.SuspendLayout();
+			tableLayoutPanel15.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSchema).BeginInit();
@@ -177,7 +183,6 @@
 			splitContainer5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).BeginInit();
 			tableLayoutPanel9.SuspendLayout();
-			tableLayoutPanel15.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -1093,47 +1098,41 @@
 			// 
 			// tableLayoutPanel12
 			// 
-			tableLayoutPanel12.ColumnCount = 2;
-			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64.7108154F));
-			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35.28919F));
-			tableLayoutPanel12.Controls.Add(btnExecSoql, 1, 2);
+			tableLayoutPanel12.ColumnCount = 3;
+			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 79.59731F));
+			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20.4026852F));
+			tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105F));
 			tableLayoutPanel12.Controls.Add(rtSoqlQuery, 0, 0);
 			tableLayoutPanel12.Controls.Add(btnDeleteSoql, 1, 1);
 			tableLayoutPanel12.Controls.Add(btnSaveSoql, 1, 0);
+			tableLayoutPanel12.Controls.Add(tableLayoutPanel16, 1, 2);
+			tableLayoutPanel12.Controls.Add(button30, 1, 3);
+			tableLayoutPanel12.Controls.Add(button31, 2, 3);
 			tableLayoutPanel12.Dock = DockStyle.Fill;
 			tableLayoutPanel12.Location = new Point(0, 0);
 			tableLayoutPanel12.Name = "tableLayoutPanel12";
-			tableLayoutPanel12.RowCount = 4;
+			tableLayoutPanel12.RowCount = 5;
 			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
-			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
-			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 462F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 43F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 47F));
+			tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 421F));
 			tableLayoutPanel12.Size = new Size(781, 590);
 			tableLayoutPanel12.TabIndex = 3;
-			// 
-			// btnExecSoql
-			// 
-			btnExecSoql.Location = new Point(508, 90);
-			btnExecSoql.Name = "btnExecSoql";
-			btnExecSoql.Size = new Size(120, 33);
-			btnExecSoql.TabIndex = 5;
-			btnExecSoql.Text = "Execute";
-			btnExecSoql.UseVisualStyleBackColor = true;
-			btnExecSoql.Click += btnExecSoql_Click;
 			// 
 			// rtSoqlQuery
 			// 
 			rtSoqlQuery.Dock = DockStyle.Fill;
 			rtSoqlQuery.Location = new Point(3, 3);
 			rtSoqlQuery.Name = "rtSoqlQuery";
-			tableLayoutPanel12.SetRowSpan(rtSoqlQuery, 4);
-			rtSoqlQuery.Size = new Size(499, 584);
+			tableLayoutPanel12.SetRowSpan(rtSoqlQuery, 5);
+			rtSoqlQuery.Size = new Size(532, 584);
 			rtSoqlQuery.TabIndex = 2;
 			rtSoqlQuery.Text = "";
 			// 
 			// btnDeleteSoql
 			// 
-			btnDeleteSoql.Location = new Point(508, 49);
+			btnDeleteSoql.Location = new Point(541, 40);
 			btnDeleteSoql.Name = "btnDeleteSoql";
 			btnDeleteSoql.Size = new Size(120, 33);
 			btnDeleteSoql.TabIndex = 3;
@@ -1143,13 +1142,58 @@
 			// 
 			// btnSaveSoql
 			// 
-			btnSaveSoql.Location = new Point(508, 3);
+			btnSaveSoql.Location = new Point(541, 3);
 			btnSaveSoql.Name = "btnSaveSoql";
-			btnSaveSoql.Size = new Size(120, 33);
+			btnSaveSoql.Size = new Size(120, 31);
 			btnSaveSoql.TabIndex = 4;
 			btnSaveSoql.Text = "Save";
 			btnSaveSoql.UseVisualStyleBackColor = true;
 			btnSaveSoql.Click += btnSaveSoql_Click;
+			// 
+			// tableLayoutPanel16
+			// 
+			tableLayoutPanel16.ColumnCount = 2;
+			tableLayoutPanel12.SetColumnSpan(tableLayoutPanel16, 2);
+			tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel16.Controls.Add(btnExecSoql, 1, 0);
+			tableLayoutPanel16.Controls.Add(chkUseTooling, 0, 0);
+			tableLayoutPanel16.Location = new Point(541, 83);
+			tableLayoutPanel16.Name = "tableLayoutPanel16";
+			tableLayoutPanel16.RowCount = 1;
+			tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel16.Size = new Size(200, 36);
+			tableLayoutPanel16.TabIndex = 7;
+			// 
+			// btnExecSoql
+			// 
+			btnExecSoql.Location = new Point(103, 3);
+			btnExecSoql.Name = "btnExecSoql";
+			btnExecSoql.Size = new Size(94, 30);
+			btnExecSoql.TabIndex = 5;
+			btnExecSoql.Text = "Execute";
+			btnExecSoql.UseVisualStyleBackColor = true;
+			btnExecSoql.Click += btnExecSoql_Click;
+			// 
+			// chkUseTooling
+			// 
+			chkUseTooling.AutoSize = true;
+			chkUseTooling.Location = new Point(3, 3);
+			chkUseTooling.Name = "chkUseTooling";
+			chkUseTooling.Size = new Size(94, 19);
+			chkUseTooling.TabIndex = 6;
+			chkUseTooling.Text = "Use Tooling ?";
+			chkUseTooling.UseVisualStyleBackColor = true;
+			// 
+			// button30
+			// 
+			button30.Location = new Point(541, 125);
+			button30.Name = "button30";
+			button30.Size = new Size(120, 38);
+			button30.TabIndex = 8;
+			button30.Text = "Describe tooling object";
+			button30.UseVisualStyleBackColor = true;
+			button30.Click += button30_Click;
 			// 
 			// tableLayoutPanel13
 			// 
@@ -1209,16 +1253,6 @@
 			btnSoqlSave.UseVisualStyleBackColor = true;
 			btnSoqlSave.Click += btnSObjectSave;
 			// 
-			// cmbSOQL
-			// 
-			cmbSOQL.Anchor = AnchorStyles.Left;
-			cmbSOQL.FormattingEnabled = true;
-			cmbSOQL.Location = new Point(3, 26);
-			cmbSOQL.Name = "cmbSOQL";
-			cmbSOQL.Size = new Size(375, 23);
-			cmbSOQL.TabIndex = 0;
-			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
-			// 
 			// lblSoqlText
 			// 
 			lblSoqlText.AutoSize = true;
@@ -1230,6 +1264,40 @@
 			lblSoqlText.Size = new Size(757, 82);
 			lblSoqlText.TabIndex = 5;
 			lblSoqlText.Text = "soql";
+			// 
+			// tableLayoutPanel15
+			// 
+			tableLayoutPanel15.ColumnCount = 2;
+			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 77.1255F));
+			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22.8744946F));
+			tableLayoutPanel15.Controls.Add(cmbSOQL, 0, 0);
+			tableLayoutPanel15.Controls.Add(btnBuildSelect, 1, 0);
+			tableLayoutPanel15.Location = new Point(3, 3);
+			tableLayoutPanel15.Name = "tableLayoutPanel15";
+			tableLayoutPanel15.RowCount = 1;
+			tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel15.Size = new Size(494, 76);
+			tableLayoutPanel15.TabIndex = 6;
+			// 
+			// cmbSOQL
+			// 
+			cmbSOQL.Anchor = AnchorStyles.Left;
+			cmbSOQL.FormattingEnabled = true;
+			cmbSOQL.Location = new Point(3, 26);
+			cmbSOQL.Name = "cmbSOQL";
+			cmbSOQL.Size = new Size(375, 23);
+			cmbSOQL.TabIndex = 0;
+			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
+			// 
+			// btnBuildSelect
+			// 
+			btnBuildSelect.Location = new Point(384, 3);
+			btnBuildSelect.Name = "btnBuildSelect";
+			btnBuildSelect.Size = new Size(107, 44);
+			btnBuildSelect.TabIndex = 1;
+			btnBuildSelect.Text = "Build Select";
+			btnBuildSelect.UseVisualStyleBackColor = true;
+			btnBuildSelect.Click += btnBuildSelect_Click;
 			// 
 			// tbpDescribeObject
 			// 
@@ -1543,29 +1611,15 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// tableLayoutPanel15
+			// button31
 			// 
-			tableLayoutPanel15.ColumnCount = 2;
-			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 77.1255F));
-			tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22.8744946F));
-			tableLayoutPanel15.Controls.Add(btnBuildSelect, 1, 0);
-			tableLayoutPanel15.Controls.Add(cmbSOQL, 0, 0);
-			tableLayoutPanel15.Location = new Point(3, 3);
-			tableLayoutPanel15.Name = "tableLayoutPanel15";
-			tableLayoutPanel15.RowCount = 1;
-			tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel15.Size = new Size(494, 76);
-			tableLayoutPanel15.TabIndex = 6;
-			// 
-			// btnBuildSelect
-			// 
-			btnBuildSelect.Location = new Point(384, 3);
-			btnBuildSelect.Name = "btnBuildSelect";
-			btnBuildSelect.Size = new Size(107, 44);
-			btnBuildSelect.TabIndex = 1;
-			btnBuildSelect.Text = "Build Select";
-			btnBuildSelect.UseVisualStyleBackColor = true;
-			btnBuildSelect.Click += btnBuildSelect_Click;
+			button31.Location = new Point(678, 125);
+			button31.Name = "button31";
+			button31.Size = new Size(100, 38);
+			button31.TabIndex = 9;
+			button31.Text = "x";
+			button31.UseVisualStyleBackColor = true;
+			button31.Click += button31_Click;
 			// 
 			// MainForm
 			// 
@@ -1619,9 +1673,12 @@
 			((System.ComponentModel.ISupportInitialize)splitcSoql).EndInit();
 			splitcSoql.ResumeLayout(false);
 			tableLayoutPanel12.ResumeLayout(false);
+			tableLayoutPanel16.ResumeLayout(false);
+			tableLayoutPanel16.PerformLayout();
 			tableLayoutPanel13.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).EndInit();
 			tableLayoutPanel14.ResumeLayout(false);
+			tableLayoutPanel15.ResumeLayout(false);
 			tbpDescribeObject.ResumeLayout(false);
 			tableLayoutPanel5.ResumeLayout(false);
 			tableLayoutPanel5.PerformLayout();
@@ -1646,10 +1703,12 @@
 			splitContainer5.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).EndInit();
 			tableLayoutPanel9.ResumeLayout(false);
-			tableLayoutPanel15.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
 		}
+
+		// Fix for CS0407: Ensure the event handler method 'button31_Click' has the correct return type 'void'  
+	
 
 
 
@@ -1750,7 +1809,7 @@
 		private Button btnGetCDCSubscriptions;
 		private DataGridView dgvSchema;
 		private Button btnGetPlatformEventChannel;
-		private CheckBox chkUseTooling;
+		
 		private TabPage tbpSOQL;
 		private TableLayoutPanel tableLayoutPanel11;
 		private ComboBox cmbSOQL;
@@ -1771,5 +1830,9 @@
 		private Button btnSoqlRDelete;
 		private TableLayoutPanel tableLayoutPanel15;
 		private Button btnBuildSelect;
+		private CheckBox chkUseTooling;
+		private TableLayoutPanel tableLayoutPanel16;
+		private Button button30;
+		private Button button31;
 	}
 }

@@ -5,13 +5,14 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RestSharp;
 using HttpMethod = System.Net.Http.HttpMethod;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using Salesforce.SDK.Net;
+using Salesforce;
+using Newtonsoft.Json.Linq;
+using System.Security.AccessControl;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
@@ -27,8 +28,9 @@ namespace NetUtils {
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
-		}
 
+
+		}
 		public class FieldMeta {
 			public string Name { get; set; }
 			public string Type { get; set; }
@@ -39,14 +41,13 @@ namespace NetUtils {
 			public string RelationshipName { get; set; }
 			public List<string> ReferenceTo { get; set; }
 		}
-
-
-
 		public async Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default) {
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 
 			string objectName = "PlatformEventChannel";
-			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{objectName}";
+			//	string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{objectName}";
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/PlatformEventChannelMember";
+
 			_logger.LogDebug("Posting to {ObjectName} at {Url}", objectName, url);
 
 			using var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -62,9 +63,9 @@ namespace NetUtils {
 					string errorContent = await response.Content.ReadAsStringAsync();
 					_logger.LogError("API POST failed for {ObjectName}: Status={StatusCode}, Content={Content}",
 						objectName, response.StatusCode, errorContent);
-					throw new Exception($"Failed to POST to {objectName}: {response.ReasonPhrase}");
-				}
+					throw new Exception($"Failed to POST to url:{url}\n : {response.ReasonPhrase}");
 
+				}
 				await using var stream = await response.Content.ReadAsStreamAsync();
 				JsonElement result = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
 
@@ -75,8 +76,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
-
 		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
@@ -353,6 +352,67 @@ namespace NetUtils {
 			request.Headers.Add("Accept", "application/json");
 			return request;
 		}
+		public async Task<bool> DeleteObjectFrom(string oName, string recordId) {
+			oName = "PlatformEventChannelMember";
+
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			//string soql = "SELECT Id FROM PlatformEventChannelMember WHERE SelectedEntity='AccountChangeEvent' LIMIT 1";
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(oName)}/{Uri.EscapeDataString(recordId)}";
+			var request = new HttpRequestMessage(HttpMethod.Delete, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+
+			try {
+				_logger.LogDebug("Sending DELETE request to: {Url}", url);
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken: default);
+
+				if (response.IsSuccessStatusCode) {
+					_logger.LogInformation("Successfully deleted record ID {RecordId} for object {ObjectName}", recordId, oName);
+					return true;
+				} else {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("DELETE request failed: Status={StatusCode}, Content={Content}", response.StatusCode, errorContent);
+					throw new Exception($"Failed to delete record: {response.ReasonPhrase}. Content: {errorContent}");
+				}
+			} catch (Exception ex) {
+				_logger.LogError("Error deleting record ID {RecordId} for object {ObjectName}: {Message}", recordId, oName, ex.Message);
+				throw;
+			}
+
+		}
+
+
+
+
+
+		public async Task<JsonElement> DescribeToolingObject(string objectName) {
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
+			var request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			try {
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken: default);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("SOQL query failed: Status={StatusCode}, Content={Content}", response.StatusCode, errorContent);
+					throw new Exception($"Failed to execute SOQL query: {response.ReasonPhrase}");
+				}
+				await using var stream = await response.Content.ReadAsStreamAsync();
+				var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: default);
+				_logger.LogDebug("Successfully executed SOQL query");
+				return jsonDoc.RootElement; // Return JsonElement, which is not disposed
+			} catch (Exception ex) {
+				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
+				throw;
+			}
+
+		}
+		public async Task<DataTable> DescribeToolingObjectToDataTable(string objectName) {
+			JsonElement re = await DescribeToolingObject(objectName);
+			DataTable dt = JsonElementToDataTable(re, tableName: objectName); // new DataTable(getObjectNameFromSoql(soql));
+			return dt;
+		}
 		public async Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default, bool useTooling = true, HttpMethod? method = null) {
 			method ??= HttpMethod.Get;
 			using (HttpRequestMessage request = await setupSoqlHeader(soqlQuery, HttpMethod.Get, useTooling)) {
@@ -427,7 +487,7 @@ namespace NetUtils {
 		}
 		//====================================================================================
 		public async Task<DataTable> ExecSoqlToTable(string soql, bool useTooling) {
-			JsonElement re = await ExecuteSoqlQueryRawAsync(soql, cancellationToken: default, useTooling = false);
+			JsonElement re = await ExecuteSoqlQueryRawAsync(soql, cancellationToken: default, useTooling: useTooling);
 			DataTable dt = JsonElementToDataTable(re, tableName: getObjectNameFromSoql(soql)); // new DataTable(getObjectNameFromSoql(soql));
 			return dt;
 		}
@@ -561,16 +621,19 @@ namespace NetUtils {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
 			string url;
 			HttpMethod method;
+			var options = new JsonSerializerOptions {
+				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+				WriteIndented = true,
+				DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+			};
+
 			var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
 
-			if (string.IsNullOrEmpty(recordId)) {
-				// Insert: POST to /sobjects/{objectName}
-
+			if (string.IsNullOrEmpty(recordId)) {// Insert: POST to /sobjects/{objectName}
 				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
 				method = HttpMethod.Post;
 				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
-			} else {
-				// Update: PATCH to /sobjects/{objectName}/{recordId}
+			} else {// Update: PATCH to /sobjects/{objectName}/{recordId}
 				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
 				method = new HttpMethod("PATCH");
 				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);

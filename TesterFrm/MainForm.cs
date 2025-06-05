@@ -251,6 +251,7 @@ namespace TesterFrm {
 			lblPanel1.Parent = splitContainer1.Panel1;
 			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
+			btnSubscribe_Click(null, null);
 		}
 		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
 			Invoke((Action)(() => {
@@ -292,14 +293,14 @@ namespace TesterFrm {
 			_ = GetAccessToken();
 		}
 		private async void btnSubscribe_Click(object sender, EventArgs e) {
-			//lbxResult.Items.Add("Starting subscription...");
 			try {
-
-				await _pubSubService.StartSubscriptionsAsync(); // done @ form load dont bother
+				if (!_sfsObjectsLoaded) await LoadSfObjectsAsync();// get the SqlServer registered objects to _destinationTable 
 				var topics = new HashSet<string?>(
 					_destinationTable.AsEnumerable()//.Where(r => !r.IsNull("name"))
 					.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
-				await _pubSubService.StartSubscriptionsAsync(topics);
+
+				//		topics.Add("/event/ProductSelected");// experimental to subscribe event from ebikes ProductSelected message channel -> LightningMessageChannel
+				await _pubSubService.StartSubscriptionsAsync(topics!);
 				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
 				MessageBox.Show($"Error: {ex.Message}");
@@ -313,13 +314,11 @@ namespace TesterFrm {
 					return;
 				}
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(ObjectFromTopic((string)lbxObjects.SelectedItem!));
-				
 				DataTable dt = ds.Tables[ObjectFromTopic((string)lbxObjects.SelectedItem!)];// Now synchronize access to the UI with lock
 				lock (_dgvLock) {
 					this.Invoke((Action)(() => {
 						dgvObject.DataSource = dt;
 						dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-
 						toolStripStatusLabel1.Text = $"Schema for {dt.TableName} having {dt.Rows.Count} rows loaded successfully.";
 					}));
 				}
@@ -492,7 +491,11 @@ namespace TesterFrm {
 			//DataTable dt =await	_salesforceService.GetAllObjects();
 		}
 		private async void btnGetPlatformEventChannel_Click(object sender, EventArgs e) {
-			JsonElement je = await _salesforceService.GetPlatformEventChannel();
+			try {
+				JsonElement je = await _salesforceService.GetPlatformEventChannel();
+			} catch (Exception ex) {
+				MessageBox.Show(ex.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+			}
 		}
 		private async void btnDescribe_Click(object sender, EventArgs e) {
 			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
@@ -500,15 +503,18 @@ namespace TesterFrm {
 			Console.WriteLine(ds.GetXml());
 		}
 		private void btnSaveSoql_Click(object sender, EventArgs e) {
-			string sql = "";
-			int count = 0;
-			if (_sqlServerLib.ExecuteScalar($"select count(*) from soqlQueries where qKey='{cmbSOQL.Text}'") > 0) { //existing record do update
-				sql = $"Update SoqlQueries set q='{rtSoqlQuery.Text.Replace("'", "''")}' where qKey='{cmbSOQL.Text.Replace("'", "''")}'";
-				count = _sqlServerLib.ExecuteNoneQuery(sql);
-			} else { // new record
-				sql = $"Insert into SoqlQueries (q, qKey) values ('{rtSoqlQuery.Text.Replace("'", "''")}', '{cmbSOQL.Text.Replace("'", "''")}')";
-				count = _sqlServerLib.ExecuteNoneQuery(sql);
+
+			// Check if the query key already exists in the SoqlQueries table
+			if (Convert.ToInt32(_sqlServerLib.ExecuteScalar($"SELECT COUNT(*) FROM SoqlQueries WHERE qKey = '{cmbSOQL.Text.Replace("'", "''")}'")) > 0) {
+				// Existing record, perform UPDATE
+				string sql = $"UPDATE SoqlQueries SET q = '{rtSoqlQuery.Text.Replace("'", "''")}', UseTooling = {(chkUseTooling.Checked ? 1 : 0)} WHERE qKey = '{cmbSOQL.Text.Replace("'", "''")}'";
+				int count = _sqlServerLib.ExecuteNoneQuery(sql);
+			} else {
+				// New record, perform INSERT
+				string sql = $"INSERT INTO SoqlQueries (q, qKey, UseTooling) VALUES ('{rtSoqlQuery.Text.Replace("'", "''")}', '{cmbSOQL.Text.Replace("'", "''")}', {(chkUseTooling.Checked ? 1 : 0)})";
+				int count = _sqlServerLib.ExecuteNoneQuery(sql);
 			}
+
 			_soqlLoaded = false;
 			tabControl1_Selected(this, new TabControlEventArgs(tbpSOQL, tabControl1.TabPages.IndexOf(tbpSOQL), TabControlAction.Selected)).GetAwaiter().GetResult();
 		}
@@ -525,8 +531,9 @@ namespace TesterFrm {
 			tableLayoutPanel13.Width = sw.Width;
 
 			dgvSOQLResult.DataSource = null;
-			_dtSoqlResults = await _salesforceService.ExecSoqlToTable(rtSoqlQuery.Text, true);
-			_dtSoqlResults.Columns["Id"].ReadOnly = true;
+
+			_dtSoqlResults = await _salesforceService.ExecSoqlToTable(rtSoqlQuery.Text, chkUseTooling.Checked);
+			if (_dtSoqlResults.Columns.Contains("Id")) _dtSoqlResults.Columns["Id"].ReadOnly = true;
 			_dtSoqlResults.AcceptChanges();
 			dgvSOQLResult.DataSource = _dtSoqlResults;
 
@@ -535,9 +542,12 @@ namespace TesterFrm {
 			dgvSOQLResult.EndEdit();
 			if (dgvSOQLResult.DataSource is BindingSource bindingSource) {
 				bindingSource.EndEdit();
+
 			} else {
 				BindingContext[dgvSOQLResult.DataSource].EndCurrentEdit();
+
 			}
+
 			DataTable dtChanged = _dtSoqlResults.GetChanges(DataRowState.Modified);
 			if (dtChanged != null) {
 				foreach (DataRow dr in dtChanged.Rows) {
@@ -546,16 +556,27 @@ namespace TesterFrm {
 					string json = dr.ToJson(indented: true, excludedColumns: "Id");
 					DataTable dt = await _salesforceService.UpsertSobject(dtChanged.TableName, id, json);
 				}
-				DataTable dtAdded = _dtSoqlResults.GetChanges(DataRowState.Added);
+				_dtSoqlResults.AcceptChanges();
+			}
 
+			DataTable dtAdded = _dtSoqlResults.GetChanges(DataRowState.Added);
+			if (dtAdded != null) {
+				dtAdded.Columns.Remove("Id");
+				dtAdded = removeNullColumns(dtAdded);
+				DataTable dt = await _salesforceService.UpsertSobject(dtAdded.TableName, null, dtAdded.ToJson());
+				_dtSoqlResults.AcceptChanges();
+			}
 
-				if (dtAdded != null) {
-					dtAdded.Columns.Remove("Id");
-					DataTable dt = await _salesforceService.UpsertSobject(dtAdded.TableName, null, dtAdded.ToJson());
-
+		}
+		private DataTable removeNullColumns(DataTable dt) {
+			foreach (DataColumn column in dt.Columns.Cast<DataColumn>().ToList()) {// Remove columns with all null values
+				if (dt.AsEnumerable().All(row => row.IsNull(column))) {
+					dt.Columns.Remove(column);
 				}
 			}
+			return dt;
 		}
+
 		private async void btnSoqlRDelete_Click(object sender, EventArgs e) {
 			if (dgvSOQLResult.SelectedRows.Count == 0) {
 				MessageBox.Show("Please select a row to delete.", "No Row Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -574,10 +595,18 @@ namespace TesterFrm {
 			this.Invoke((Action)(() => dgvSOQLResult.Refresh()));
 
 		}
+
+		private string objectNameFromSoql(string soql) {
+			string pattern = @"FROM\s+([a-zA-Z0-9_]+)\b";
+			var match = Regex.Match(soql, @"FROM\s+([a-zA-Z0-9_]+)\b");
+			return match.Groups[1].Value;
+		}
+
 		private async void btnBuildSelect_Click(object sender, EventArgs e) {
-			string oN = "Account";
-		JsonElement je=await	_salesforceService.GetObjectSchemaAsync(oN);
-		rtSoqlQuery.Text=$"SELECT {string.Join(",",je.GetProperty("fields").EnumerateArray().Select(f=>f.GetProperty("name")))} FROM {oN}";
+
+			string oN = objectNameFromSoql(rtSoqlQuery.Text);
+			JsonElement je = chkUseTooling.Checked ? await _salesforceService.DescribeToolingObject(oN) : await _salesforceService.GetObjectSchemaAsync(oN, default);
+			rtSoqlQuery.Text = $"SELECT {string.Join(",", je.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("name")))} FROM {oN}";
 		}
 
 		private DialogResult commitIfConfirmed(DataRow dr, string rowId, string ChangeType = "") {
@@ -870,7 +899,7 @@ namespace TesterFrm {
 		private async Task LoadSOQL() {
 			Log("LoadSOQL", LogLevel.Debug);
 
-			cmbSOQL.DataSource = _sqlServerLib.Select("select qkey,q from soqlqueries");
+			cmbSOQL.DataSource = _sqlServerLib.Select("select qkey,q,UseTooling from soqlqueries");
 			cmbSOQL.DisplayMember = "qKey";
 			cmbSOQL.ValueMember = "q";
 			_soqlLoaded = true;
@@ -1002,10 +1031,13 @@ namespace TesterFrm {
 			var selectedRow = cmbSOQL.SelectedItem as DataRowView;
 			if (selectedRow != null) {
 				rtSoqlQuery.Text = selectedRow["Q"].ToString();
+
 			} else {
 				rtSoqlQuery.Text = string.Empty;
 			}
 			lblSoqlText.Text = $"Selected SOQL: {rtSoqlQuery.Text}";
+			chkUseTooling.Checked = false;
+			chkUseTooling.Checked = selectedRow != null && selectedRow["UseTooling"] != DBNull.Value && Convert.ToBoolean(selectedRow["UseTooling"]);
 		}
 		#endregion  list and combo boxes
 		#region radio buttons
@@ -1083,6 +1115,29 @@ namespace TesterFrm {
 
 
 
+
+
+		private async void button30_Click(object sender, EventArgs e) {
+			//var j=await _salesforceService.DescribeToolingObject("PlatformEventChannelMember");
+
+			Size sw = new Size(tabControl1.ClientSize.Width, splitcSoql.Panel2.ClientSize.Height);
+			splitcSoql.Panel2.ClientSize = sw;
+			splitcSoql.Panel1Collapsed = true;
+			tableLayoutPanel13.Width = sw.Width;
+
+			dgvSOQLResult.DataSource = null;
+
+			_dtSoqlResults = await _salesforceService.DescribeToolingObjectToDataTable("PlatformEventChannelMember");
+
+
+			if (_dtSoqlResults.Columns.Contains("Id")) _dtSoqlResults.Columns["Id"].ReadOnly = true;
+			//	_dtSoqlResults.AcceptChanges();
+			dgvSOQLResult.DataSource = _dtSoqlResults;
+		}
+
+		private async void button31_Click(object sender, EventArgs e) {
+		 bool x=await _salesforceService.DeleteObjectFrom("hello", "0v8DP0000004EsyYAE");
+		}
 
 		
 	}

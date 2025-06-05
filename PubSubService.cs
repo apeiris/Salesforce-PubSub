@@ -7,6 +7,8 @@ using Avro.Generic;
 using Avro.IO;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using static NetUtils.PubSub;
 
@@ -41,11 +43,12 @@ namespace NetUtils {
 		private readonly SalesforceConfig _config;
 		private readonly GrpcChannel _channel;
 		private readonly PubSubClient _client;
+		private readonly ILogger<PubSubService> _logger;	
 		private readonly List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse> Call, CancellationTokenSource Cts)> _subscriptions;
 		private readonly Dictionary<string, RecordSchema> _schemaCache;
 		public event EventHandler<ProgressUpdateEventArgs> ProgressUpdated;
 		public event EventHandler<CDCEventArgs> CDCEvent;
-		public PubSubService(ISalesforceService oauthService, IOptions<SalesforceConfig> configOptions) {
+		public PubSubService(ISalesforceService oauthService, IOptions<SalesforceConfig> configOptions, ILogger<PubSubService> logger) {
 			_oauthService = oauthService ?? throw new ArgumentNullException(nameof(oauthService));
 			_config = configOptions?.Value ?? throw new ArgumentNullException(nameof(configOptions));
 			_channel = GrpcChannel.ForAddress(_config.GrpcUrl, new GrpcChannelOptions {
@@ -54,28 +57,25 @@ namespace NetUtils {
 			_client = new PubSubClient(_channel);
 			_subscriptions = new List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse>, CancellationTokenSource)>();
 			_schemaCache = new Dictionary<string, RecordSchema>();
+			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 		}
-		public async Task<List<string>> StartSubscriptionsAsync() {
-			OnProgressUpdated("Starting subscriptions...");// "Name": "/data/AccountChangeEvent"
+		public async Task StartSubscriptionsAsync(HashSet<string> topics) {
+			//ArgumentNullException.ThrowIfNull(topics, nameof(topics));
 			var (token, instanceUrl, tenantId) = await _oauthService.GetAccessTokenAsync();
-			List<string> t = new List<string>();
-			foreach (var topic in _config.Topics) {
-				t.Add("Subscribing to topic: " + topic.Name);
-				await SubscribeToTopicAsync(topic.Name, token, instanceUrl, tenantId, topic.FieldsToFilter);
-			}
-			t.Add("Subscription started successfully..");
-			return t;
-		}
-		public async Task StartSubscriptionsAsync(HashSet<string?> topics) {//                StartSubscriptionAsync
-			var (token, instanceUrl, tenantId) = await _oauthService.GetAccessTokenAsync();
+			if (token == null) throw new InvalidOperationException("Failed to obtain access token.");
 			try {
-				foreach (var t in topics) {
-					await SubscribeToTopicAsync(t, token, instanceUrl, tenantId, null);
-					Console.WriteLine($"subscribed to topic ={t}");
+				await foreach (var topic in topics.ToAsyncEnumerable()) {
+					if (string.IsNullOrWhiteSpace(topic)) {
+						_logger.LogWarning("Skipping null or empty topic.");
+						continue;
+					}
+					await SubscribeToTopicAsync(topic, token!, instanceUrl!, tenantId!, null);
+					_logger.LogInformation("Subscribed to topic: {Topic}", topic);
 				}
-				OnProgressUpdated($"StartSubscriptionAsync(topics) completed for {topics.Count} channels.");
+				OnProgressUpdated($"Subscribed to {topics.Count} topic(s) successfully.");
 			} catch (Exception ex) {
-				throw new Exception(ex.Message);
+				_logger.LogError(ex, "Failed to start subscriptions for topics.");
+				throw;
 			}
 		}
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
@@ -86,25 +86,18 @@ namespace NetUtils {
 				var datumReader = new GenericDatumReader<GenericRecord>(schema, schema);
 				var record = datumReader.Read(null, reader);
 				var filterSet = (fieldsToFilter != null) ? new HashSet<string>(fieldsToFilter) : null;
-
-
 				if (!record.TryGetValue("ChangeEventHeader", out object headerObj) || headerObj is not GenericRecord header) {
 					result.Error = "No Header on ChangeEvent";
 					CDCEvent?.Invoke(this, result);
 					return;
 				}
-
 				result.ChangeType = getChangeType(header.ToString());
 				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList ? idsList.Select(id => id.ToString()).ToList() : new List<string>();
 				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList ? cfList.Select(f => f.ToString()).ToList() : new List<string>();
 				header.TryGetValue("ReplayId", out object replay);
-				//result.ReplayId=header.TryGetValue("")
-
 				switch (result.ChangeType) {
-					case "CREATE":
-					CDCEvent?.Invoke(this, result);
-					break;
 					case "DELETE":
+					result.DeltaFields.TableName = header.TryGetValue("entityName", out object oN) ? oN.ToString() : "Unknown";
 					CDCEvent?.Invoke(this, result);
 					return;
 					default:
@@ -119,6 +112,7 @@ namespace NetUtils {
 					result.DeltaFields.TableName = result.EntityName;
 					CDCEvent?.Invoke(this, result);
 					break;
+					case "CREATE":
 					case "UPDATE":
 					var projectedTable = schema.Fields
 						.Where(field => field.Name != "ChangeEventHeader" && record.TryGetValue(field.Name, out object value) && value != null)

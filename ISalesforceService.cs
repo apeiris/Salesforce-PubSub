@@ -16,4 +16,7 @@ public interface ISalesforceService {
 	Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default, bool useTooling = true, HttpMethod? method = null);
 	Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields);
 	Task DeleteSobject(string objectName, string recordId);
+	Task<JsonElement> DescribeToolingObject(string objectName);
+	Task<DataTable> DescribeToolingObjectToDataTable(string objectName);
+	Task<bool> DeleteObjectFrom(string oName, string recordId);
 }
