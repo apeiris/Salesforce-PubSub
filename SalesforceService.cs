@@ -13,6 +13,7 @@ using Salesforce.SDK.Net;
 using Salesforce;
 using Newtonsoft.Json.Linq;
 using System.Security.AccessControl;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
@@ -28,8 +29,6 @@ namespace NetUtils {
 			_settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_logger.LogDebug("SalesforceService initialized with settings: {Settings}", _settings);
-
-
 		}
 		public class FieldMeta {
 			public string Name { get; set; }
@@ -41,21 +40,24 @@ namespace NetUtils {
 			public string RelationshipName { get; set; }
 			public List<string> ReferenceTo { get; set; }
 		}
-		public async Task<JsonElement> GetPlatformEventChannel(CancellationToken cancellationToken = default) {
+		public async Task<JsonElement> CreatePlatformEventChannelMemberFromEntityDefinition(string entityDefinitionId,	string platformEventChannelId,	CancellationToken cancellationToken = default) {
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
-
-			string objectName = "PlatformEventChannel";
-			//	string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{objectName}";
+			string objectName = "PlatformEventChannelMember";
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/PlatformEventChannelMember";
-
 			_logger.LogDebug("Posting to {ObjectName} at {Url}", objectName, url);
+
+			// Construct the payload for PlatformEventChannelMember
+			var payload = new {
+				EntityDefinitionId = entityDefinitionId,
+				PlatformEventChannelId = platformEventChannelId
+				// Add other required fields for PlatformEventChannelMember if needed
+			};
+			string jsonPayload = JsonSerializer.Serialize(payload);
 
 			using var request = new HttpRequestMessage(HttpMethod.Post, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
-
-			// If needed, set Content-Type and a body (example: empty JSON object)
-			request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+			request.Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
 			try {
 				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
@@ -64,12 +66,36 @@ namespace NetUtils {
 					_logger.LogError("API POST failed for {ObjectName}: Status={StatusCode}, Content={Content}",
 						objectName, response.StatusCode, errorContent);
 					throw new Exception($"Failed to POST to url:{url}\n : {response.ReasonPhrase}");
+				}
 
+				await using var stream = await response.Content.ReadAsStreamAsync();
+				JsonElement result = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
+				return result;
+			} catch (Exception ex) {
+				_logger.LogError("Error during POST for {ObjectName}: {Message}", objectName, ex.Message);
+				throw;
+			}
+		}
+		public async Task<JsonElement> GetPlaformEventChannelMembers(CancellationToken cancellationToken = default) {
+			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
+			string objectName = "PlatformEventChannel";
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/PlatformEventChannelMember";
+			_logger.LogDebug("Posting to {ObjectName} at {Url}", objectName, url);
+
+			using var request = new HttpRequestMessage(HttpMethod.Post, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+			try {
+				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+				if (!response.IsSuccessStatusCode) {
+					string errorContent = await response.Content.ReadAsStringAsync();
+					_logger.LogError("API POST failed for {ObjectName}: Status={StatusCode}, Content={Content}",
+						objectName, response.StatusCode, errorContent);
+					throw new Exception($"Failed to POST to url:{url}\n : {response.ReasonPhrase}");
 				}
 				await using var stream = await response.Content.ReadAsStreamAsync();
 				JsonElement result = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: cancellationToken);
-
-				_logger.LogDebug("Successfully POSTed to {ObjectName}", objectName);
 				return result;
 			} catch (Exception ex) {
 				_logger.LogError("Error during POST for {ObjectName}: {Message}", objectName, ex.Message);
@@ -352,20 +378,17 @@ namespace NetUtils {
 			request.Headers.Add("Accept", "application/json");
 			return request;
 		}
-		public async Task<bool> DeleteObjectFrom(string oName, string recordId) {
-			oName = "PlatformEventChannelMember";
+		public async Task<bool> DeleteToolingRecord(string oName, string recordId) {
+			//oName = "PlatformEventChannelMember";
 
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
-			//string soql = "SELECT Id FROM PlatformEventChannelMember WHERE SelectedEntity='AccountChangeEvent' LIMIT 1";
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(oName)}/{Uri.EscapeDataString(recordId)}";
 			var request = new HttpRequestMessage(HttpMethod.Delete, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			request.Headers.Add("Accept", "application/json");
-
 			try {
 				_logger.LogDebug("Sending DELETE request to: {Url}", url);
 				using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken: default);
-
 				if (response.IsSuccessStatusCode) {
 					_logger.LogInformation("Successfully deleted record ID {RecordId} for object {ObjectName}", recordId, oName);
 					return true;
@@ -378,12 +401,7 @@ namespace NetUtils {
 				_logger.LogError("Error deleting record ID {RecordId} for object {ObjectName}: {Message}", recordId, oName, ex.Message);
 				throw;
 			}
-
 		}
-
-
-
-
 
 		public async Task<JsonElement> DescribeToolingObject(string objectName) {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
@@ -493,7 +511,7 @@ namespace NetUtils {
 		}
 		//====================================================================================
 		public async Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default) {
-			string query = "SELECT QualifiedApiName, DeveloperName FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
+			string query = "SELECT Id,QualifiedApiName,developerName  FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
 			JsonElement rootElement = await ExecuteSoqlQueryRawAsync(query, cancellationToken);
 			string tableName = getObjectNameFromSoql(query);//FROM is case sensitive
 			DataTable dt = new DataTable(tableName);
@@ -533,7 +551,8 @@ namespace NetUtils {
 							if (prop.Name == "QualifiedApiName")
 								qualifiedApiName = prop.Value.GetString();
 						}
-						row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
+						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
+						row["name"] = PlatformEventChannelMemeberToObjectName(qualifiedApiName ?? "");
 						return row;
 					})
 					.ToList();
@@ -546,76 +565,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		//====================================================================================
-
-		/*
-		
-		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
-			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-			string url;
-			HttpMethod method;
-
-			if (string.IsNullOrEmpty(recordId)) {
-				// Insert: POST to /sobjects/{objectName}
-				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
-				method = HttpMethod.Post;
-				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
-			} else {
-				// Update: PATCH to /sobjects/{objectName}/{recordId}
-				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
-				method = new HttpMethod("PATCH"); // PATCH for updates
-				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
-			}
-
-			using var request = new HttpRequestMessage(method, url);
-			request.Headers.Add("Authorization", $"Bearer {token}");
-			request.Headers.Add("Accept", "application/json");
-			request.Content = new StringContent(jsonFields, Encoding.UTF8, "application/json");
-
-			try {
-				using var response = await _httpClient.SendAsync(request);
-				if (!response.IsSuccessStatusCode) {
-					string errorContent = await response.Content.ReadAsStringAsync();
-					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {Content}",
-						objectName, response.StatusCode, errorContent);
-					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorContent}");
-				}
-
-				// Parse response to get the new/updated record ID
-				string responseContent = await response.Content.ReadAsStringAsync();
-				using JsonDocument responseDoc = JsonDocument.Parse(responseContent);
-				string newRecordId = recordId;
-
-				if (string.IsNullOrEmpty(recordId)) {
-					// For insert, extract the new record ID from the response
-					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
-					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
-				} else {
-					_logger.LogInformation("Updated {ObjectName} record with Id {RecordId}", objectName, recordId);
-				}
-
-				// Create a DataTable with the updated/inserted record
-				DataTable resultTable = new DataTable(objectName);
-				var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
-				resultTable.Columns.Add("Id", typeof(string));
-				foreach (var field in fields) {
-					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
-				}
-
-				DataRow row = resultTable.NewRow();
-				row["Id"] = newRecordId;
-				foreach (var field in fields) {
-					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
-				}
-				resultTable.Rows.Add(row);
-
-				return resultTable;
-			} catch (Exception ex) {
-				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
-				throw;
-			}
-		}
-		*/
 		//====================================================================================
 		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
@@ -688,6 +637,47 @@ namespace NetUtils {
 			}
 		}
 
+		//====================================================================================
+		public static string PlatformEventChannelMemeberToObjectName(string selectedEntity) {
+
+			if (string.IsNullOrWhiteSpace(selectedEntity))
+				throw new ArgumentNullException(nameof(selectedEntity));
+
+			// Regex pattern: Match optional trailing __ before ChangeEvent
+			// Group 1 captures the base name (e.g., Account, Order, Product_Family)
+			var regex = new Regex(@"^(.*?)(?:__)?ChangeEvent$", RegexOptions.Compiled);
+			var match = regex.Match(selectedEntity);
+
+			if (!match.Success)
+				throw new ArgumentException("Invalid ChangeEvent format.", nameof(selectedEntity));
+
+			string baseName = match.Groups[1].Value;
+
+			// Determine if it's a custom object (contains __ChangeEvent)
+			bool isCustom = selectedEntity.Contains("__ChangeEvent");
+
+			// Return baseName + __c for custom objects
+			return isCustom ? $"{baseName}__c" : baseName;
+
+		}
+
+		public static string ObjectNameToChangeEvent(string objectName) {
+			if (string.IsNullOrWhiteSpace(objectName))
+				throw new ArgumentNullException(nameof(objectName));
+
+			// Match custom object: ends with __c
+			var match = Regex.Match(objectName, @"^(?<base>.+?)(__c)?$", RegexOptions.Compiled);
+
+			if (!match.Success)
+				throw new ArgumentException("Invalid object name format.", nameof(objectName));
+
+			string baseName = match.Groups["base"].Value;
+			bool isCustom = objectName.EndsWith("__c", StringComparison.OrdinalIgnoreCase);
+
+			// For custom object, append __ChangeEvent; otherwise just ChangeEvent
+			return isCustom ? $"{baseName}__ChangeEvent" : $"{baseName}ChangeEvent";
+		}
+		//====================================================================================
 		// Helper method to parse Salesforce error response
 		private string ParseSalesforceError(string errorContent) {
 			try {
@@ -714,10 +704,8 @@ namespace NetUtils {
 
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
-
 			using var request = new HttpRequestMessage(HttpMethod.Delete, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
-
 			try {
 				using var response = await _httpClient.SendAsync(request);
 				if (response.IsSuccessStatusCode) // 204 No Content
@@ -781,6 +769,8 @@ namespace NetUtils {
 				ErrorMessage = errorMessage;
 			}
 		}
+
+
 		#endregion	helpers
 		// ===================================================================================
 		public class TokenResponse {

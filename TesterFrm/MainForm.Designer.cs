@@ -52,12 +52,14 @@
 			label2 = new Label();
 			lblDestinationList = new Label();
 			grpPrimaryKey = new GroupBox();
+			pictureBox1 = new PictureBox();
 			label3 = new Label();
 			textBox1 = new TextBox();
 			chkAddIdentityField = new CheckBox();
 			btnCommitToDB = new Button();
 			btnClearDestination = new Button();
 			lblSourceList = new Label();
+			pictureBox2 = new PictureBox();
 			tbpPubSub = new TabPage();
 			tableLayoutPanel1 = new TableLayoutPanel();
 			splitContainer1 = new SplitContainer();
@@ -90,6 +92,7 @@
 			btnExecSoql = new Button();
 			chkUseTooling = new CheckBox();
 			button30 = new Button();
+			button31 = new Button();
 			tableLayoutPanel13 = new TableLayoutPanel();
 			dgvSOQLResult = new DataGridView();
 			tableLayoutPanel14 = new TableLayoutPanel();
@@ -124,7 +127,6 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			button31 = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -133,6 +135,8 @@
 			tableLayoutPanel10.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvDestination).BeginInit();
 			grpPrimaryKey.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+			((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
 			tbpPubSub.SuspendLayout();
 			tableLayoutPanel1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
@@ -275,6 +279,7 @@
 			tableLayoutPanel3.Controls.Add(lblDestinationList, 2, 5);
 			tableLayoutPanel3.Controls.Add(grpPrimaryKey, 2, 6);
 			tableLayoutPanel3.Controls.Add(lblSourceList, 0, 6);
+			tableLayoutPanel3.Controls.Add(pictureBox2, 0, 7);
 			tableLayoutPanel3.Location = new Point(55, 3);
 			tableLayoutPanel3.Name = "tableLayoutPanel3";
 			tableLayoutPanel3.RowCount = 8;
@@ -282,8 +287,8 @@
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 71.7791443F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 28.22086F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
-			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 149F));
-			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 125F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 73F));
@@ -294,14 +299,13 @@
 			// 
 			dgvSource.AllowUserToAddRows = false;
 			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvSource.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
 			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvSource.Dock = DockStyle.Fill;
-			dgvSource.EditMode = DataGridViewEditMode.EditProgrammatically;
 			dgvSource.Location = new Point(3, 44);
 			dgvSource.Name = "dgvSource";
-			dgvSource.ReadOnly = true;
 			tableLayoutPanel3.SetRowSpan(dgvSource, 4);
-			dgvSource.Size = new Size(470, 405);
+			dgvSource.Size = new Size(470, 381);
 			dgvSource.TabIndex = 0;
 			dgvSource.RowsAdded += dgvRowCountChanged;
 			dgvSource.RowsRemoved += dgvRowCountChanged;
@@ -362,7 +366,7 @@
 			tableLayoutPanel10.Controls.Add(button3, 2, 0);
 			tableLayoutPanel10.Controls.Add(button2, 1, 0);
 			tableLayoutPanel10.Controls.Add(bsA, 0, 0);
-			tableLayoutPanel10.Location = new Point(3, 455);
+			tableLayoutPanel10.Location = new Point(3, 431);
 			tableLayoutPanel10.Name = "tableLayoutPanel10";
 			tableLayoutPanel10.RowCount = 1;
 			tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
@@ -645,7 +649,6 @@
 			dgvDestination.AllowUserToAddRows = false;
 			dgvDestination.AllowUserToDeleteRows = false;
 			dgvDestination.AllowUserToOrderColumns = true;
-			dgvDestination.AllowUserToResizeColumns = false;
 			dgvDestination.AllowUserToResizeRows = false;
 			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
 			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -689,7 +692,7 @@
 			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
 			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
 			lblDestinationList.ForeColor = Color.Brown;
-			lblDestinationList.Location = new Point(571, 452);
+			lblDestinationList.Location = new Point(571, 428);
 			lblDestinationList.Name = "lblDestinationList";
 			lblDestinationList.Size = new Size(96, 21);
 			lblDestinationList.TabIndex = 8;
@@ -700,6 +703,7 @@
 			// 
 			grpPrimaryKey.AccessibleRole = AccessibleRole.None;
 			tableLayoutPanel3.SetColumnSpan(grpPrimaryKey, 2);
+			grpPrimaryKey.Controls.Add(pictureBox1);
 			grpPrimaryKey.Controls.Add(label3);
 			grpPrimaryKey.Controls.Add(textBox1);
 			grpPrimaryKey.Controls.Add(chkAddIdentityField);
@@ -711,6 +715,14 @@
 			grpPrimaryKey.Size = new Size(449, 90);
 			grpPrimaryKey.TabIndex = 10;
 			grpPrimaryKey.TabStop = false;
+			// 
+			// pictureBox1
+			// 
+			pictureBox1.Location = new Point(73, 89);
+			pictureBox1.Name = "pictureBox1";
+			pictureBox1.Size = new Size(100, 50);
+			pictureBox1.TabIndex = 12;
+			pictureBox1.TabStop = false;
 			// 
 			// label3
 			// 
@@ -750,9 +762,9 @@
 			btnCommitToDB.Name = "btnCommitToDB";
 			btnCommitToDB.Size = new Size(173, 32);
 			btnCommitToDB.TabIndex = 4;
-			btnCommitToDB.Text = "Commit to Database";
+			btnCommitToDB.Text = "Register";
 			btnCommitToDB.UseVisualStyleBackColor = true;
-			btnCommitToDB.Click += btnCommitToDB_Click;
+			btnCommitToDB.Click += btnRegisterCDCCandidate;
 			// 
 			// btnClearDestination
 			// 
@@ -775,6 +787,16 @@
 			lblSourceList.TabIndex = 6;
 			lblSourceList.Text = "Placeholder";
 			lblSourceList.TextAlign = ContentAlignment.MiddleCenter;
+			// 
+			// pictureBox2
+			// 
+			pictureBox2.Image = Properties.Resources.CacheOk;
+			pictureBox2.Location = new Point(3, 532);
+			pictureBox2.Name = "pictureBox2";
+			pictureBox2.Size = new Size(100, 50);
+			pictureBox2.TabIndex = 12;
+			pictureBox2.TabStop = false;
+			pictureBox2.Click += pictureBox2_Click;
 			// 
 			// tbpPubSub
 			// 
@@ -1195,6 +1217,16 @@
 			button30.UseVisualStyleBackColor = true;
 			button30.Click += button30_Click;
 			// 
+			// button31
+			// 
+			button31.Location = new Point(678, 125);
+			button31.Name = "button31";
+			button31.Size = new Size(100, 38);
+			button31.TabIndex = 9;
+			button31.Text = "x";
+			button31.UseVisualStyleBackColor = true;
+			button31.Click += button31_Click;
+			// 
 			// tableLayoutPanel13
 			// 
 			tableLayoutPanel13.ColumnCount = 2;
@@ -1611,16 +1643,6 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// button31
-			// 
-			button31.Location = new Point(678, 125);
-			button31.Name = "button31";
-			button31.Size = new Size(100, 38);
-			button31.TabIndex = 9;
-			button31.Text = "x";
-			button31.UseVisualStyleBackColor = true;
-			button31.Click += button31_Click;
-			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1644,6 +1666,8 @@
 			((System.ComponentModel.ISupportInitialize)dgvDestination).EndInit();
 			grpPrimaryKey.ResumeLayout(false);
 			grpPrimaryKey.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+			((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
 			tbpPubSub.ResumeLayout(false);
 			tableLayoutPanel1.ResumeLayout(false);
 			splitContainer1.Panel1.ResumeLayout(false);
@@ -1708,7 +1732,7 @@
 		}
 
 		// Fix for CS0407: Ensure the event handler method 'button31_Click' has the correct return type 'void'  
-	
+
 
 
 
@@ -1834,5 +1858,7 @@
 		private TableLayoutPanel tableLayoutPanel16;
 		private Button button30;
 		private Button button31;
+		private PictureBox pictureBox1;
+		private PictureBox pictureBox2;
 	}
 }
