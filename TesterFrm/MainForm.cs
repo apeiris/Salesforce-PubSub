@@ -249,7 +249,11 @@ namespace TesterFrm {
 			lblDestinationList.Text = "";
 			SetupDataGridViewHeaders("");
 			btnSubscribe_Click(null, null);
-
+			string savedItems = Properties.Settings.Default.cmbObjects;
+			if (!string.IsNullOrWhiteSpace(savedItems)) {
+				var items = savedItems.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+				cmbObjects.Items.AddRange(items);
+			}
 		}
 		private void SalesforceService_AuthenticationAttempt(object sender, SalesforceService.AuthenticationEventArgs e) {
 			Invoke((Action)(() => {
@@ -377,13 +381,13 @@ namespace TesterFrm {
 			List<DataRow> rowsToRemove = new List<DataRow>();
 			foreach (DataGridViewRow row in dgvDestination.SelectedRows) {
 				DataRow deletedRow = ((DataRowView)row.DataBoundItem).Row;
-				DataRow sourceRow = _sourceTable.NewRow();	
-		
+				DataRow sourceRow = _sourceTable.NewRow();
+
 				sourceRow["name"] = deletedRow["name"].ToString();
 				//sourceRow["QualifiedApiName"] =  SalesforceService.PlatformEventChannelMemeberToObjectName(deletedRow["name"].ToString()!);
 				sourceRow["QualifiedApiName"] = SalesforceService.ObjectNameToChangeEvent(deletedRow["name"].ToString()!);
 				_sourceTable.Rows.Add(sourceRow);
-					rowsToRemove.Add(deletedRow);
+				rowsToRemove.Add(deletedRow);
 			}
 			foreach (DataRow row in rowsToRemove) {
 				_destinationTable.Rows.Remove(row);
@@ -506,7 +510,7 @@ namespace TesterFrm {
 			} catch (Exception ex) {
 				dgvSchema.DataSource = null;
 				if (ex.Message.Contains(": Not Found")) {
-				DialogResult dr=	MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+					DialogResult dr = MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
 					if (dr == DialogResult.Yes) {
 
 						try {
@@ -514,7 +518,7 @@ namespace TesterFrm {
 							dgvSchema.DataSource = ds.Tables[0];
 						} catch (Exception) {
 
-							
+
 						}
 					}
 				}
@@ -864,7 +868,7 @@ namespace TesterFrm {
 			var rowsToDelete = dt.AsEnumerable()
 				.Where(row => exclude.Contains(row.Field<string>(keyColumn)))
 				.ToList();
-			foreach(var row in rowsToDelete) dt.Rows.Remove(row);
+			foreach (var row in rowsToDelete) dt.Rows.Remove(row);
 			return dt;
 		}
 		private async Task LoadSfObjectsAsync() {
@@ -872,15 +876,15 @@ namespace TesterFrm {
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			_sourceTable = await _salesforceService.GetCDCEnabledEntitiesAsync();
 			_dtRegisteredCDCCandidates = await _salesforceService.ExecSoqlToTable("SELECT SelectedEntity FROM PlatformEventChannelMember", useTooling: true);//Get subscribable entries from tooling 
-			//_dtRegisteredCDCCandidates.Columns["QualifiedApiName"]!.ColumnName = "name"; // rename QualifiedApiName to name
-			_dtRegisteredCDCCandidates=_dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from QualifiedApiName
+																																							 //_dtRegisteredCDCCandidates.Columns["QualifiedApiName"]!.ColumnName = "name"; // rename QualifiedApiName to name
+			_dtRegisteredCDCCandidates = _dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from QualifiedApiName
 
 			var remRows = _dtRegisteredCDCCandidates.AsEnumerable() // remove rows from source that are already enabled for pubsub
 				   .Select(row => row.Field<string>("name"))
 				   .Where(value => !string.IsNullOrEmpty(value))
 				   .ToHashSet();
 			dgvDestination.DataSource = _dtRegisteredCDCCandidates;
-			dgvSource.DataSource =RemoveExludedRows(_sourceTable, remRows!, "name");
+			dgvSource.DataSource = RemoveExludedRows(_sourceTable, remRows!, "name");
 			_sfsObjectsLoaded = true;
 		}
 		private async Task LoadSOQL() {
@@ -1121,6 +1125,28 @@ namespace TesterFrm {
 			bool x = await _salesforceService.DeleteToolingRecord("PlatformEventChannelMember", "0v8DP0000004EsyYAE");
 		}
 		private void pictureBox2_Click(object sender, EventArgs e) {
+		}
+
+		private void cmbObjects_Validated(object sender, EventArgs e) {
+			string newItem = cmbObjects.Text.Trim();
+			if (!string.IsNullOrEmpty(newItem) && !cmbObjects.Items.Contains(newItem)) {
+				cmbObjects.Items.Add(newItem);
+			}
+			var allItems = cmbObjects.Items.Cast<string>(); // Save all items as a comma-separated string
+			string joined = string.Join(",", allItems);
+			Properties.Settings.Default.cmbObjects = joined;
+			Properties.Settings.Default.Save();
+		}
+
+		private void btnDeleteCmbObjectSelected_Click(object sender, EventArgs e) {
+			var i = cmbObjects.SelectedItem;
+			if (i!= null) {
+				cmbObjects.Items.Remove(i);
+				var allItems = cmbObjects.Items.Cast<string>();
+				string joined = string.Join(",", allItems);
+				Properties.Settings.Default.cmbObjects = joined;
+				Properties.Settings.Default.Save();
+			}
 		}
 	}
 }

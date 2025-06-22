@@ -107,7 +107,7 @@
 			label1 = new Label();
 			dgvSchema = new DataGridView();
 			btnDescribe = new Button();
-			btnGetPlatformEventChannel = new Button();
+			cmbObjects = new ComboBox();
 			tbpEventLog = new TabPage();
 			splitContainer3 = new SplitContainer();
 			tableLayoutPanel6 = new TableLayoutPanel();
@@ -126,7 +126,7 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			cmbObjects = new ComboBox();
+			btnDeleteCmbObjectSelected = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -1349,10 +1349,10 @@
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 106F));
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 154F));
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 938F));
+			tableLayoutPanel5.Controls.Add(btnDeleteCmbObjectSelected, 3, 0);
 			tableLayoutPanel5.Controls.Add(label1, 0, 0);
 			tableLayoutPanel5.Controls.Add(dgvSchema, 0, 2);
 			tableLayoutPanel5.Controls.Add(btnDescribe, 2, 0);
-			tableLayoutPanel5.Controls.Add(btnGetPlatformEventChannel, 3, 0);
 			tableLayoutPanel5.Controls.Add(cmbObjects, 1, 0);
 			tableLayoutPanel5.Dock = DockStyle.Fill;
 			tableLayoutPanel5.Location = new Point(0, 0);
@@ -1395,15 +1395,14 @@
 			btnDescribe.UseVisualStyleBackColor = true;
 			btnDescribe.Click += btnDescribe_Click;
 			// 
-			// btnGetPlatformEventChannel
+			// cmbObjects
 			// 
-			btnGetPlatformEventChannel.Location = new Point(325, 3);
-			btnGetPlatformEventChannel.Name = "btnGetPlatformEventChannel";
-			btnGetPlatformEventChannel.Size = new Size(148, 23);
-			btnGetPlatformEventChannel.TabIndex = 4;
-			btnGetPlatformEventChannel.Text = "PlatformEventChannel ";
-			btnGetPlatformEventChannel.UseVisualStyleBackColor = true;
-			btnGetPlatformEventChannel.Click += btnGetPlatformEventChannel_Click;
+			cmbObjects.FormattingEnabled = true;
+			cmbObjects.Location = new Point(107, 3);
+			cmbObjects.Name = "cmbObjects";
+			cmbObjects.Size = new Size(106, 23);
+			cmbObjects.TabIndex = 5;
+			cmbObjects.Validated += cmbObjects_Validated;
 			// 
 			// tbpEventLog
 			// 
@@ -1633,13 +1632,15 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// cmbObjects
+			// btnDeleteCmbObjectSelected
 			// 
-			cmbObjects.FormattingEnabled = true;
-			cmbObjects.Location = new Point(107, 3);
-			cmbObjects.Name = "cmbObjects";
-			cmbObjects.Size = new Size(106, 23);
-			cmbObjects.TabIndex = 5;
+			btnDeleteCmbObjectSelected.Location = new Point(325, 3);
+			btnDeleteCmbObjectSelected.Name = "btnDeleteCmbObjectSelected";
+			btnDeleteCmbObjectSelected.Size = new Size(75, 23);
+			btnDeleteCmbObjectSelected.TabIndex = 6;
+			btnDeleteCmbObjectSelected.Text = "Remove Object";
+			btnDeleteCmbObjectSelected.UseVisualStyleBackColor = true;
+			btnDeleteCmbObjectSelected.Click += btnDeleteCmbObjectSelected_Click;
 			// 
 			// MainForm
 			// 
@@ -1829,7 +1830,6 @@
 		private Button btnDescribe;
 		private Button btnGetCDCSubscriptions;
 		private DataGridView dgvSchema;
-		private Button btnGetPlatformEventChannel;
 		
 		private TabPage tbpSOQL;
 		private TableLayoutPanel tableLayoutPanel11;
@@ -1858,5 +1858,6 @@
 		private PictureBox pictureBox1;
 		private PictureBox pictureBox2;
 		private ComboBox cmbObjects;
+		private Button btnDeleteCmbObjectSelected;
 	}
 }
