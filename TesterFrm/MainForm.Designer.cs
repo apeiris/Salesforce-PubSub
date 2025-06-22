@@ -105,7 +105,6 @@
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
 			label1 = new Label();
-			txtObjectName = new TextBox();
 			dgvSchema = new DataGridView();
 			btnDescribe = new Button();
 			btnGetPlatformEventChannel = new Button();
@@ -127,6 +126,7 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
+			cmbObjects = new ComboBox();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -1350,10 +1350,10 @@
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 154F));
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 938F));
 			tableLayoutPanel5.Controls.Add(label1, 0, 0);
-			tableLayoutPanel5.Controls.Add(txtObjectName, 1, 0);
 			tableLayoutPanel5.Controls.Add(dgvSchema, 0, 2);
 			tableLayoutPanel5.Controls.Add(btnDescribe, 2, 0);
 			tableLayoutPanel5.Controls.Add(btnGetPlatformEventChannel, 3, 0);
+			tableLayoutPanel5.Controls.Add(cmbObjects, 1, 0);
 			tableLayoutPanel5.Dock = DockStyle.Fill;
 			tableLayoutPanel5.Location = new Point(0, 0);
 			tableLayoutPanel5.Name = "tableLayoutPanel5";
@@ -1374,16 +1374,6 @@
 			label1.TabIndex = 0;
 			label1.Text = "Object Name";
 			label1.TextAlign = ContentAlignment.MiddleLeft;
-			// 
-			// txtObjectName
-			// 
-			txtObjectName.AcceptsReturn = true;
-			txtObjectName.Dock = DockStyle.Fill;
-			txtObjectName.Location = new Point(107, 3);
-			txtObjectName.Name = "txtObjectName";
-			txtObjectName.Size = new Size(106, 23);
-			txtObjectName.TabIndex = 1;
-			txtObjectName.Text = "Case";
 			// 
 			// dgvSchema
 			// 
@@ -1643,6 +1633,14 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
+			// cmbObjects
+			// 
+			cmbObjects.FormattingEnabled = true;
+			cmbObjects.Location = new Point(107, 3);
+			cmbObjects.Name = "cmbObjects";
+			cmbObjects.Size = new Size(106, 23);
+			cmbObjects.TabIndex = 5;
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1761,7 +1759,6 @@
 		private TabPage tbpDescribeObject;
 		private TableLayoutPanel tableLayoutPanel5;
 		private Label label1;
-		private TextBox txtObjectName;
 		private TableLayoutPanel tableLayoutPanel3;
 		private Button btnCommitToDB;
 		private DataGridView dgvSource;
@@ -1860,5 +1857,6 @@
 		private Button button31;
 		private PictureBox pictureBox1;
 		private PictureBox pictureBox2;
+		private ComboBox cmbObjects;
 	}
 }

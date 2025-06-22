@@ -102,13 +102,13 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default) {
+		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default,bool useTooling=false) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
 			}
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
-			string url = $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
+			string url =!useTooling ? $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/" : $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
 			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
@@ -294,7 +294,7 @@ namespace NetUtils {
 			}
 		}
 		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName, bool useTooling = false) {
-			var schemax = await GetObjectSchemaAsync(objectName);
+			var schemax = await GetObjectSchemaAsync(objectName,default, useTooling);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
 			try {

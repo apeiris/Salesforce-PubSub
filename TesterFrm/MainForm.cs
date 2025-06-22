@@ -19,6 +19,7 @@ using Control = System.Windows.Forms.Control;
 using System.Threading.Tasks;
 using static System.ComponentModel.Design.ObjectSelectorEditor;
 using System.Data.Common;
+using DocumentFormat.OpenXml.Office2016.Drawing.Command;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region enums
@@ -498,9 +499,19 @@ namespace TesterFrm {
 			}
 		}
 		private async void btnDescribe_Click(object sender, EventArgs e) {
-			DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(txtObjectName.Text!.ToString());
-			dgvSchema.DataSource = ds.Tables[0];
-			Console.WriteLine(ds.GetXml());
+			try {
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cmbObjects.Text!.ToString());
+				dgvSchema.DataSource = ds.Tables[0];
+				Console.WriteLine(ds.GetXml());
+			} catch (Exception ex) {
+				if (ex.Message.Contains(": Not Found")) {
+				DialogResult dr=	MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Hand);
+					if (dr == DialogResult.Yes) {
+						DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cmbObjects.Text,useTooling:true);
+						dgvSchema.DataSource = ds.Tables[0];
+					}
+				}
+			}
 		}
 		private void btnSaveSoql_Click(object sender, EventArgs e) {
 

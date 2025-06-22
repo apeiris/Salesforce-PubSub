@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace NetUtils;
 public interface ISalesforceService {
 	Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync();
-	Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default);
+	Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default,bool useTooling=false);
 	Task<string> GetObjectSchemaSummaryAsync(string objectName);
 	Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName, bool useTooling = false);
 	Task<DataTable> GetAllObjects();
