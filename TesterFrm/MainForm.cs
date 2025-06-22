@@ -504,6 +504,7 @@ namespace TesterFrm {
 				dgvSchema.DataSource = ds.Tables[0];
 				Console.WriteLine(ds.GetXml());
 			} catch (Exception ex) {
+				dgvSchema.DataSource = null;
 				if (ex.Message.Contains(": Not Found")) {
 				DialogResult dr=	MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
 					if (dr == DialogResult.Yes) {
