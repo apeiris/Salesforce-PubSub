@@ -622,7 +622,7 @@ namespace TesterFrm {
 		}
 		private string objectNameFromSoql(string soql) {
 			string pattern = @"FROM\s+([a-zA-Z0-9_]+)\b";
-			var match = Regex.Match(soql, @"FROM\s+([a-zA-Z0-9_]+)\b");
+			var match = Regex.Match(soql, @"FROM\s+([a-zA-Z0-9_]+)\b",RegexOptions.IgnoreCase);
 			return match.Groups[1].Value;
 		}
 		private async void btnBuildSelect_Click(object sender, EventArgs e) {

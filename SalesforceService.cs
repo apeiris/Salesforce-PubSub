@@ -40,7 +40,7 @@ namespace NetUtils {
 			public string RelationshipName { get; set; }
 			public List<string> ReferenceTo { get; set; }
 		}
-		public async Task<JsonElement> CreatePlatformEventChannelMemberFromEntityDefinition(string entityDefinitionId,	string platformEventChannelId,	CancellationToken cancellationToken = default) {
+		public async Task<JsonElement> CreatePlatformEventChannelMemberFromEntityDefinition(string entityDefinitionId, string platformEventChannelId, CancellationToken cancellationToken = default) {
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 			string objectName = "PlatformEventChannelMember";
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/PlatformEventChannelMember";
@@ -102,13 +102,13 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default,bool useTooling=false) {
+		public async Task<JsonElement> GetObjectSchemaAsync(string objectName, CancellationToken cancellationToken = default, bool useTooling = false) {
 			if (string.IsNullOrWhiteSpace(objectName)) {
 				throw new ArgumentException("Object name cannot be empty or null", nameof(objectName));
 			}
 			var (token, instanceUrl, expiresAt) = await GetAccessTokenAsync();
 			string apiVersion = string.IsNullOrEmpty(_settings.ApiVersion) ? "63.0" : _settings.ApiVersion;
-			string url =!useTooling ? $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/" : $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
+			string url = !useTooling ? $"{instanceUrl}/services/data/v{apiVersion}/sobjects/{Uri.EscapeDataString(objectName)}/describe/" : $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
 			_logger.LogDebug("Fetching schema for {ObjectName} from {Url}", objectName, url);
 			using var request = new HttpRequestMessage(HttpMethod.Get, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
@@ -294,7 +294,7 @@ namespace NetUtils {
 			}
 		}
 		public async Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName, bool useTooling = false) {
-			var schemax = await GetObjectSchemaAsync(objectName,default, useTooling);
+			var schemax = await GetObjectSchemaAsync(objectName, default, useTooling);
 			JsonDocument schema = JsonDocument.Parse(schemax.GetRawText());
 			DataSet ds = new DataSet();
 			try {
@@ -335,7 +335,6 @@ namespace NetUtils {
 			}
 			return ds;
 		}
-		//====================================================================================
 		public async Task<DataTable> GetSalesforceRecord(string objectName, string recordId) {
 			try {
 				var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();// Get access token and instance URL
@@ -367,17 +366,6 @@ namespace NetUtils {
 				throw new Exception($"Error retrieving Salesforce data: {ex.Message}", ex);
 			}
 		}
-		//------------------------------------------------------------------------------------
-		private async Task<HttpRequestMessage> setupSoqlHeader(string query, HttpMethod method, bool useTooling = false) {
-			var (token, instanceUrl, _) = await GetAccessTokenAsync();
-			string url = useTooling
-				? $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/query/?q={Uri.EscapeDataString(query)}"
-				: $"{instanceUrl}/services/data/v{_settings.ApiVersion}/query/?q={Uri.EscapeDataString(query)}";
-			var request = new HttpRequestMessage(method, url);
-			request.Headers.Add("Authorization", $"Bearer {token}");
-			request.Headers.Add("Accept", "application/json");
-			return request;
-		}
 		public async Task<bool> DeleteToolingRecord(string oName, string recordId) {
 			//oName = "PlatformEventChannelMember";
 
@@ -402,7 +390,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
 		public async Task<JsonElement> DescribeToolingObject(string objectName) {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";
@@ -451,65 +438,11 @@ namespace NetUtils {
 				}
 			}
 		}
-		//====================================================================================
-		private DataTable JsonElementToDataTable(JsonElement rootElement, string tableName) {
-			DataTable dt = new DataTable(tableName);
-			try {
-				if (!rootElement.TryGetProperty("records", out var records) || records.GetArrayLength() == 0) {
-					_logger.LogWarning("No records returned from SOQL query");
-					return dt;
-				}
-				var firstRecord = records.EnumerateArray().First();// Project column names and types from the first record
-				var columns = firstRecord.EnumerateObject()
-					.Where(prop => prop.Name != "attributes")
-					.Select(prop => new {
-						Name = prop.Name,
-						Type = prop.Value.ValueKind switch {
-							JsonValueKind.String => typeof(string),
-							JsonValueKind.True or JsonValueKind.False => typeof(bool),
-							JsonValueKind.Number => typeof(double),
-							_ => typeof(string)
-						}
-					})
-					.ToList();
-				columns.ForEach(col => dt.Columns.Add(col.Name, col.Type));// Add columns, including baseObject
-
-				var rows = records.EnumerateArray()             // Project records into rows
-					.Select(record => {
-						var row = dt.NewRow();
-						string qualifiedApiName = null;
-						foreach (var prop in record.EnumerateObject().Where(p => dt.Columns.Contains(p.Name))) {
-							row[prop.Name] = prop.Value.ValueKind switch {
-								JsonValueKind.Null => DBNull.Value,
-								JsonValueKind.String => prop.Value.GetString(),
-								JsonValueKind.True => true,
-								JsonValueKind.False => false,
-								JsonValueKind.Number => prop.Value.GetDouble(),
-								_ => prop.Value.ToString()
-							};
-							if (prop.Name == "QualifiedApiName")
-								qualifiedApiName = prop.Value.GetString();
-						}
-						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
-						return row;
-					})
-					.ToList();
-				rows.ForEach(row => dt.Rows.Add(row));
-				_logger.LogDebug("Successfully executed SOQL query, retrieved {Count} CDC-enabled EntityDefinitions with {ColumnCount} columns",
-					dt.Rows.Count, dt.Columns.Count);
-				return dt;
-			} catch (Exception ex) {
-				_logger.LogError("Error processing SOQL query results for EntityDefinition: {Message}", ex.Message);
-				throw;
-			}
-		}
-		//====================================================================================
 		public async Task<DataTable> ExecSoqlToTable(string soql, bool useTooling) {
 			JsonElement re = await ExecuteSoqlQueryRawAsync(soql, cancellationToken: default, useTooling: useTooling);
 			DataTable dt = JsonElementToDataTable(re, tableName: getObjectNameFromSoql(soql)); // new DataTable(getObjectNameFromSoql(soql));
 			return dt;
 		}
-		//====================================================================================
 		public async Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default) {
 			string query = "SELECT Id,QualifiedApiName,developerName  FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
 			JsonElement rootElement = await ExecuteSoqlQueryRawAsync(query, cancellationToken);
@@ -565,7 +498,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		//====================================================================================
 		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
 			string url;
@@ -577,6 +509,7 @@ namespace NetUtils {
 			};
 
 			var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
+
 
 			if (string.IsNullOrEmpty(recordId)) {// Insert: POST to /sobjects/{objectName}
 				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
@@ -636,8 +569,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
-		//====================================================================================
 		public static string PlatformEventChannelMemeberToObjectName(string selectedEntity) {
 
 			if (string.IsNullOrWhiteSpace(selectedEntity))
@@ -660,7 +591,6 @@ namespace NetUtils {
 			return isCustom ? $"{baseName}__c" : baseName;
 
 		}
-
 		public static string ObjectNameToChangeEvent(string objectName) {
 			if (string.IsNullOrWhiteSpace(objectName))
 				throw new ArgumentNullException(nameof(objectName));
@@ -677,25 +607,6 @@ namespace NetUtils {
 			// For custom object, append __ChangeEvent; otherwise just ChangeEvent
 			return isCustom ? $"{baseName}__ChangeEvent" : $"{baseName}ChangeEvent";
 		}
-		//====================================================================================
-		// Helper method to parse Salesforce error response
-		private string ParseSalesforceError(string errorContent) {
-			try {
-				using JsonDocument doc = JsonDocument.Parse(errorContent);
-				var errors = doc.RootElement.EnumerateArray();
-				var errorMessages = new List<string>();
-				foreach (var error in errors) {
-					string message = error.TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error";
-					string errorCode = error.TryGetProperty("errorCode", out var code) ? code.GetString() : "N/A";
-					string fields = error.TryGetProperty("fields", out var fieldsProp) ? string.Join(", ", fieldsProp.EnumerateArray().Select(f => f.GetString())) : "";
-					errorMessages.Add($"Error: {message} (Code: {errorCode}, Fields: {fields})");
-				}
-				return string.Join("; ", errorMessages);
-			} catch {
-				return errorContent; // Fallback to raw content if parsing fails
-			}
-		}
-		//====================================================================================
 		public async Task DeleteSobject(string objectName, string recordId) {
 			if (string.IsNullOrEmpty(objectName))
 				throw new ArgumentNullException(nameof(objectName));
@@ -724,7 +635,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		//====================================================================================
 		#region helpers
 		private string getObjectNameFromSoql(string soqlQuery) {
 			if (string.IsNullOrWhiteSpace(soqlQuery)) {
@@ -772,7 +682,6 @@ namespace NetUtils {
 
 
 		#endregion	helpers
-		// ===================================================================================
 		public class TokenResponse {
 			public string access_token { get; set; }
 			public string instance_url { get; set; }
@@ -784,5 +693,83 @@ namespace NetUtils {
 			public string TenantId { get; set; }
 			public DateTime Expiry { get; set; }
 		}
+		private DataTable JsonElementToDataTable(JsonElement rootElement, string tableName) {
+			DataTable dt = new DataTable(tableName);
+			try {
+				if (!rootElement.TryGetProperty("records", out var records) || records.GetArrayLength() == 0) {
+					_logger.LogWarning("No records returned from SOQL query");
+					return dt;
+				}
+				var firstRecord = records.EnumerateArray().First();// Project column names and types from the first record
+				var columns = firstRecord.EnumerateObject()
+					.Where(prop => prop.Name != "attributes")
+					.Select(prop => new {
+						Name = prop.Name,
+						Type = prop.Value.ValueKind switch {
+							JsonValueKind.String => typeof(string),
+							JsonValueKind.True or JsonValueKind.False => typeof(bool),
+							JsonValueKind.Number => typeof(double),
+							_ => typeof(string)
+						}
+					})
+					.ToList();
+				columns.ForEach(col => dt.Columns.Add(col.Name, col.Type));// Add columns, including baseObject
+
+				var rows = records.EnumerateArray()             // Project records into rows
+					.Select(record => {
+						var row = dt.NewRow();
+						string qualifiedApiName = null;
+						foreach (var prop in record.EnumerateObject().Where(p => dt.Columns.Contains(p.Name))) {
+							row[prop.Name] = prop.Value.ValueKind switch {
+								JsonValueKind.Null => DBNull.Value,
+								JsonValueKind.String => prop.Value.GetString(),
+								JsonValueKind.True => true,
+								JsonValueKind.False => false,
+								JsonValueKind.Number => prop.Value.GetDouble(),
+								_ => prop.Value.ToString()
+							};
+							if (prop.Name == "QualifiedApiName")
+								qualifiedApiName = prop.Value.GetString();
+						}
+						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
+						return row;
+					})
+					.ToList();
+				rows.ForEach(row => dt.Rows.Add(row));
+				_logger.LogDebug("Successfully executed SOQL query, retrieved {Count} CDC-enabled EntityDefinitions with {ColumnCount} columns",
+					dt.Rows.Count, dt.Columns.Count);
+				return dt;
+			} catch (Exception ex) {
+				_logger.LogError("Error processing SOQL query results for EntityDefinition: {Message}", ex.Message);
+				throw;
+			}
+		}
+		private string ParseSalesforceError(string errorContent) {
+			try {
+				using JsonDocument doc = JsonDocument.Parse(errorContent);
+				var errors = doc.RootElement.EnumerateArray();
+				var errorMessages = new List<string>();
+				foreach (var error in errors) {
+					string message = error.TryGetProperty("message", out var msg) ? msg.GetString() : "Unknown error";
+					string errorCode = error.TryGetProperty("errorCode", out var code) ? code.GetString() : "N/A";
+					string fields = error.TryGetProperty("fields", out var fieldsProp) ? string.Join(", ", fieldsProp.EnumerateArray().Select(f => f.GetString())) : "";
+					errorMessages.Add($"Error: {message} (Code: {errorCode}, Fields: {fields})");
+				}
+				return string.Join("; ", errorMessages);
+			} catch {
+				return errorContent; // Fallback to raw content if parsing fails
+			}
+		}
+		private async Task<HttpRequestMessage> setupSoqlHeader(string query, HttpMethod method, bool useTooling = false) {
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			string url = useTooling
+				? $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/query/?q={Uri.EscapeDataString(query)}"
+				: $"{instanceUrl}/services/data/v{_settings.ApiVersion}/query/?q={Uri.EscapeDataString(query)}";
+			var request = new HttpRequestMessage(method, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			return request;
+		}
+
 	}
 }

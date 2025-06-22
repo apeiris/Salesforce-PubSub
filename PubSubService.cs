@@ -69,6 +69,7 @@ namespace NetUtils {
 						_logger.LogWarning("Skipping null or empty topic.");
 						continue;
 					}
+					
 					await SubscribeToTopicAsync(topic, token!, instanceUrl!, tenantId!, null);
 					_logger.LogInformation("Subscribed to topic: {Topic}", topic);
 				}
@@ -157,10 +158,12 @@ namespace NetUtils {
 			var callOptions = new CallOptions(credentials: CustomGrpcCredentials.Create(token, instanceUrl, tenantId));
 			try {
 				var streamingCall = _client.Subscribe(callOptions);
+				
 				await streamingCall.RequestStream.WriteAsync(fetchRequest);
 
 				var cts = new CancellationTokenSource();
 				_subscriptions.Add((streamingCall, cts));
+				
 				_ = Task.Run(async () => {
 					try {
 						while (await streamingCall.ResponseStream.MoveNext(cts.Token)) {

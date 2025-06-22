@@ -104,6 +104,7 @@
 			btnBuildSelect = new Button();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
+			btnDeleteCmbObjectSelected = new Button();
 			label1 = new Label();
 			dgvSchema = new DataGridView();
 			btnDescribe = new Button();
@@ -126,7 +127,6 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			btnDeleteCmbObjectSelected = new Button();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -1345,10 +1345,10 @@
 			// 
 			tableLayoutPanel5.ColumnCount = 5;
 			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 78.14685F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 106F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 154F));
-			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 938F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 570F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 197F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 119F));
+			tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 424F));
 			tableLayoutPanel5.Controls.Add(btnDeleteCmbObjectSelected, 3, 0);
 			tableLayoutPanel5.Controls.Add(label1, 0, 0);
 			tableLayoutPanel5.Controls.Add(dgvSchema, 0, 2);
@@ -1363,6 +1363,16 @@
 			tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Absolute, 617F));
 			tableLayoutPanel5.Size = new Size(1415, 678);
 			tableLayoutPanel5.TabIndex = 0;
+			// 
+			// btnDeleteCmbObjectSelected
+			// 
+			btnDeleteCmbObjectSelected.Location = new Point(874, 3);
+			btnDeleteCmbObjectSelected.Name = "btnDeleteCmbObjectSelected";
+			btnDeleteCmbObjectSelected.Size = new Size(113, 23);
+			btnDeleteCmbObjectSelected.TabIndex = 6;
+			btnDeleteCmbObjectSelected.Text = "Remove Object";
+			btnDeleteCmbObjectSelected.UseVisualStyleBackColor = true;
+			btnDeleteCmbObjectSelected.Click += btnDeleteCmbObjectSelected_Click;
 			// 
 			// label1
 			// 
@@ -1387,7 +1397,7 @@
 			// 
 			// btnDescribe
 			// 
-			btnDescribe.Location = new Point(219, 3);
+			btnDescribe.Location = new Point(677, 3);
 			btnDescribe.Name = "btnDescribe";
 			btnDescribe.Size = new Size(75, 23);
 			btnDescribe.TabIndex = 2;
@@ -1400,7 +1410,7 @@
 			cmbObjects.FormattingEnabled = true;
 			cmbObjects.Location = new Point(107, 3);
 			cmbObjects.Name = "cmbObjects";
-			cmbObjects.Size = new Size(106, 23);
+			cmbObjects.Size = new Size(564, 23);
 			cmbObjects.TabIndex = 5;
 			cmbObjects.Validated += cmbObjects_Validated;
 			// 
@@ -1631,16 +1641,6 @@
 			lblCDCStatus.TabIndex = 2;
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
-			// 
-			// btnDeleteCmbObjectSelected
-			// 
-			btnDeleteCmbObjectSelected.Location = new Point(325, 3);
-			btnDeleteCmbObjectSelected.Name = "btnDeleteCmbObjectSelected";
-			btnDeleteCmbObjectSelected.Size = new Size(75, 23);
-			btnDeleteCmbObjectSelected.TabIndex = 6;
-			btnDeleteCmbObjectSelected.Text = "Remove Object";
-			btnDeleteCmbObjectSelected.UseVisualStyleBackColor = true;
-			btnDeleteCmbObjectSelected.Click += btnDeleteCmbObjectSelected_Click;
 			// 
 			// MainForm
 			// 
