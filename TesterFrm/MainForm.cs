@@ -505,10 +505,16 @@ namespace TesterFrm {
 				Console.WriteLine(ds.GetXml());
 			} catch (Exception ex) {
 				if (ex.Message.Contains(": Not Found")) {
-				DialogResult dr=	MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Hand);
+				DialogResult dr=	MessageBox.Show($"The object {cmbObjects.Text} not found in the Standard objects, look inn tooling ?", "", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
 					if (dr == DialogResult.Yes) {
-						DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cmbObjects.Text,useTooling:true);
-						dgvSchema.DataSource = ds.Tables[0];
+
+						try {
+							DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cmbObjects.Text, useTooling: true);
+							dgvSchema.DataSource = ds.Tables[0];
+						} catch (Exception) {
+
+							
+						}
 					}
 				}
 			}
