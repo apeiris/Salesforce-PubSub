@@ -109,6 +109,7 @@
 			dgvSchema = new DataGridView();
 			btnDescribe = new Button();
 			cmbObjects = new ComboBox();
+			lblCDCName = new Label();
 			tbpEventLog = new TabPage();
 			splitContainer3 = new SplitContainer();
 			tableLayoutPanel6 = new TableLayoutPanel();
@@ -381,7 +382,7 @@
 			button26.TabIndex = 25;
 			button26.Text = "Z";
 			button26.UseVisualStyleBackColor = true;
-			button26.Click += bs_Click;
+			button26.Click += btnSort_Click;
 			// 
 			// button25
 			// 
@@ -391,7 +392,7 @@
 			button25.TabIndex = 24;
 			button25.Text = "Y";
 			button25.UseVisualStyleBackColor = true;
-			button25.Click += bs_Click;
+			button25.Click += btnSort_Click;
 			// 
 			// button24
 			// 
@@ -401,7 +402,7 @@
 			button24.TabIndex = 23;
 			button24.Text = "X";
 			button24.UseVisualStyleBackColor = true;
-			button24.Click += bs_Click;
+			button24.Click += btnSort_Click;
 			// 
 			// button23
 			// 
@@ -411,7 +412,7 @@
 			button23.TabIndex = 22;
 			button23.Text = "W";
 			button23.UseVisualStyleBackColor = true;
-			button23.Click += bs_Click;
+			button23.Click += btnSort_Click;
 			// 
 			// button22
 			// 
@@ -421,7 +422,7 @@
 			button22.TabIndex = 21;
 			button22.Text = "V";
 			button22.UseVisualStyleBackColor = true;
-			button22.Click += bs_Click;
+			button22.Click += btnSort_Click;
 			// 
 			// button21
 			// 
@@ -431,7 +432,7 @@
 			button21.TabIndex = 20;
 			button21.Text = "U";
 			button21.UseVisualStyleBackColor = true;
-			button21.Click += bs_Click;
+			button21.Click += btnSort_Click;
 			// 
 			// button20
 			// 
@@ -441,7 +442,7 @@
 			button20.TabIndex = 19;
 			button20.Text = "T";
 			button20.UseVisualStyleBackColor = true;
-			button20.Click += bs_Click;
+			button20.Click += btnSort_Click;
 			// 
 			// button19
 			// 
@@ -451,7 +452,7 @@
 			button19.TabIndex = 18;
 			button19.Text = "S";
 			button19.UseVisualStyleBackColor = true;
-			button19.Click += bs_Click;
+			button19.Click += btnSort_Click;
 			// 
 			// button18
 			// 
@@ -461,7 +462,7 @@
 			button18.TabIndex = 17;
 			button18.Text = "R";
 			button18.UseVisualStyleBackColor = true;
-			button18.Click += bs_Click;
+			button18.Click += btnSort_Click;
 			// 
 			// button17
 			// 
@@ -471,7 +472,7 @@
 			button17.TabIndex = 16;
 			button17.Text = "Q";
 			button17.UseVisualStyleBackColor = true;
-			button17.Click += bs_Click;
+			button17.Click += btnSort_Click;
 			// 
 			// button16
 			// 
@@ -481,7 +482,7 @@
 			button16.TabIndex = 15;
 			button16.Text = "P";
 			button16.UseVisualStyleBackColor = true;
-			button16.Click += bs_Click;
+			button16.Click += btnSort_Click;
 			// 
 			// button15
 			// 
@@ -491,7 +492,7 @@
 			button15.TabIndex = 14;
 			button15.Text = "O";
 			button15.UseVisualStyleBackColor = true;
-			button15.Click += bs_Click;
+			button15.Click += btnSort_Click;
 			// 
 			// button14
 			// 
@@ -501,7 +502,7 @@
 			button14.TabIndex = 13;
 			button14.Text = "N";
 			button14.UseVisualStyleBackColor = true;
-			button14.Click += bs_Click;
+			button14.Click += btnSort_Click;
 			// 
 			// button13
 			// 
@@ -511,7 +512,7 @@
 			button13.TabIndex = 12;
 			button13.Text = "M";
 			button13.UseVisualStyleBackColor = true;
-			button13.Click += bs_Click;
+			button13.Click += btnSort_Click;
 			// 
 			// button12
 			// 
@@ -521,7 +522,7 @@
 			button12.TabIndex = 11;
 			button12.Text = "L";
 			button12.UseVisualStyleBackColor = true;
-			button12.Click += bs_Click;
+			button12.Click += btnSort_Click;
 			// 
 			// button11
 			// 
@@ -531,7 +532,7 @@
 			button11.TabIndex = 10;
 			button11.Text = "K";
 			button11.UseVisualStyleBackColor = true;
-			button11.Click += bs_Click;
+			button11.Click += btnSort_Click;
 			// 
 			// button10
 			// 
@@ -541,7 +542,7 @@
 			button10.TabIndex = 9;
 			button10.Text = "J";
 			button10.UseVisualStyleBackColor = true;
-			button10.Click += bs_Click;
+			button10.Click += btnSort_Click;
 			// 
 			// button9
 			// 
@@ -551,7 +552,7 @@
 			button9.TabIndex = 8;
 			button9.Text = "I";
 			button9.UseVisualStyleBackColor = true;
-			button9.Click += bs_Click;
+			button9.Click += btnSort_Click;
 			// 
 			// button8
 			// 
@@ -561,7 +562,7 @@
 			button8.TabIndex = 7;
 			button8.Text = "H";
 			button8.UseVisualStyleBackColor = true;
-			button8.Click += bs_Click;
+			button8.Click += btnSort_Click;
 			// 
 			// button7
 			// 
@@ -571,7 +572,7 @@
 			button7.TabIndex = 6;
 			button7.Text = "G";
 			button7.UseVisualStyleBackColor = true;
-			button7.Click += bs_Click;
+			button7.Click += btnSort_Click;
 			// 
 			// button6
 			// 
@@ -581,7 +582,7 @@
 			button6.TabIndex = 5;
 			button6.Text = "F";
 			button6.UseVisualStyleBackColor = true;
-			button6.Click += bs_Click;
+			button6.Click += btnSort_Click;
 			// 
 			// button5
 			// 
@@ -591,7 +592,7 @@
 			button5.TabIndex = 4;
 			button5.Text = "E";
 			button5.UseVisualStyleBackColor = true;
-			button5.Click += bs_Click;
+			button5.Click += btnSort_Click;
 			// 
 			// button4
 			// 
@@ -601,7 +602,7 @@
 			button4.TabIndex = 3;
 			button4.Text = "D";
 			button4.UseVisualStyleBackColor = true;
-			button4.Click += bs_Click;
+			button4.Click += btnSort_Click;
 			// 
 			// button3
 			// 
@@ -611,7 +612,7 @@
 			button3.TabIndex = 2;
 			button3.Text = "C";
 			button3.UseVisualStyleBackColor = true;
-			button3.Click += bs_Click;
+			button3.Click += btnSort_Click;
 			// 
 			// button2
 			// 
@@ -621,7 +622,7 @@
 			button2.TabIndex = 1;
 			button2.Text = "B";
 			button2.UseVisualStyleBackColor = true;
-			button2.Click += bs_Click;
+			button2.Click += btnSort_Click;
 			// 
 			// bsA
 			// 
@@ -631,7 +632,7 @@
 			bsA.TabIndex = 0;
 			bsA.Text = "A";
 			bsA.UseVisualStyleBackColor = true;
-			bsA.Click += bs_Click;
+			bsA.Click += btnSort_Click;
 			// 
 			// btnMoveRight
 			// 
@@ -1249,6 +1250,7 @@
 			dgvSOQLResult.Name = "dgvSOQLResult";
 			dgvSOQLResult.Size = new Size(420, 584);
 			dgvSOQLResult.TabIndex = 0;
+			dgvSOQLResult.CellContentClick += dgvSOQLResult_CellContentClick;
 			// 
 			// tableLayoutPanel14
 			// 
@@ -1354,6 +1356,7 @@
 			tableLayoutPanel5.Controls.Add(dgvSchema, 0, 2);
 			tableLayoutPanel5.Controls.Add(btnDescribe, 2, 0);
 			tableLayoutPanel5.Controls.Add(cmbObjects, 1, 0);
+			tableLayoutPanel5.Controls.Add(lblCDCName, 1, 1);
 			tableLayoutPanel5.Dock = DockStyle.Fill;
 			tableLayoutPanel5.Location = new Point(0, 0);
 			tableLayoutPanel5.Name = "tableLayoutPanel5";
@@ -1412,7 +1415,20 @@
 			cmbObjects.Name = "cmbObjects";
 			cmbObjects.Size = new Size(564, 23);
 			cmbObjects.TabIndex = 5;
+			cmbObjects.SelectedIndexChanged += cmbObjects_SelectedIndexChanged;
 			cmbObjects.Validated += cmbObjects_Validated;
+			// 
+			// lblCDCName
+			// 
+			lblCDCName.AutoSize = true;
+			lblCDCName.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblCDCName.ForeColor = Color.IndianRed;
+			lblCDCName.Location = new Point(104, 32);
+			lblCDCName.Margin = new Padding(0);
+			lblCDCName.Name = "lblCDCName";
+			lblCDCName.Size = new Size(40, 15);
+			lblCDCName.TabIndex = 7;
+			lblCDCName.Text = "label4";
 			// 
 			// tbpEventLog
 			// 
@@ -1859,5 +1875,6 @@
 		private PictureBox pictureBox2;
 		private ComboBox cmbObjects;
 		private Button btnDeleteCmbObjectSelected;
+		private Label lblCDCName;
 	}
 }

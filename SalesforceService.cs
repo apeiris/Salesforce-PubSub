@@ -1,5 +1,7 @@
 ﻿using System.Data;
+using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -7,13 +9,12 @@ using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Bcpg.OpenPgp;
+using Salesforce;
+using Salesforce.SDK.Net;
 using HttpMethod = System.Net.Http.HttpMethod;
 using JsonSerializer = System.Text.Json.JsonSerializer;
-using Salesforce.SDK.Net;
-using Salesforce;
-using Newtonsoft.Json.Linq;
-using System.Security.AccessControl;
-using Org.BouncyCastle.Bcpg.OpenPgp;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
@@ -406,7 +407,7 @@ namespace NetUtils {
 				await using var stream = await response.Content.ReadAsStreamAsync();
 				var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: default);
 				_logger.LogDebug("Successfully executed SOQL query");
-				return jsonDoc.RootElement; // Return JsonElement, which is not disposed
+				return jsonDoc.RootElement; 
 			} catch (Exception ex) {
 				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
 				throw;
@@ -498,77 +499,7 @@ namespace NetUtils {
 				throw;
 			}
 		}
-		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields) {
-			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
-			string url;
-			HttpMethod method;
-			var options = new JsonSerializerOptions {
-				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-				WriteIndented = true,
-				DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-			};
 
-			var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
-
-
-			if (string.IsNullOrEmpty(recordId)) {// Insert: POST to /sobjects/{objectName}
-				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}";
-				method = HttpMethod.Post;
-				_logger.LogDebug("Inserting new {ObjectName} record", objectName);
-			} else {// Update: PATCH to /sobjects/{objectName}/{recordId}
-				url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
-				method = new HttpMethod("PATCH");
-				_logger.LogDebug("Updating {ObjectName} record with Id {RecordId}", objectName, recordId);
-			}
-			jsonFields = JsonSerializer.Serialize(fields, new JsonSerializerOptions { WriteIndented = true });
-
-			using var request = new HttpRequestMessage(method, url);
-			request.Headers.Add("Authorization", $"Bearer {token}");
-			request.Headers.Add("Accept", "application/json");
-			request.Content = new StringContent(jsonFields, Encoding.UTF8, "application/json");
-
-			try {
-				using var response = await _httpClient.SendAsync(request);
-				string newRecordId = recordId;
-
-				if (response.StatusCode == System.Net.HttpStatusCode.NoContent && !string.IsNullOrEmpty(recordId)) {
-					// Update successful (204 No Content)
-					_logger.LogInformation("Updated {ObjectName} record with Id {RecordId}", objectName, recordId);
-				} else if (response.StatusCode == System.Net.HttpStatusCode.Created && string.IsNullOrEmpty(recordId)) {
-					// Insert successful (201 Created)
-					string responseContent = await response.Content.ReadAsStringAsync();
-					using JsonDocument responseDoc = JsonDocument.Parse(responseContent);
-					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
-					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
-				} else {
-					// Handle error response
-					string errorContent = await response.Content.ReadAsStringAsync();
-					string errorMessage = ParseSalesforceError(errorContent);
-					_logger.LogError("Failed to upsert {ObjectName} record: {StatusCode} - {ErrorMessage}",
-						objectName, response.StatusCode, errorMessage);
-					throw new Exception($"Failed to upsert {objectName} record: {response.StatusCode} - {errorMessage}");
-				}
-
-				// Create a DataTable with the upserted record
-				DataTable resultTable = new DataTable(objectName);
-				resultTable.Columns.Add("Id", typeof(string));
-				foreach (var field in fields) {
-					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
-				}
-
-				DataRow row = resultTable.NewRow();
-				row["Id"] = newRecordId;
-				foreach (var field in fields) {
-					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
-				}
-				resultTable.Rows.Add(row);
-
-				return resultTable;
-			} catch (Exception ex) {
-				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
-				throw;
-			}
-		}
 		public static string PlatformEventChannelMemeberToObjectName(string selectedEntity) {
 
 			if (string.IsNullOrWhiteSpace(selectedEntity))
@@ -594,27 +525,38 @@ namespace NetUtils {
 		public static string ObjectNameToChangeEvent(string objectName) {
 			if (string.IsNullOrWhiteSpace(objectName))
 				throw new ArgumentNullException(nameof(objectName));
-
-			// Match custom object: ends with __c
-			var match = Regex.Match(objectName, @"^(?<base>.+?)(__c)?$", RegexOptions.Compiled);
-
-			if (!match.Success)
-				throw new ArgumentException("Invalid object name format.", nameof(objectName));
-
+			var match = Regex.Match(objectName, @"^(?<base>.+?)(__c)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);// Match custom object: ends with __c
+			if (!match.Success) throw new ArgumentException("Invalid object name format.", nameof(objectName));
 			string baseName = match.Groups["base"].Value;
 			bool isCustom = objectName.EndsWith("__c", StringComparison.OrdinalIgnoreCase);
-
-			// For custom object, append __ChangeEvent; otherwise just ChangeEvent
 			return isCustom ? $"{baseName}__ChangeEvent" : $"{baseName}ChangeEvent";
 		}
-		public async Task DeleteSobject(string objectName, string recordId) {
+
+		public static string ChangeEventToObjectName(string changeEventName) {
+			if (string.IsNullOrWhiteSpace(changeEventName))
+				throw new ArgumentNullException(nameof(changeEventName));
+
+			// Match both standard and custom ChangeEvent names
+			var match = Regex.Match(changeEventName, @"^(?<base>.+?)(?:__)?ChangeEvent$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+			if (!match.Success)
+				throw new ArgumentException("Invalid ChangeEvent name format.", nameof(changeEventName));
+
+			string baseName = match.Groups["base"].Value;
+
+			// If the original was a custom object, it ends with __ (custom objects have __ChangeEvent suffix)
+			bool isCustom = changeEventName.EndsWith("__ChangeEvent", StringComparison.OrdinalIgnoreCase);
+			return isCustom ? $"{baseName}__c" : baseName;
+		}
+		public async Task DeleteSobject(string objectName, string recordId,bool useTooling=false) {
 			if (string.IsNullOrEmpty(objectName))
 				throw new ArgumentNullException(nameof(objectName));
 			if (string.IsNullOrEmpty(recordId))
 				throw new ArgumentNullException(nameof(recordId));
-
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
-			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/sobjects/{objectName}/{recordId}";
+		
+			string divertTooling = useTooling ? "tooling/sobjects" : "sobjects";
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/{divertTooling}/{objectName}"; 
+
 			using var request = new HttpRequestMessage(HttpMethod.Delete, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
 			try {
@@ -635,6 +577,101 @@ namespace NetUtils {
 				throw;
 			}
 		}
+
+		public async Task<string> IdOfPlatformEventChannelMember(string objectName, CancellationToken cancellationToken = default) {
+			if (string.IsNullOrWhiteSpace(objectName)) throw new ArgumentNullException(nameof(objectName));
+			string changeEventName = ObjectNameToChangeEvent(objectName);
+			string query = $"SELECT Id FROM PlatformEventChannelMember WHERE SelectedEntity = '{changeEventName}' LIMIT 1";
+			JsonElement result = await ExecuteSoqlQueryRawAsync(query, cancellationToken: cancellationToken, useTooling: true);
+			if (result.TryGetProperty("records", out JsonElement records) && records.GetArrayLength() > 0) {
+				return records[0].GetProperty("Id").GetString();
+			}
+			return null;
+		}	
+
+		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields, bool useTooling = false) {
+			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
+			string url;
+			HttpMethod method;
+			var options = new JsonSerializerOptions {
+				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+				WriteIndented = true,
+				DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+			};
+			string divertTooling = useTooling ? "tooling/sobjects" : "sobjects";
+			url = string.IsNullOrEmpty(recordId) ? $"{instanceUrl}/services/data/v{_settings.ApiVersion}/{divertTooling}/{objectName}" : $"{instanceUrl}/services/data/v{_settings.ApiVersion}/{divertTooling}/{objectName}/{recordId}";
+			method = string.IsNullOrEmpty(recordId) ? HttpMethod.Post : HttpMethod.Patch;// If recordId NOT provided then insert(POST), otherwise Update (PATCH)  
+			var fields = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonFields);
+			jsonFields = JsonSerializer.Serialize(fields, new JsonSerializerOptions { WriteIndented = true });
+			using var request = new HttpRequestMessage(method, url);
+			request.Headers.Add("Authorization", $"Bearer {token}");
+			request.Headers.Add("Accept", "application/json");
+			request.Content = new StringContent(jsonFields, Encoding.UTF8, "application/json");
+			try {
+				using var response = await _httpClient.SendAsync(request);
+				string newRecordId = recordId;
+				if (response.StatusCode == System.Net.HttpStatusCode.NoContent && !string.IsNullOrEmpty(recordId)) {
+					// Update successful (204 No Content)
+					_logger.LogInformation("Updated {ObjectName} record with Id {RecordId}", objectName, recordId);
+				} else if (response.StatusCode == System.Net.HttpStatusCode.Created && string.IsNullOrEmpty(recordId)) {// Insert successful (201 Created)
+					string responseContent = await response.Content.ReadAsStringAsync();
+					using JsonDocument responseDoc = JsonDocument.Parse(responseContent);
+					newRecordId = responseDoc.RootElement.GetProperty("id").GetString();
+					_logger.LogInformation("Created new {ObjectName} record with Id {RecordId}", objectName, newRecordId);
+				} else {        // Handle error response
+					string errorContent = await response.Content.ReadAsStringAsync();
+					string errorMessage = ParseSalesforceError(errorContent);
+					string mx = method.ToString();
+					_logger.LogError("Failed to {method} {ObjectName} record: {StatusCode} - {ErrorMessage}",
+						mx,objectName, response.StatusCode, errorMessage);
+					throw new Exception($"Failed to {mx} {objectName} record: {response.StatusCode} - {errorMessage}");
+				}
+				DataTable resultTable = new DataTable(objectName);// Create a DataTable with the upserted record
+				resultTable.Columns.Add("Id", typeof(string));
+				foreach (var field in fields) {
+					resultTable.Columns.Add(field.Key, typeof(string)); // Adjust type as needed
+				}
+				DataRow row = resultTable.NewRow();
+				row["Id"] = newRecordId;
+				foreach (var field in fields) {
+					row[field.Key] = field.Value != null ? field.Value.ToString() : DBNull.Value;
+				}
+				resultTable.Rows.Add(row);
+				return resultTable;
+			} catch (Exception ex) {
+				_logger.LogError("Error upserting {ObjectName} record: {Message}", objectName, ex.Message);
+				throw;
+			}
+		}
+
+		public async Task AddCDCChannelMember(string sObject) {
+			string masterLabel = ObjectNameToChangeEvent(sObject);
+
+			var metadata = new {
+				enrichedFields = new string[] { },
+				eventChannel = "ChangeEvents",
+				filterExpression = (string)null,
+				selectedEntity = masterLabel,
+				urls = (string)null
+			};
+			var payload = new Dictionary<string, object?> {
+				["FullName"] = $"ChangeEvents_{masterLabel}",
+				["Metadata"] = metadata, // ✅ pass as object, not string
+				
+			};
+
+			string jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions {
+				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+				WriteIndented = true
+			});
+
+
+
+
+			await UpsertSobject("PlatformEventChannelMember", null, jsonPayload, useTooling: true);
+
+		}
+
 		#region helpers
 		private string getObjectNameFromSoql(string soqlQuery) {
 			if (string.IsNullOrWhiteSpace(soqlQuery)) {
@@ -733,8 +770,7 @@ namespace NetUtils {
 						}
 						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
 						return row;
-					})
-					.ToList();
+					}).ToList();
 				rows.ForEach(row => dt.Rows.Add(row));
 				_logger.LogDebug("Successfully executed SOQL query, retrieved {Count} CDC-enabled EntityDefinitions with {ColumnCount} columns",
 					dt.Rows.Count, dt.Columns.Count);

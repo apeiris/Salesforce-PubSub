@@ -302,7 +302,14 @@ namespace TesterFrm {
 																   //	.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
 
 				//		topics.Add("/event/ProductSelected");// experimental to subscribe event from ebikes ProductSelected message channel -> LightningMessageChannel
-				var topics = new HashSet<string> { "/data/AccountChangeEvent", "/data/Order__ChangeEvent", "/data/Order_Item__ChangeEvent" };
+				//var topics = new HashSet<string> { "/data/AccountChangeEvent", "/data/Order__ChangeEvent", "/data/Order_Item__ChangeEvent" };
+				DataTable dt = await _salesforceService.ExecSoqlToTable("select selectedEntity from PlatformEventChannelMember",useTooling:true);
+				var topics= new HashSet<string>(dt.AsEnumerable()
+					.Select(row => $"/data/{row["SelectedEntity"]}"));
+				
+				
+				
+				
 				await _pubSubService.StartSubscriptionsAsync(topics!);
 				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
@@ -334,7 +341,7 @@ namespace TesterFrm {
 			}
 		}
 		#region move right and left
-		private void btnMoveRight_Click(object sender, EventArgs e) {
+		private async void btnMoveRight_Click(object sender, EventArgs e) {
 			_l.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
 			if (dgvSource.SelectedRows.Count == 0) return;
 			_sourceTable = (DataTable)dgvSource.DataSource!;
@@ -351,8 +358,18 @@ namespace TesterFrm {
 				rowsToRemove.Add(sourceRow);// Mark for removal from source
 			}
 			foreach (DataRow row in rowsToRemove) { // Remove rows from source after iteration
-				_sourceTable!.Rows.Remove(row);
+
+				string x = (string)row["name"];
+
+				_sourceTable!.Rows.Remove(row); try {
+					await _salesforceService.AddCDCChannelMember(x); // Register the object in the CDC channel
+					_l.LogDebug($"Added {x} to CDC channel");
+				} catch (Exception ex) {
+					MessageBox.Show($"{ex.Message}", "Could not Add CDC", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
 			}
+			btnSubscribe_Click(null, null);// Refresh the subscription list after moving rows
+
 			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
 			dgvSource.DataSource = null;// Refresh both DataGridViews
 			dgvSource.DataSource = _sourceTable;
@@ -370,7 +387,7 @@ namespace TesterFrm {
 			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
 
-		private void btnMoveLeft_Click(object sender, EventArgs e) {
+		private async void btnMoveLeft_Click(object sender, EventArgs e) {
 			if (dgvDestination.SelectedRows.Count == 0) return;
 			_sourceTable = (DataTable)dgvSource.DataSource;
 			_destinationTable = (DataTable)dgvDestination.DataSource;
@@ -384,12 +401,17 @@ namespace TesterFrm {
 				DataRow sourceRow = _sourceTable.NewRow();
 
 				sourceRow["name"] = deletedRow["name"].ToString();
-				//sourceRow["QualifiedApiName"] =  SalesforceService.PlatformEventChannelMemeberToObjectName(deletedRow["name"].ToString()!);
 				sourceRow["QualifiedApiName"] = SalesforceService.ObjectNameToChangeEvent(deletedRow["name"].ToString()!);
 				_sourceTable.Rows.Add(sourceRow);
 				rowsToRemove.Add(deletedRow);
 			}
 			foreach (DataRow row in rowsToRemove) {
+				string name = row["name"].ToString(); 
+				MessageBox.Show($"object name: {name}:{SalesforceService.ObjectNameToChangeEvent(name)} ");
+				string recordId =await  _salesforceService.IdOfPlatformEventChannelMember(name);
+				
+				bool x = await _salesforceService.DeleteToolingRecord("PlatformEventChannelMember", recordId);
+				btnSubscribe_Click(null, null);
 				_destinationTable.Rows.Remove(row);
 			}
 			dgvSource.DataSource = null;
@@ -471,7 +493,7 @@ namespace TesterFrm {
 		private void btnDeleteCDCSubscription_Click(object sender, EventArgs e) {
 			_sqlServerLib.DeleteCDCObject(ObjectNameFromEventDeclaration(lbxObjects.Text));
 		}
-		private void bs_Click(object sender, EventArgs e) {
+		private void btnSort_Click(object sender, EventArgs e) {
 			Button b = (Button)sender;
 			char l = b.Text[0];
 			_sourceTable.DefaultView.Sort = $"name ASC"; // Sort the source table by name
@@ -622,7 +644,7 @@ namespace TesterFrm {
 		}
 		private string objectNameFromSoql(string soql) {
 			string pattern = @"FROM\s+([a-zA-Z0-9_]+)\b";
-			var match = Regex.Match(soql, @"FROM\s+([a-zA-Z0-9_]+)\b",RegexOptions.IgnoreCase);
+			var match = Regex.Match(soql, @"FROM\s+([a-zA-Z0-9_]+)\b", RegexOptions.IgnoreCase);
 			return match.Groups[1].Value;
 		}
 		private async void btnBuildSelect_Click(object sender, EventArgs e) {
@@ -749,6 +771,16 @@ namespace TesterFrm {
 						lblSelectedTable.Text = $"{dtObject.TableName} - filtered: {fields.Count}";
 					}));
 				}
+			}
+		}
+
+		private void dgvSOQLResult_CellContentClick(object sender, DataGridViewCellEventArgs e) {
+			DataTable dt = dgvSOQLResult.DataSource as DataTable;
+			if (dt == null) return;
+			if (e.RowIndex < 0 || e.ColumnIndex < 0) return; // Ensure valid row and column indices
+			if (dt.Columns.Contains("SelectedEntity")) {
+					string se = dt.Rows[e.RowIndex]["SelectedEntity"]?.ToString() ?? string.Empty;
+				MessageBox.Show($"Selected Entity: {se} : **  {SalesforceService.ChangeEventToObjectName(se)}  **");
 			}
 		}
 		#endregion dgv
@@ -1140,7 +1172,7 @@ namespace TesterFrm {
 
 		private void btnDeleteCmbObjectSelected_Click(object sender, EventArgs e) {
 			var i = cmbObjects.SelectedItem;
-			if (i!= null) {
+			if (i != null) {
 				cmbObjects.Items.Remove(i);
 				var allItems = cmbObjects.Items.Cast<string>();
 				string joined = string.Join(",", allItems);
@@ -1148,6 +1180,12 @@ namespace TesterFrm {
 				Properties.Settings.Default.Save();
 			}
 		}
+
+		private void cmbObjects_SelectedIndexChanged(object sender, EventArgs e) {
+			if (cmbObjects.SelectedItem == null) return;
+			lblCDCName.Text = SalesforceService.ObjectNameToChangeEvent(cmbObjects.SelectedItem.ToString());
+		}
+
 	}
 }
 
