@@ -1244,6 +1244,7 @@
 			// 
 			// dgvSOQLResult
 			// 
+			dgvSOQLResult.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
 			dgvSOQLResult.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			dgvSOQLResult.Dock = DockStyle.Fill;
 			dgvSOQLResult.Location = new Point(3, 3);

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
@@ -369,7 +370,7 @@ namespace NetUtils {
 		}
 		public async Task<bool> DeleteToolingRecord(string oName, string recordId) {
 			//oName = "PlatformEventChannelMember";
-
+			if (string.IsNullOrEmpty(recordId)) { return false; } // cant do it
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(oName)}/{Uri.EscapeDataString(recordId)}";
 			var request = new HttpRequestMessage(HttpMethod.Delete, url);
@@ -407,7 +408,7 @@ namespace NetUtils {
 				await using var stream = await response.Content.ReadAsStreamAsync();
 				var jsonDoc = await JsonDocument.ParseAsync(stream, cancellationToken: default);
 				_logger.LogDebug("Successfully executed SOQL query");
-				return jsonDoc.RootElement; 
+				return jsonDoc.RootElement;
 			} catch (Exception ex) {
 				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
 				throw;
@@ -547,15 +548,15 @@ namespace NetUtils {
 			bool isCustom = changeEventName.EndsWith("__ChangeEvent", StringComparison.OrdinalIgnoreCase);
 			return isCustom ? $"{baseName}__c" : baseName;
 		}
-		public async Task DeleteSobject(string objectName, string recordId,bool useTooling=false) {
+		public async Task DeleteSobject(string objectName, string recordId, bool useTooling = false) {
 			if (string.IsNullOrEmpty(objectName))
 				throw new ArgumentNullException(nameof(objectName));
 			if (string.IsNullOrEmpty(recordId))
 				throw new ArgumentNullException(nameof(recordId));
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
-		
+
 			string divertTooling = useTooling ? "tooling/sobjects" : "sobjects";
-			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/{divertTooling}/{objectName}"; 
+			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/{divertTooling}/{objectName}";
 
 			using var request = new HttpRequestMessage(HttpMethod.Delete, url);
 			request.Headers.Add("Authorization", $"Bearer {token}");
@@ -587,7 +588,7 @@ namespace NetUtils {
 				return records[0].GetProperty("Id").GetString();
 			}
 			return null;
-		}	
+		}
 
 		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields, bool useTooling = false) {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
@@ -623,7 +624,7 @@ namespace NetUtils {
 					string errorMessage = ParseSalesforceError(errorContent);
 					string mx = method.ToString();
 					_logger.LogError("Failed to {method} {ObjectName} record: {StatusCode} - {ErrorMessage}",
-						mx,objectName, response.StatusCode, errorMessage);
+						mx, objectName, response.StatusCode, errorMessage);
 					throw new Exception($"Failed to {mx} {objectName} record: {response.StatusCode} - {errorMessage}");
 				}
 				DataTable resultTable = new DataTable(objectName);// Create a DataTable with the upserted record
@@ -643,35 +644,39 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
+		private static bool isCustomObject(string sObject) {
+			return Regex.IsMatch(sObject, @"__c$", RegexOptions.IgnoreCase);
+		}
+		public static string? GetPlatformEventChannelMemberFullName(string sObject) {
+			if (string.IsNullOrWhiteSpace(sObject)) return null;
+			return isCustomObject(sObject) ? $"ChangeEvents_{sObject.Replace("__c","")}_ChangeEvent" : $"ChangeEvents_{sObject}ChangeEvent"; // e.g., Order__ChangeEvent or OrderChangeEvent
+		}
 		public async Task AddCDCChannelMember(string sObject) {
-			string masterLabel = ObjectNameToChangeEvent(sObject);
-
+			string masterLabel = ObjectNameToChangeEvent(sObject); // e.g., Order__ChangeEvent
+			string fullName = GetPlatformEventChannelMemberFullName(sObject)!;
 			var metadata = new {
 				enrichedFields = new string[] { },
 				eventChannel = "ChangeEvents",
-				filterExpression = (string)null,
 				selectedEntity = masterLabel,
 				urls = (string)null
 			};
 			var payload = new Dictionary<string, object?> {
-				["FullName"] = $"ChangeEvents_{masterLabel}",
-				["Metadata"] = metadata, // ✅ pass as object, not string
-				
+				["FullName"] = fullName, // Use underscore instead of dot
+				["Metadata"] = metadata
 			};
+			try {
+				string jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions {
+					PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+					WriteIndented = true
+				});
 
-			string jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions {
-				PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-				WriteIndented = true
-			});
-
-
-
-
-			await UpsertSobject("PlatformEventChannelMember", null, jsonPayload, useTooling: true);
-
+				await UpsertSobject("PlatformEventChannelMember", null, jsonPayload, useTooling: true);
+				_logger.LogInformation("Successfully enabled CDC for {SObject} with channel {MasterLabel}", sObject, masterLabel);
+			} catch (Exception ex) {
+				_logger.LogError("Failed to enable CDC for {SObject}: {Message}", sObject, ex.Message);
+				throw;
+			}
 		}
-
 		#region helpers
 		private string getObjectNameFromSoql(string soqlQuery) {
 			if (string.IsNullOrWhiteSpace(soqlQuery)) {

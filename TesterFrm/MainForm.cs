@@ -303,13 +303,13 @@ namespace TesterFrm {
 
 				//		topics.Add("/event/ProductSelected");// experimental to subscribe event from ebikes ProductSelected message channel -> LightningMessageChannel
 				//var topics = new HashSet<string> { "/data/AccountChangeEvent", "/data/Order__ChangeEvent", "/data/Order_Item__ChangeEvent" };
-				DataTable dt = await _salesforceService.ExecSoqlToTable("select selectedEntity from PlatformEventChannelMember",useTooling:true);
-				var topics= new HashSet<string>(dt.AsEnumerable()
+				DataTable dt = await _salesforceService.ExecSoqlToTable("select selectedEntity from PlatformEventChannelMember", useTooling: true);
+				var topics = new HashSet<string>(dt.AsEnumerable()
 					.Select(row => $"/data/{row["SelectedEntity"]}"));
-				
-				
-				
-				
+
+
+
+
 				await _pubSubService.StartSubscriptionsAsync(topics!);
 				toolStripStatusLabel1.Text = "Token copied to Clipboard.";
 			} catch (Exception ex) {
@@ -354,18 +354,17 @@ namespace TesterFrm {
 			List<DataRow> rowsToRemove = new List<DataRow>();// Create a list to store rows to remove (to avoid modifying collection during iteration)
 			foreach (DataGridViewRow row in dgvSource.SelectedRows) {// Move selected rows
 				DataRow sourceRow = ((DataRowView)row.DataBoundItem!).Row;
-				_destinationTable!.ImportRow(sourceRow); // Add to destination
-				rowsToRemove.Add(sourceRow);// Mark for removal from source
-			}
-			foreach (DataRow row in rowsToRemove) { // Remove rows from source after iteration
-
-				string x = (string)row["name"];
-
-				_sourceTable!.Rows.Remove(row); try {
-					await _salesforceService.AddCDCChannelMember(x); // Register the object in the CDC channel
-					_l.LogDebug($"Added {x} to CDC channel");
+				try {
+					await _salesforceService.AddCDCChannelMember(row.Cells["name"].Value!.ToString()!);
+					_destinationTable!.ImportRow(sourceRow); // Add to destination
+					rowsToRemove.Add(sourceRow);// Mark for removal from source
 				} catch (Exception ex) {
-					MessageBox.Show($"{ex.Message}", "Could not Add CDC", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					_l.LogError($"Error adding CDC channel member: {ex.Message}");
+					MessageBox.Show($"Error adding CDC channel member: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					Clipboard.SetText(ex.Message);
+				}
+				foreach (DataRow rx in rowsToRemove) { // Remove rows from source after iteration
+					_sourceTable!.Rows.Remove(rx);
 				}
 			}
 			btnSubscribe_Click(null, null);// Refresh the subscription list after moving rows
@@ -406,10 +405,10 @@ namespace TesterFrm {
 				rowsToRemove.Add(deletedRow);
 			}
 			foreach (DataRow row in rowsToRemove) {
-				string name = row["name"].ToString(); 
+				string name = row["name"].ToString();
 				MessageBox.Show($"object name: {name}:{SalesforceService.ObjectNameToChangeEvent(name)} ");
-				string recordId =await  _salesforceService.IdOfPlatformEventChannelMember(name);
-				
+				string recordId = await _salesforceService.IdOfPlatformEventChannelMember(name);
+
 				bool x = await _salesforceService.DeleteToolingRecord("PlatformEventChannelMember", recordId);
 				btnSubscribe_Click(null, null);
 				_destinationTable.Rows.Remove(row);
@@ -779,7 +778,7 @@ namespace TesterFrm {
 			if (dt == null) return;
 			if (e.RowIndex < 0 || e.ColumnIndex < 0) return; // Ensure valid row and column indices
 			if (dt.Columns.Contains("SelectedEntity")) {
-					string se = dt.Rows[e.RowIndex]["SelectedEntity"]?.ToString() ?? string.Empty;
+				string se = dt.Rows[e.RowIndex]["SelectedEntity"]?.ToString() ?? string.Empty;
 				MessageBox.Show($"Selected Entity: {se} : **  {SalesforceService.ChangeEventToObjectName(se)}  **");
 			}
 		}
