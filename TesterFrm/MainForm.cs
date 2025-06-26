@@ -579,6 +579,7 @@ namespace TesterFrm {
 			if (_dtSoqlResults.Columns.Contains("Id")) _dtSoqlResults.Columns["Id"].ReadOnly = true;
 			_dtSoqlResults.AcceptChanges();
 			dgvSOQLResult.DataSource = _dtSoqlResults;
+			lblSOQLRowCount.Text = $"Rows: {_dtSoqlResults.Rows.Count}";
 
 		}
 		private async void btnSObjectSave(object sender, EventArgs e) {// saves Edited Soql Object 	
@@ -908,7 +909,7 @@ namespace TesterFrm {
 			_sourceTable = await _salesforceService.GetCDCEnabledEntitiesAsync();
 			_dtRegisteredCDCCandidates = await _salesforceService.ExecSoqlToTable("SELECT SelectedEntity FROM PlatformEventChannelMember", useTooling: true);//Get subscribable entries from tooling 
 																																							 //_dtRegisteredCDCCandidates.Columns["QualifiedApiName"]!.ColumnName = "name"; // rename QualifiedApiName to name
-			_dtRegisteredCDCCandidates = _dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from QualifiedApiName
+			_dtRegisteredCDCCandidates = _dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from SelectedEntity
 
 			var remRows = _dtRegisteredCDCCandidates.AsEnumerable() // remove rows from source that are already enabled for pubsub
 				   .Select(row => row.Field<string>("name"))

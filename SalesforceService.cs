@@ -500,7 +500,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
 		public static string PlatformEventChannelMemeberToObjectName(string selectedEntity) {
 
 			if (string.IsNullOrWhiteSpace(selectedEntity))
@@ -532,7 +531,6 @@ namespace NetUtils {
 			bool isCustom = objectName.EndsWith("__c", StringComparison.OrdinalIgnoreCase);
 			return isCustom ? $"{baseName}__ChangeEvent" : $"{baseName}ChangeEvent";
 		}
-
 		public static string ChangeEventToObjectName(string changeEventName) {
 			if (string.IsNullOrWhiteSpace(changeEventName))
 				throw new ArgumentNullException(nameof(changeEventName));
@@ -578,7 +576,6 @@ namespace NetUtils {
 				throw;
 			}
 		}
-
 		public async Task<string> IdOfPlatformEventChannelMember(string objectName, CancellationToken cancellationToken = default) {
 			if (string.IsNullOrWhiteSpace(objectName)) throw new ArgumentNullException(nameof(objectName));
 			string changeEventName = ObjectNameToChangeEvent(objectName);
@@ -589,7 +586,6 @@ namespace NetUtils {
 			}
 			return null;
 		}
-
 		public async Task<DataTable> UpsertSobject(string objectName, string recordId, string jsonFields, bool useTooling = false) {
 			var (token, instanceUrl, tenantId) = await GetAccessTokenAsync();
 			string url;
@@ -669,7 +665,6 @@ namespace NetUtils {
 					PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 					WriteIndented = true
 				});
-
 				await UpsertSobject("PlatformEventChannelMember", null, jsonPayload, useTooling: true);
 				_logger.LogInformation("Successfully enabled CDC for {SObject} with channel {MasterLabel}", sObject, masterLabel);
 			} catch (Exception ex) {
@@ -811,6 +806,5 @@ namespace NetUtils {
 			request.Headers.Add("Accept", "application/json");
 			return request;
 		}
-
 	}
 }
