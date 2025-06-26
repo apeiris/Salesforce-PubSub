@@ -413,7 +413,6 @@ namespace NetUtils {
 				_logger.LogError("Error executing SOQL query: {Message}", ex.Message);
 				throw;
 			}
-
 		}
 		public async Task<DataTable> DescribeToolingObjectToDataTable(string objectName) {
 			JsonElement re = await DescribeToolingObject(objectName);
@@ -486,7 +485,6 @@ namespace NetUtils {
 							if (prop.Name == "QualifiedApiName")
 								qualifiedApiName = prop.Value.GetString();
 						}
-						//row["name"] = qualifiedApiName?.Replace("ChangeEvent", "") ?? "";
 						row["name"] = PlatformEventChannelMemeberToObjectName(qualifiedApiName ?? "");
 						return row;
 					})
@@ -501,26 +499,16 @@ namespace NetUtils {
 			}
 		}
 		public static string PlatformEventChannelMemeberToObjectName(string selectedEntity) {
-
 			if (string.IsNullOrWhiteSpace(selectedEntity))
 				throw new ArgumentNullException(nameof(selectedEntity));
-
 			// Regex pattern: Match optional trailing __ before ChangeEvent
 			// Group 1 captures the base name (e.g., Account, Order, Product_Family)
 			var regex = new Regex(@"^(.*?)(?:__)?ChangeEvent$", RegexOptions.Compiled);
 			var match = regex.Match(selectedEntity);
-
-			if (!match.Success)
-				throw new ArgumentException("Invalid ChangeEvent format.", nameof(selectedEntity));
-
+			if (!match.Success) throw new ArgumentException("Invalid ChangeEvent format.", nameof(selectedEntity));
 			string baseName = match.Groups[1].Value;
-
-			// Determine if it's a custom object (contains __ChangeEvent)
 			bool isCustom = selectedEntity.Contains("__ChangeEvent");
-
-			// Return baseName + __c for custom objects
-			return isCustom ? $"{baseName}__c" : baseName;
-
+			return isCustom ? $"{baseName}__c" : baseName;// Return baseName + __c for custom objects
 		}
 		public static string ObjectNameToChangeEvent(string objectName) {
 			if (string.IsNullOrWhiteSpace(objectName))
