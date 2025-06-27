@@ -18,7 +18,7 @@
 			tabControl1 = new TabControl();
 			tbpSfObjects = new TabPage();
 			tableLayoutPanel3 = new TableLayoutPanel();
-			dgvSource = new DataGridView();
+			dgvCDCEnabledObjects = new DataGridView();
 			tableLayoutPanel10 = new TableLayoutPanel();
 			button26 = new Button();
 			button25 = new Button();
@@ -47,7 +47,7 @@
 			button2 = new Button();
 			bsA = new Button();
 			btnMoveRight = new Button();
-			dgvDestination = new DataGridView();
+			dgvRegisteredCDCCandidates = new DataGridView();
 			btnMoveLeft = new Button();
 			label2 = new Label();
 			lblDestinationList = new Label();
@@ -134,9 +134,9 @@
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
 			tableLayoutPanel3.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)dgvSource).BeginInit();
+			((System.ComponentModel.ISupportInitialize)dgvCDCEnabledObjects).BeginInit();
 			tableLayoutPanel10.SuspendLayout();
-			((System.ComponentModel.ISupportInitialize)dgvDestination).BeginInit();
+			((System.ComponentModel.ISupportInitialize)dgvRegisteredCDCCandidates).BeginInit();
 			grpPrimaryKey.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
 			((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
@@ -274,10 +274,10 @@
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 179F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 276F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-			tableLayoutPanel3.Controls.Add(dgvSource, 0, 1);
+			tableLayoutPanel3.Controls.Add(dgvCDCEnabledObjects, 0, 1);
 			tableLayoutPanel3.Controls.Add(tableLayoutPanel10, 0, 5);
 			tableLayoutPanel3.Controls.Add(btnMoveRight, 1, 2);
-			tableLayoutPanel3.Controls.Add(dgvDestination, 2, 1);
+			tableLayoutPanel3.Controls.Add(dgvRegisteredCDCCandidates, 2, 1);
 			tableLayoutPanel3.Controls.Add(btnMoveLeft, 1, 3);
 			tableLayoutPanel3.Controls.Add(label2, 0, 0);
 			tableLayoutPanel3.Controls.Add(lblDestinationList, 2, 5);
@@ -299,20 +299,20 @@
 			tableLayoutPanel3.Size = new Size(1023, 592);
 			tableLayoutPanel3.TabIndex = 0;
 			// 
-			// dgvSource
+			// dgvCDCEnabledObjects
 			// 
-			dgvSource.AllowUserToAddRows = false;
-			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvSource.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
-			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			dgvSource.Dock = DockStyle.Fill;
-			dgvSource.Location = new Point(3, 44);
-			dgvSource.Name = "dgvSource";
-			tableLayoutPanel3.SetRowSpan(dgvSource, 4);
-			dgvSource.Size = new Size(470, 381);
-			dgvSource.TabIndex = 0;
-			dgvSource.RowsAdded += dgvRowCountChanged;
-			dgvSource.RowsRemoved += dgvRowCountChanged;
+			dgvCDCEnabledObjects.AllowUserToAddRows = false;
+			dgvCDCEnabledObjects.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvCDCEnabledObjects.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
+			dgvCDCEnabledObjects.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvCDCEnabledObjects.Dock = DockStyle.Fill;
+			dgvCDCEnabledObjects.Location = new Point(3, 44);
+			dgvCDCEnabledObjects.Name = "dgvCDCEnabledObjects";
+			tableLayoutPanel3.SetRowSpan(dgvCDCEnabledObjects, 4);
+			dgvCDCEnabledObjects.Size = new Size(470, 381);
+			dgvCDCEnabledObjects.TabIndex = 0;
+			dgvCDCEnabledObjects.RowsAdded += dgvRowCountChanged;
+			dgvCDCEnabledObjects.RowsRemoved += dgvRowCountChanged;
 			// 
 			// tableLayoutPanel10
 			// 
@@ -648,22 +648,22 @@
 			btnMoveRight.UseVisualStyleBackColor = true;
 			btnMoveRight.Click += btnMoveRight_Click;
 			// 
-			// dgvDestination
+			// dgvRegisteredCDCCandidates
 			// 
-			dgvDestination.AllowUserToAddRows = false;
-			dgvDestination.AllowUserToDeleteRows = false;
-			dgvDestination.AllowUserToOrderColumns = true;
-			dgvDestination.AllowUserToResizeRows = false;
-			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			tableLayoutPanel3.SetColumnSpan(dgvDestination, 2);
-			dgvDestination.Location = new Point(571, 44);
-			dgvDestination.Name = "dgvDestination";
-			tableLayoutPanel3.SetRowSpan(dgvDestination, 4);
-			dgvDestination.Size = new Size(449, 352);
-			dgvDestination.TabIndex = 2;
-			dgvDestination.RowsAdded += dgvRowCountChanged;
-			dgvDestination.RowsRemoved += dgvRowCountChanged;
+			dgvRegisteredCDCCandidates.AllowUserToAddRows = false;
+			dgvRegisteredCDCCandidates.AllowUserToDeleteRows = false;
+			dgvRegisteredCDCCandidates.AllowUserToOrderColumns = true;
+			dgvRegisteredCDCCandidates.AllowUserToResizeRows = false;
+			dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
+			dgvRegisteredCDCCandidates.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			tableLayoutPanel3.SetColumnSpan(dgvRegisteredCDCCandidates, 2);
+			dgvRegisteredCDCCandidates.Location = new Point(571, 44);
+			dgvRegisteredCDCCandidates.Name = "dgvRegisteredCDCCandidates";
+			tableLayoutPanel3.SetRowSpan(dgvRegisteredCDCCandidates, 4);
+			dgvRegisteredCDCCandidates.Size = new Size(449, 352);
+			dgvRegisteredCDCCandidates.TabIndex = 2;
+			dgvRegisteredCDCCandidates.RowsAdded += dgvRowCountChanged;
+			dgvRegisteredCDCCandidates.RowsRemoved += dgvRowCountChanged;
 			// 
 			// btnMoveLeft
 			// 
@@ -1706,9 +1706,9 @@
 			tbpSfObjects.ResumeLayout(false);
 			tableLayoutPanel3.ResumeLayout(false);
 			tableLayoutPanel3.PerformLayout();
-			((System.ComponentModel.ISupportInitialize)dgvSource).EndInit();
+			((System.ComponentModel.ISupportInitialize)dgvCDCEnabledObjects).EndInit();
 			tableLayoutPanel10.ResumeLayout(false);
-			((System.ComponentModel.ISupportInitialize)dgvDestination).EndInit();
+			((System.ComponentModel.ISupportInitialize)dgvRegisteredCDCCandidates).EndInit();
 			grpPrimaryKey.ResumeLayout(false);
 			grpPrimaryKey.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
@@ -1810,9 +1810,9 @@
 		private Label label1;
 		private TableLayoutPanel tableLayoutPanel3;
 		private Button btnCommitToDB;
-		private DataGridView dgvSource;
+		private DataGridView dgvCDCEnabledObjects;
 		private Button btnMoveLeft;
-		private DataGridView dgvDestination;
+		private DataGridView dgvRegisteredCDCCandidates;
 		private Button btnClearDestination;
 		private Button btnMoveRight;
 		private Label label2;

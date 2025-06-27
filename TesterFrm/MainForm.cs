@@ -54,7 +54,7 @@ namespace TesterFrm {
 		//static bool _doing = false;
 		private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 		private readonly object _dgvLock = new object();
-		static bool _sfsObjectsLoaded = false;
+		static bool _cdcObjectsLoaded = false;
 		static bool _soqlLoaded = false;
 		private List<string> _sfoTables = new List<string>(); // List of Salesforce objects from SQL Server
 															  // Dictionary to store checkbox states, scoped per DataGridView
@@ -62,8 +62,8 @@ namespace TesterFrm {
 		private readonly Dictionary<DataGridView, Dictionary<int, bool>> _rowHeaderCheckStatesMap
 			= new Dictionary<DataGridView, Dictionary<int, bool>>();
 
-		private DataTable _sourceTable; // Data source for dgvSource
-		private DataTable _destinationTable; // Data source for dgvDestination
+		private DataTable _sourceTable; // Data source for dgvCDCEnabledObjects
+		private DataTable _destinationTable; // Data source for dgvRegisteredCDCCandidates
 		private DataTable _dtRegisteredCDCCandidates; // Data source for registered tables
 		private DataTable _dtSoqlResults = new DataTable();
 		private static int _lbxLogMw = 0;
@@ -207,7 +207,7 @@ namespace TesterFrm {
 			_sqlServerLib.SqlEvent += (s, e) => {
 				Log(e.Message, e.LogLevel);
 			};
-			this.Load += async (sender, e) => await LoadSfObjectsAsync();
+			this.Load += async (sender, e) => await loadCDCObjects();
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
 			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
@@ -296,10 +296,10 @@ namespace TesterFrm {
 		}
 		private async void btnSubscribe_Click(object sender, EventArgs e) {
 			try {
-				if (!_sfsObjectsLoaded) await LoadSfObjectsAsync();// get the SqlServer registered objects to _destinationTable 
-																   //var topics = new HashSet<string?>(
-																   //	_destinationTable.AsEnumerable()//.Where(r => !r.IsNull("name"))
-																   //	.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
+				if (!_cdcObjectsLoaded) await loadCDCObjects();// get the SqlServer registered objects to _destinationTable 
+															   //var topics = new HashSet<string?>(
+															   //	_destinationTable.AsEnumerable()//.Where(r => !r.IsNull("name"))
+															   //	.Select(r => $"/data/{r.Field<string>("name")}ChangeEvent"));
 
 				//		topics.Add("/event/ProductSelected");// experimental to subscribe event from ebikes ProductSelected message channel -> LightningMessageChannel
 				//var topics = new HashSet<string> { "/data/AccountChangeEvent", "/data/Order__ChangeEvent", "/data/Order_Item__ChangeEvent" };
@@ -342,17 +342,17 @@ namespace TesterFrm {
 		}
 		#region move right and left
 		private async void btnMoveRight_Click(object sender, EventArgs e) {
-			_l.LogDebug($"Selected rowcount={dgvSource.SelectedRows.Count}");
-			if (dgvSource.SelectedRows.Count == 0) return;
-			_sourceTable = (DataTable)dgvSource.DataSource!;
-			if (dgvDestination.DataSource == null) {
+			_l.LogDebug($"Selected rowcount={dgvCDCEnabledObjects.SelectedRows.Count}");
+			if (dgvCDCEnabledObjects.SelectedRows.Count == 0) return;
+			_sourceTable = (DataTable)dgvCDCEnabledObjects.DataSource!;
+			if (dgvRegisteredCDCCandidates.DataSource == null) {
 				_destinationTable = _sourceTable!.Clone(); // Clone structure only
-				dgvDestination.DataSource = _destinationTable;
+				dgvRegisteredCDCCandidates.DataSource = _destinationTable;
 			} else {
-				_destinationTable = (DataTable)dgvDestination.DataSource;
+				_destinationTable = (DataTable)dgvRegisteredCDCCandidates.DataSource;
 			}
 			List<DataRow> rowsToRemove = new List<DataRow>();// Create a list to store rows to remove (to avoid modifying collection during iteration)
-			foreach (DataGridViewRow row in dgvSource.SelectedRows) {// Move selected rows
+			foreach (DataGridViewRow row in dgvCDCEnabledObjects.SelectedRows) {// Move selected rows
 				DataRow sourceRow = ((DataRowView)row.DataBoundItem!).Row;
 				try {
 					await _salesforceService.AddCDCChannelMember(row.Cells["name"].Value!.ToString()!);
@@ -369,33 +369,33 @@ namespace TesterFrm {
 			}
 			btnSubscribe_Click(null, null);// Refresh the subscription list after moving rows
 
-			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
-			dgvSource.DataSource = null;// Refresh both DataGridViews
-			dgvSource.DataSource = _sourceTable;
-			dgvSource.Columns[0].HeaderText = "Salesforce Objects";
-			dgvSource.Refresh();
-			_l.LogDebug($"source.columns[0].header={dgvSource.Columns[0].HeaderText} destination={dgvDestination.Columns[0].HeaderText}");
-
-			dgvDestination.DataSource = null;
-			dgvDestination.DataSource = _destinationTable;
-			dgvDestination.Refresh();
-			dgvSource.AutoResizeColumns();// Optional: Adjust column sizes
-			dgvDestination.AutoResizeColumns();
-			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
-			lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
+			dgvCDCEnabledObjects.DataSource = null;// Refresh both DataGridViews
+			dgvCDCEnabledObjects.DataSource = _sourceTable;
+			dgvCDCEnabledObjects.Columns[0].HeaderText = "Salesforce Objects";
+			dgvCDCEnabledObjects.Refresh();
+			dgvCDCEnabledObjects.AutoResizeColumns();// Optional: Adjust column sizes
+		
+			dgvRegisteredCDCCandidates.DataSource = null;
+			dgvRegisteredCDCCandidates.DataSource = _destinationTable;
+			dgvRegisteredCDCCandidates.AutoResizeColumns();
+			
+			
+			
+			
+			lblSourceList.Text = $"{dgvCDCEnabledObjects.Rows.Count} Salesforce objects";
 			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
 
 		private async void btnMoveLeft_Click(object sender, EventArgs e) {
-			if (dgvDestination.SelectedRows.Count == 0) return;
-			_sourceTable = (DataTable)dgvSource.DataSource;
-			_destinationTable = (DataTable)dgvDestination.DataSource;
+			if (dgvRegisteredCDCCandidates.SelectedRows.Count == 0) return;
+			_sourceTable = (DataTable)dgvCDCEnabledObjects.DataSource;
+			_destinationTable = (DataTable)dgvRegisteredCDCCandidates.DataSource;
 			if (_sourceTable == null) {
 				_sourceTable = _destinationTable.Clone();
-				dgvSource.DataSource = _sourceTable;
+				dgvCDCEnabledObjects.DataSource = _sourceTable;
 			}
 			List<DataRow> rowsToRemove = new List<DataRow>();
-			foreach (DataGridViewRow row in dgvDestination.SelectedRows) {
+			foreach (DataGridViewRow row in dgvRegisteredCDCCandidates.SelectedRows) {
 				DataRow deletedRow = ((DataRowView)row.DataBoundItem).Row;
 				DataRow sourceRow = _sourceTable.NewRow();
 
@@ -413,51 +413,41 @@ namespace TesterFrm {
 				btnSubscribe_Click(null, null);
 				_destinationTable.Rows.Remove(row);
 			}
-			dgvSource.DataSource = null;
-			dgvSource.DataSource = _sourceTable;
-			dgvSource.Refresh();
-			dgvSource.Columns[0].HeaderText = "Salesforce Objects";
+			dgvCDCEnabledObjects.DataSource = null;
+			dgvCDCEnabledObjects.DataSource = _sourceTable;
+			dgvCDCEnabledObjects.Refresh();
+			dgvCDCEnabledObjects.Columns[0].HeaderText = "Salesforce Objects";
 
-			dgvDestination.DataSource = null;
-			dgvDestination.DataSource = _destinationTable;
-			dgvDestination.Refresh();
-			dgvDestination.Columns[0].HeaderText = "CDC Candidates";
-			dgvSource.AutoResizeColumns();
-			dgvDestination.AutoResizeColumns();
+			dgvRegisteredCDCCandidates.DataSource = null;
+			dgvRegisteredCDCCandidates.DataSource = _destinationTable;
+			dgvRegisteredCDCCandidates.Refresh();
+			dgvRegisteredCDCCandidates.Columns[0].HeaderText = "CDC Candidates";
+			dgvCDCEnabledObjects.AutoResizeColumns();
+			dgvRegisteredCDCCandidates.AutoResizeColumns();
 		}
 		#endregion move right and left
 		private void btnClearDestination_Click(object sender, EventArgs e) {
-			dgvDestination.SelectAll();
+			dgvRegisteredCDCCandidates.SelectAll();
 			_destinationTable.Clear();
-			dgvDestination.Refresh();
-			//foreach (DataGridViewRow row in dgvDestination.Rows) {
+			dgvRegisteredCDCCandidates.Refresh();
+			//foreach (DataGridViewRow row in dgvRegisteredCDCCandidates.Rows) {
 			//	btnMoveLeft.PerformClick();
 			//}
-			lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate rows";
+			lblDestinationList.Text = $"{dgvRegisteredCDCCandidates.Rows.Count} candidate rows";
 		}
 		private void btnClearLog_Click(object sender, EventArgs e) {
 			lbxLog.Items.Clear();
 		}
 		private async void btnRegisterCDCCandidate(object sender, EventArgs e) {
-			//_dtRegisteredCDCCandidates.Clear();
-			//_dtRegisteredCDCCandidates=_salesforceService.
-			DataTable dt = (DataTable)dgvDestination.DataSource!;
-			DataTable dtSfoTables = _sqlServerLib.Select("select * from ftTablesOfSchema(null)");
+
+			DataTable dt = (DataTable)dgvRegisteredCDCCandidates.DataSource!;
+			DataTable dtSfoTables = _sqlServerLib.Select("select * from ftTablesOfSchema('sfo')");
 			HashSet<string> existingNames = new HashSet<string>(dtSfoTables.AsEnumerable().Select(r => r.Field<string>("name")!));
 
-			if (!dgvDestination.Columns.Contains("statusIcon")) {
-				var imgCol = new DataGridViewImageColumn {
-					Name = "statusIcon",
-					Width = 32,
-					Image = Properties.Resources.CacheOk, // Default icon	
-					ImageLayout = DataGridViewImageCellLayout.Zoom
-				};
-				imgCol.Icon = SystemIcons.Question;
-				dgvDestination.Columns.Insert(0, imgCol); // Or .Add(imgCol) to add at the end
-			}
+
 
 			var warningIcon = SystemIcons.Error;
-			foreach (DataGridViewRow row in dgvDestination.Rows) {
+			foreach (DataGridViewRow row in dgvRegisteredCDCCandidates.Rows) {
 				if (row.IsNewRow) continue; // Skip the new row placeholder
 				string name = row.Cells["name"].Value?.ToString() ?? string.Empty;
 				if (!existingNames.Contains(name)) {
@@ -505,9 +495,9 @@ namespace TesterFrm {
 				}
 			}
 			if (ti >= 0 && ti < _sourceTable.Rows.Count) {
-				dgvSource.FirstDisplayedScrollingRowIndex = ti;
-				dgvSource.ClearSelection();
-				dgvSource.Rows[ti].Selected = true;
+				dgvCDCEnabledObjects.FirstDisplayedScrollingRowIndex = ti;
+				dgvCDCEnabledObjects.ClearSelection();
+				dgvCDCEnabledObjects.Rows[ti].Selected = true;
 			}
 		}
 		private void btnCDCStartSubscription_Click(object sender, EventArgs e) {
@@ -656,9 +646,6 @@ namespace TesterFrm {
 		#endregion buttons
 		#region dgv
 		private void SetupDataGridViewHeaders(string tn) {
-
-
-
 			dgvObject.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvObject.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvObject.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
@@ -667,49 +654,36 @@ namespace TesterFrm {
 			dgvObject.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
 			dgvObject.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-			dgvSource.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
-			dgvSource.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-			dgvSource.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
-			dgvSource.ColumnHeadersHeight = 50;
+			dgvCDCEnabledObjects.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
+			dgvCDCEnabledObjects.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			dgvCDCEnabledObjects.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvCDCEnabledObjects.ColumnHeadersHeight = 50;
 
-			dgvSource.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
-			dgvSource.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+			dgvCDCEnabledObjects.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
+			dgvCDCEnabledObjects.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
 
-			dgvSource.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+			dgvCDCEnabledObjects.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-			dgvSource.RowTemplate.Height = 30; // Set the height of the row template
-			dgvSource.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-			dgvSource.AutoGenerateColumns = true;
-			dgvSource.DataSource = null;
-			dgvSource.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+			dgvCDCEnabledObjects.RowTemplate.Height = 30; // Set the height of the row template
+			dgvCDCEnabledObjects.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvCDCEnabledObjects.AutoGenerateColumns = true;
+			dgvCDCEnabledObjects.DataSource = null;
+			dgvCDCEnabledObjects.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
-			dgvDestination.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
-			dgvDestination.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-			dgvDestination.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
-			dgvDestination.ColumnHeadersHeight = 40;
-
-			dgvDestination.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
-			dgvDestination.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
-
-			dgvDestination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-
-
-			dgvDestination.RowTemplate.Height = 30; // Set the height of the row template
-			dgvDestination.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-			dgvDestination.AutoGenerateColumns = true;
-			dgvDestination.DataSource = null;
-			dgvDestination.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-
-			var iconCol = new DataGridViewImageColumn {
-				Name = "statusIcon",
-				HeaderText = "Status",
-				Width = 30,
-				ImageLayout = DataGridViewImageCellLayout.Zoom
-			};
-			dgvDestination.Columns.Insert(0, iconCol);
-
-
-
+			//============================dgvRegisteredCDCCandidates=====================
+			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
+			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			dgvRegisteredCDCCandidates.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+			dgvRegisteredCDCCandidates.ColumnHeadersHeight = 40;
+						dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
+			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
+						dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+									dgvRegisteredCDCCandidates.RowTemplate.Height = 30; // Set the height of the row template
+			dgvRegisteredCDCCandidates.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+			dgvRegisteredCDCCandidates.AutoGenerateColumns = true;
+			dgvRegisteredCDCCandidates.DataSource = null;
+			dgvRegisteredCDCCandidates.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+			//==================================================================
 			dgvRelations.ColumnHeadersDefaultCellStyle.BackColor = System.Drawing.Color.LightBlue;
 			dgvRelations.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
 			dgvRelations.TopLeftHeaderCell.Value = "Subscribe";
@@ -728,16 +702,16 @@ namespace TesterFrm {
 		private void dgvRowCountChanged(object sender, EventArgs e) {
 
 			switch (sender) {
-				case DataGridView s when s == dgvSource:
-				lblSourceList.Text = $"{dgvSource.Rows.Count} Salesforce objects";
-				btnMoveRight.Enabled = dgvSource.Rows.Count > 0;
-				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
+				case DataGridView s when s == dgvCDCEnabledObjects:
+				lblSourceList.Text = $"{dgvCDCEnabledObjects.Rows.Count} Salesforce objects";
+				btnMoveRight.Enabled = dgvCDCEnabledObjects.Rows.Count > 0;
+				btnCommitToDB.Enabled = dgvRegisteredCDCCandidates.Rows.Count > 0;
 				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
 
-				case DataGridView s when s == dgvDestination:
-				lblDestinationList.Text = $"{dgvDestination.Rows.Count} candidate Object";
-				btnCommitToDB.Enabled = dgvDestination.Rows.Count > 0;
+				case DataGridView s when s == dgvRegisteredCDCCandidates:
+				lblDestinationList.Text = $"{dgvRegisteredCDCCandidates.Rows.Count} candidate Object";
+				btnCommitToDB.Enabled = dgvRegisteredCDCCandidates.Rows.Count > 0;
 				SetContainedControlsEnabled(grpPrimaryKey, btnCommitToDB.Enabled);
 				break;
 
@@ -835,8 +809,8 @@ namespace TesterFrm {
 				destination.Columns.Add(ncol);// Add the column to destination
 			}
 			destination.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-			if (dgvDestination.Columns.Count > 0)
-				dgvDestination.Columns[0].HeaderText = "CDC Candidates";
+			if (dgvRegisteredCDCCandidates.Columns.Count > 0)
+				dgvRegisteredCDCCandidates.Columns[0].HeaderText = "CDC Candidates";
 
 		}
 		private async Task CommitObjectsAsDbArtefactsAsync(object sender, EventArgs e) {
@@ -894,8 +868,7 @@ namespace TesterFrm {
 			return (JsonConvert.SerializeObject(fields), fields.Count);
 		}
 		#endregion helpers
-		private static DataTable? RemoveExludedRows(DataTable dt, HashSet<string> exclude, string keyColumn = "Name") {
-			//keyColumn = "Name" // default key column
+		private static DataTable? removeCDCRegistered(DataTable dt, HashSet<string> exclude, string keyColumn = "Name") {
 			if (dt == null || !dt.Columns.Contains("name") || exclude is null || exclude.Count == 0) return null;
 			var rowsToDelete = dt.AsEnumerable()
 				.Where(row => exclude.Contains(row.Field<string>(keyColumn)))
@@ -903,21 +876,36 @@ namespace TesterFrm {
 			foreach (var row in rowsToDelete) dt.Rows.Remove(row);
 			return dt;
 		}
-		private async Task LoadSfObjectsAsync() {
-			Log("LoadSFObjectsAsync", LogLevel.Debug);
+		private async Task loadCDCObjects() {
+			Log("loadCDCObjects()", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			_sourceTable = await _salesforceService.GetCDCEnabledEntitiesAsync();
-			_dtRegisteredCDCCandidates = await _salesforceService.ExecSoqlToTable("SELECT SelectedEntity FROM PlatformEventChannelMember", useTooling: true);//Get subscribable entries from tooling 
-																																							 //_dtRegisteredCDCCandidates.Columns["QualifiedApiName"]!.ColumnName = "name"; // rename QualifiedApiName to name
-			_dtRegisteredCDCCandidates = _dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from SelectedEntity
 
+			_dtRegisteredCDCCandidates = await _salesforceService.ExecSoqlToTable("SELECT SelectedEntity FROM PlatformEventChannelMember", useTooling: true);//Get subscribable entries from tooling 
+			_dtRegisteredCDCCandidates = _dtRegisteredCDCCandidates.DeriveColumn("SelectedEntity", "name");// derive name from SelectedEntity
 			var remRows = _dtRegisteredCDCCandidates.AsEnumerable() // remove rows from source that are already enabled for pubsub
 				   .Select(row => row.Field<string>("name"))
 				   .Where(value => !string.IsNullOrEmpty(value))
 				   .ToHashSet();
-			dgvDestination.DataSource = _dtRegisteredCDCCandidates;
-			dgvSource.DataSource = RemoveExludedRows(_sourceTable, remRows!, "name");
-			_sfsObjectsLoaded = true;
+
+			_dtRegisteredCDCCandidates.TableName = "RegisteredCDCCandidates";
+			_dtRegisteredCDCCandidates.Columns.Add("Reinit", typeof(bool)); // Add a column for status icons
+			_dtRegisteredCDCCandidates.Columns.Add("DB", typeof(Image)); // Add a column for status iconsRow[
+
+			HashSet<string> replicatedNames = new HashSet<string>(
+				 _sqlServerLib.Select("select name from dbo.fttablesofschema('sfo')").AsEnumerable()
+					.Select(r => r["name"].ToString())!,StringComparer.OrdinalIgnoreCase);
+
+			_dtRegisteredCDCCandidates.AsEnumerable()
+				.Where(r => remRows.Contains(r.Field<string>("name")))
+				.ToList()
+				.ForEach(r => r["DB"] = Properties.Resources.CacheOk);
+
+			dgvCDCEnabledObjects.DataSource = removeCDCRegistered(_sourceTable, remRows!, "name");
+			dgvRegisteredCDCCandidates.DataSource = null;
+			dgvRegisteredCDCCandidates.DataSource = _dtRegisteredCDCCandidates;
+
+			_cdcObjectsLoaded = true;
 		}
 		private async Task LoadSOQL() {
 			Log("LoadSOQL", LogLevel.Debug);
@@ -1093,9 +1081,9 @@ namespace TesterFrm {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
-				if (!_sfsObjectsLoaded) {
-					await LoadSfObjectsAsync();
-					CopySourceScheama(dgvSource, dgvDestination);
+				if (!_cdcObjectsLoaded) {
+					await loadCDCObjects();
+					CopySourceScheama(dgvCDCEnabledObjects, dgvRegisteredCDCCandidates);
 				}
 				break;
 				case "tbppubsub":
