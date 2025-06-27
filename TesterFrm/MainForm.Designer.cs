@@ -100,8 +100,10 @@
 			btnSoqlSave = new Button();
 			lblSoqlText = new Label();
 			tableLayoutPanel15 = new TableLayoutPanel();
-			cmbSOQL = new ComboBox();
 			btnBuildSelect = new Button();
+			tableLayoutPanel17 = new TableLayoutPanel();
+			lblSOQLRowCount = new Label();
+			cmbSOQL = new ComboBox();
 			tbpDescribeObject = new TabPage();
 			tableLayoutPanel5 = new TableLayoutPanel();
 			btnDeleteCmbObjectSelected = new Button();
@@ -128,8 +130,6 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
-			tableLayoutPanel17 = new TableLayoutPanel();
-			lblSOQLRowCount = new Label();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -168,6 +168,7 @@
 			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).BeginInit();
 			tableLayoutPanel14.SuspendLayout();
 			tableLayoutPanel15.SuspendLayout();
+			tableLayoutPanel17.SuspendLayout();
 			tbpDescribeObject.SuspendLayout();
 			tableLayoutPanel5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvSchema).BeginInit();
@@ -190,7 +191,6 @@
 			splitContainer5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).BeginInit();
 			tableLayoutPanel9.SuspendLayout();
-			tableLayoutPanel17.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -659,6 +659,7 @@
 			tableLayoutPanel3.SetColumnSpan(dgvRegisteredCDCCandidates, 2);
 			dgvRegisteredCDCCandidates.Location = new Point(571, 44);
 			dgvRegisteredCDCCandidates.Name = "dgvRegisteredCDCCandidates";
+			dgvRegisteredCDCCandidates.RowHeadersWidth = 10;
 			tableLayoutPanel3.SetRowSpan(dgvRegisteredCDCCandidates, 4);
 			dgvRegisteredCDCCandidates.Size = new Size(449, 352);
 			dgvRegisteredCDCCandidates.TabIndex = 2;
@@ -1317,16 +1318,6 @@
 			tableLayoutPanel15.Size = new Size(494, 76);
 			tableLayoutPanel15.TabIndex = 6;
 			// 
-			// cmbSOQL
-			// 
-			cmbSOQL.Anchor = AnchorStyles.Left;
-			cmbSOQL.FormattingEnabled = true;
-			cmbSOQL.Location = new Point(3, 6);
-			cmbSOQL.Name = "cmbSOQL";
-			cmbSOQL.Size = new Size(369, 23);
-			cmbSOQL.TabIndex = 0;
-			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
-			// 
 			// btnBuildSelect
 			// 
 			btnBuildSelect.Location = new Point(384, 3);
@@ -1336,6 +1327,42 @@
 			btnBuildSelect.Text = "Build Select";
 			btnBuildSelect.UseVisualStyleBackColor = true;
 			btnBuildSelect.Click += btnBuildSelect_Click;
+			// 
+			// tableLayoutPanel17
+			// 
+			tableLayoutPanel17.ColumnCount = 1;
+			tableLayoutPanel17.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+			tableLayoutPanel17.Controls.Add(lblSOQLRowCount, 0, 1);
+			tableLayoutPanel17.Controls.Add(cmbSOQL, 0, 0);
+			tableLayoutPanel17.Location = new Point(3, 3);
+			tableLayoutPanel17.Name = "tableLayoutPanel17";
+			tableLayoutPanel17.RowCount = 2;
+			tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+			tableLayoutPanel17.Size = new Size(375, 70);
+			tableLayoutPanel17.TabIndex = 7;
+			// 
+			// lblSOQLRowCount
+			// 
+			lblSOQLRowCount.AutoSize = true;
+			lblSOQLRowCount.Dock = DockStyle.Fill;
+			lblSOQLRowCount.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
+			lblSOQLRowCount.ForeColor = Color.Brown;
+			lblSOQLRowCount.Location = new Point(3, 35);
+			lblSOQLRowCount.Name = "lblSOQLRowCount";
+			lblSOQLRowCount.Size = new Size(369, 35);
+			lblSOQLRowCount.TabIndex = 6;
+			lblSOQLRowCount.Text = "soql";
+			// 
+			// cmbSOQL
+			// 
+			cmbSOQL.Anchor = AnchorStyles.Left;
+			cmbSOQL.FormattingEnabled = true;
+			cmbSOQL.Location = new Point(3, 6);
+			cmbSOQL.Name = "cmbSOQL";
+			cmbSOQL.Size = new Size(369, 23);
+			cmbSOQL.TabIndex = 0;
+			cmbSOQL.SelectedIndexChanged += cmbSOQL_SelectedIndexChanged;
 			// 
 			// tbpDescribeObject
 			// 
@@ -1662,32 +1689,6 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// tableLayoutPanel17
-			// 
-			tableLayoutPanel17.ColumnCount = 1;
-			tableLayoutPanel17.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-			tableLayoutPanel17.Controls.Add(lblSOQLRowCount, 0, 1);
-			tableLayoutPanel17.Controls.Add(cmbSOQL, 0, 0);
-			tableLayoutPanel17.Location = new Point(3, 3);
-			tableLayoutPanel17.Name = "tableLayoutPanel17";
-			tableLayoutPanel17.RowCount = 2;
-			tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-			tableLayoutPanel17.Size = new Size(375, 70);
-			tableLayoutPanel17.TabIndex = 7;
-			// 
-			// lblSOQLRowCount
-			// 
-			lblSOQLRowCount.AutoSize = true;
-			lblSOQLRowCount.Dock = DockStyle.Fill;
-			lblSOQLRowCount.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			lblSOQLRowCount.ForeColor = Color.Brown;
-			lblSOQLRowCount.Location = new Point(3, 35);
-			lblSOQLRowCount.Name = "lblSOQLRowCount";
-			lblSOQLRowCount.Size = new Size(369, 35);
-			lblSOQLRowCount.TabIndex = 6;
-			lblSOQLRowCount.Text = "soql";
-			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1748,6 +1749,8 @@
 			((System.ComponentModel.ISupportInitialize)dgvSOQLResult).EndInit();
 			tableLayoutPanel14.ResumeLayout(false);
 			tableLayoutPanel15.ResumeLayout(false);
+			tableLayoutPanel17.ResumeLayout(false);
+			tableLayoutPanel17.PerformLayout();
 			tbpDescribeObject.ResumeLayout(false);
 			tableLayoutPanel5.ResumeLayout(false);
 			tableLayoutPanel5.PerformLayout();
@@ -1772,8 +1775,6 @@
 			splitContainer5.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).EndInit();
 			tableLayoutPanel9.ResumeLayout(false);
-			tableLayoutPanel17.ResumeLayout(false);
-			tableLayoutPanel17.PerformLayout();
 			ResumeLayout(false);
 			PerformLayout();
 		}

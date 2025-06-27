@@ -207,7 +207,6 @@ namespace TesterFrm {
 			_sqlServerLib.SqlEvent += (s, e) => {
 				Log(e.Message, e.LogLevel);
 			};
-			this.Load += async (sender, e) => await loadCDCObjects();
 			_sqlServerLib.SqlObjectExist += SqlEventObjectExist;
 			_sqlServerLib.SqlEvent += _sqlServerLib_SqlEvent;
 			_sqlServerLib = sqlServerLib ?? throw new ArgumentNullException(nameof(sqlServerLib));
@@ -877,6 +876,7 @@ namespace TesterFrm {
 			return dt;
 		}
 		private async Task loadCDCObjects() {
+			if (_cdcObjectsLoaded) throw new Exception("Attempted loadCDCObjects() when _cdcObjectsLoded");
 			Log("loadCDCObjects()", LogLevel.Debug);
 			this.Invoke((Action)(() => Cursor.Current = Cursors.WaitCursor));
 			_sourceTable = await _salesforceService.GetCDCEnabledEntitiesAsync();
@@ -887,24 +887,19 @@ namespace TesterFrm {
 				   .Select(row => row.Field<string>("name"))
 				   .Where(value => !string.IsNullOrEmpty(value))
 				   .ToHashSet();
-
 			_dtRegisteredCDCCandidates.TableName = "RegisteredCDCCandidates";
 			_dtRegisteredCDCCandidates.Columns.Add("Reinit", typeof(bool)); // Add a column for status icons
 			_dtRegisteredCDCCandidates.Columns.Add("DB", typeof(Image)); // Add a column for status iconsRow[
-
 			HashSet<string> replicatedNames = new HashSet<string>(
 				 _sqlServerLib.Select("select name from dbo.fttablesofschema('sfo')").AsEnumerable()
 					.Select(r => r["name"].ToString())!,StringComparer.OrdinalIgnoreCase);
-
 			_dtRegisteredCDCCandidates.AsEnumerable()
 				.Where(r => remRows.Contains(r.Field<string>("name")))
 				.ToList()
 				.ForEach(r => r["DB"] = Properties.Resources.CacheOk);
-
 			dgvCDCEnabledObjects.DataSource = removeCDCRegistered(_sourceTable, remRows!, "name");
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.DataSource = _dtRegisteredCDCCandidates;
-
 			_cdcObjectsLoaded = true;
 		}
 		private async Task LoadSOQL() {
@@ -1081,10 +1076,10 @@ namespace TesterFrm {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
-				if (!_cdcObjectsLoaded) {
-					await loadCDCObjects();
-					CopySourceScheama(dgvCDCEnabledObjects, dgvRegisteredCDCCandidates);
-				}
+				//if (!_cdcObjectsLoaded) {
+				//	await loadCDCObjects();
+				//	CopySourceScheama(dgvCDCEnabledObjects, dgvRegisteredCDCCandidates);
+				//}
 				break;
 				case "tbppubsub":
 				LoadTopics(lbxObjects, rbtFilterSubscribed.Checked); // Load sfo Tables from sql server  topics into the listbox
