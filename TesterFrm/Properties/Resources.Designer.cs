@@ -61,16 +61,6 @@ namespace TesterFrm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Abbreviation {
-            get {
-                object obj = ResourceManager.GetObject("Abbreviation", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
         internal static byte[] AddChildNode {
@@ -83,9 +73,39 @@ namespace TesterFrm.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap AddDataSource {
+            get {
+                object obj = ResourceManager.GetObject("AddDataSource", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap AddDataSourceRed {
+            get {
+                object obj = ResourceManager.GetObject("AddDataSourceRed", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap CacheOk {
             get {
                 object obj = ResourceManager.GetObject("CacheOk", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap DocumentError {
+            get {
+                object obj = ResourceManager.GetObject("DocumentError", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

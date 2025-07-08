@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Salesforce;
 using Salesforce.SDK.Net;
+using static System.Net.WebRequestMethods;
 using HttpMethod = System.Net.Http.HttpMethod;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NetUtils {
@@ -633,7 +634,7 @@ namespace NetUtils {
 		}
 		public static string? GetPlatformEventChannelMemberFullName(string sObject) {
 			if (string.IsNullOrWhiteSpace(sObject)) return null;
-			return isCustomObject(sObject) ? $"ChangeEvents_{sObject.Replace("__c","")}_ChangeEvent" : $"ChangeEvents_{sObject}ChangeEvent"; // e.g., Order__ChangeEvent or OrderChangeEvent
+			return isCustomObject(sObject) ? $"ChangeEvents_{sObject.Replace("__c", "")}_ChangeEvent" : $"ChangeEvents_{sObject}ChangeEvent"; // e.g., Order__ChangeEvent or OrderChangeEvent
 		}
 		public async Task AddCDCChannelMember(string sObject) {
 			string masterLabel = ObjectNameToChangeEvent(sObject); // e.g., Order__ChangeEvent

@@ -296,6 +296,7 @@
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 41F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 73F));
+			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel3.Size = new Size(1023, 592);
 			tableLayoutPanel3.TabIndex = 0;
 			// 
@@ -652,16 +653,15 @@
 			// 
 			dgvRegisteredCDCCandidates.AllowUserToAddRows = false;
 			dgvRegisteredCDCCandidates.AllowUserToDeleteRows = false;
-			dgvRegisteredCDCCandidates.AllowUserToOrderColumns = true;
 			dgvRegisteredCDCCandidates.AllowUserToResizeRows = false;
-			dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.ColumnHeader;
-			dgvRegisteredCDCCandidates.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCellsExceptHeader;
 			tableLayoutPanel3.SetColumnSpan(dgvRegisteredCDCCandidates, 2);
 			dgvRegisteredCDCCandidates.Location = new Point(571, 44);
 			dgvRegisteredCDCCandidates.Name = "dgvRegisteredCDCCandidates";
 			dgvRegisteredCDCCandidates.RowHeadersWidth = 10;
 			tableLayoutPanel3.SetRowSpan(dgvRegisteredCDCCandidates, 4);
-			dgvRegisteredCDCCandidates.Size = new Size(449, 352);
+			dgvRegisteredCDCCandidates.ScrollBars = ScrollBars.Vertical;
+			dgvRegisteredCDCCandidates.Size = new Size(392, 352);
 			dgvRegisteredCDCCandidates.TabIndex = 2;
 			dgvRegisteredCDCCandidates.RowsAdded += dgvRowCountChanged;
 			dgvRegisteredCDCCandidates.RowsRemoved += dgvRowCountChanged;

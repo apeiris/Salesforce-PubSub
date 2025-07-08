@@ -1,9 +1,14 @@
 ﻿using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
+using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using DocumentFormat.OpenXml.Math;
+using DocumentFormat.OpenXml.Office2016.Drawing.Command;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
@@ -11,15 +16,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetUtils;
 using Newtonsoft.Json;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 using Button = System.Windows.Forms.Button;
-using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
-using ToolTip = System.Windows.Forms.ToolTip;
 using Color = System.Drawing.Color;
 using Control = System.Windows.Forms.Control;
-using System.Threading.Tasks;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
-using System.Data.Common;
-using DocumentFormat.OpenXml.Office2016.Drawing.Command;
+using enmRetrievedFrom = TesterFrm.MainForm.enmRetrieveFrom;
+using ToolTip = System.Windows.Forms.ToolTip;
 namespace TesterFrm {
 	public partial class MainForm : Form {
 		#region enums
@@ -56,6 +58,7 @@ namespace TesterFrm {
 		private readonly object _dgvLock = new object();
 		static bool _cdcObjectsLoaded = false;
 		static bool _soqlLoaded = false;
+		static bool _hasUnInitDbArtefacts = false;
 		private List<string> _sfoTables = new List<string>(); // List of Salesforce objects from SQL Server
 															  // Dictionary to store checkbox states, scoped per DataGridView
 		private List<string> _qTypeSelecter = new List<string>();
@@ -67,6 +70,7 @@ namespace TesterFrm {
 		private DataTable _dtRegisteredCDCCandidates; // Data source for registered tables
 		private DataTable _dtSoqlResults = new DataTable();
 		private static int _lbxLogMw = 0;
+		
 
 		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
 		private readonly SqlServerLib _sqlServerLib;
@@ -373,14 +377,14 @@ namespace TesterFrm {
 			dgvCDCEnabledObjects.Columns[0].HeaderText = "Salesforce Objects";
 			dgvCDCEnabledObjects.Refresh();
 			dgvCDCEnabledObjects.AutoResizeColumns();// Optional: Adjust column sizes
-		
+
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.DataSource = _destinationTable;
 			dgvRegisteredCDCCandidates.AutoResizeColumns();
-			
-			
-			
-			
+
+
+
+
 			lblSourceList.Text = $"{dgvCDCEnabledObjects.Rows.Count} Salesforce objects";
 			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
@@ -674,12 +678,10 @@ namespace TesterFrm {
 			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
 			dgvRegisteredCDCCandidates.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
 			dgvRegisteredCDCCandidates.ColumnHeadersHeight = 40;
-						dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
+			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.Font = new System.Drawing.Font("Arial", 12, FontStyle.Bold);
 			dgvRegisteredCDCCandidates.ColumnHeadersDefaultCellStyle.ForeColor = System.Drawing.Color.DarkBlue;
-						dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-									dgvRegisteredCDCCandidates.RowTemplate.Height = 30; // Set the height of the row template
-			dgvRegisteredCDCCandidates.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-			dgvRegisteredCDCCandidates.AutoGenerateColumns = true;
+			dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+			dgvRegisteredCDCCandidates.RowTemplate.Height = 30; // Set the height of the row template
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 			//==================================================================
@@ -888,15 +890,30 @@ namespace TesterFrm {
 				   .Where(value => !string.IsNullOrEmpty(value))
 				   .ToHashSet();
 			_dtRegisteredCDCCandidates.TableName = "RegisteredCDCCandidates";
-			_dtRegisteredCDCCandidates.Columns.Add("Reinit", typeof(bool)); // Add a column for status icons
-			_dtRegisteredCDCCandidates.Columns.Add("DB", typeof(Image)); // Add a column for status iconsRow[
+			_dtRegisteredCDCCandidates.Columns.Add("Initialize", typeof(bool)); // Add a column for status icons
+			_dtRegisteredCDCCandidates.Columns.Add("DB", typeof(Image)); // Add a column for status iconsRow
+			_dtRegisteredCDCCandidates.Columns.Add("Create", typeof(Image));
 			HashSet<string> replicatedNames = new HashSet<string>(
 				 _sqlServerLib.Select("select name from dbo.fttablesofschema('sfo')").AsEnumerable()
-					.Select(r => r["name"].ToString())!,StringComparer.OrdinalIgnoreCase);
+					.Select(r => r["name"].ToString())!, StringComparer.OrdinalIgnoreCase);
+
 			_dtRegisteredCDCCandidates.AsEnumerable()
 				.Where(r => remRows.Contains(r.Field<string>("name")))
 				.ToList()
-				.ForEach(r => r["DB"] = Properties.Resources.CacheOk);
+				.ForEach(r => {
+								string name = r.Field<string>("name");
+
+								if (!string.IsNullOrWhiteSpace(name) && replicatedNames.Contains(name)) {
+									r["Create"] = Properties.Resources.CacheOk;
+									r["Initialize"] = false;
+								} else {
+										r["Create"] = Properties.Resources.DocumentError;
+										r["Initialize"] = true;
+										_hasUnInitDbArtefacts = true;		
+										}
+							});
+
+
 			dgvCDCEnabledObjects.DataSource = removeCDCRegistered(_sourceTable, remRows!, "name");
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.DataSource = _dtRegisteredCDCCandidates;
@@ -1072,14 +1089,24 @@ namespace TesterFrm {
 			e.Graphics.FillRectangle(bgBrush, paddedBounds);
 			e.Graphics.DrawString(tbp.Text, e.Font, tBrush, paddedBounds);
 		}
+		private async void createCDCReplica(HashSet<string> list) {
+			string script = "";
+			foreach (string cdcEntry in list) {
+
+				Log($"Processing {cdcEntry}", LogLevel.Debug);
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cdcEntry);
+				if (ds != null) {
+					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], "sfo", cdcEntry);
+					_sqlServerLib.ExecuteNoneQuery(script);
+					rtfLog.Text = script;
+				} else Log($"Schema for the table {cdcEntry} could not be retrived..", LogLevel.Error);
+			}
+		}
 		private async Task tabControl1_Selected(object sender, TabControlEventArgs e) {
 			_l.LogDebug($"(logger) tabpage={e.TabPage.Name}");
 			switch (e.TabPage.Name.ToLower()) {
 				case "tbpsfobjects":
-				//if (!_cdcObjectsLoaded) {
-				//	await loadCDCObjects();
-				//	CopySourceScheama(dgvCDCEnabledObjects, dgvRegisteredCDCCandidates);
-				//}
+
 				break;
 				case "tbppubsub":
 				LoadTopics(lbxObjects, rbtFilterSubscribed.Checked); // Load sfo Tables from sql server  topics into the listbox
@@ -1094,7 +1121,16 @@ namespace TesterFrm {
 				if (!_soqlLoaded) await LoadSOQL();
 				break;
 			}
-			tabControl1.SelectedTab = e.TabPage;
+			if (_hasUnInitDbArtefacts) {
+				HashSet<string> x = _dtRegisteredCDCCandidates.AsEnumerable()
+						.Where(row => row.Field<bool>("Initialize"))
+					 .Select(r => r.Field<string>("name"))
+					 .ToHashSet()!;
+				if (x.Count > 0) {
+					createCDCReplica(x);
+				}
+				tabControl1.SelectedTab = e.TabPage;
+			}
 		}
 		private async void TabControl1_Selected1(object sender, TabControlEventArgs e) {
 			await tabControl1_Selected(sender, e); // Call the async Task method
@@ -1168,6 +1204,45 @@ namespace TesterFrm {
 			if (cmbObjects.SelectedItem == null) return;
 			lblCDCName.Text = SalesforceService.ObjectNameToChangeEvent(cmbObjects.SelectedItem.ToString());
 		}
+
+		
+
+		private async void btnCommitToDB_Click(object sender, EventArgs e) {
+			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+			string script = "";
+			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
+			foreach (DataRow dr in _destinationTable.Rows) {
+				string tblName = dr["name"].ToString();
+				Log($"Processing {dr["name"]}", LogLevel.Debug);
+				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
+				if (ds != null) {
+					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], "sfo", tblName);
+					_sqlServerLib.ExecuteNoneQuery(script);
+					rtfLog.Text = script;
+				} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
+			}
+			// now check for if there are unregistered objects in the database than the that of _destinationTable
+			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
+			var rowsInDestination = new HashSet<string?>(
+				_destinationTable.AsEnumerable()
+				.Where(r => !r.IsNull("name"))
+				.Select(r => r.Field<string>("name")));
+
+			var rowsToDelete = dtSfTables.AsEnumerable()
+				.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
+				.ToList();
+			string sql = "";
+			foreach (DataRow dr in rowsToDelete) {
+				sql = $"DROP TABLE sfo.[{dr["name"]}]";
+
+				_sqlServerLib.ExecuteNoneQuery(sql);
+				Console.WriteLine($"Executiong:  {sql}");
+
+			}
+
+		}
+
 
 	}
 }
