@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TesterFrm", "TesterFrm\Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerLib", "..\SqlServerLib\SqlServerLib.csproj", "{86E8E46D-209E-4394-12DD-36453AC61569}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X12", "..\X12\X12.csproj", "{4DE73418-7046-4405-AC36-32DE4698550A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{86E8E46D-209E-4394-12DD-36453AC61569}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{86E8E46D-209E-4394-12DD-36453AC61569}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{86E8E46D-209E-4394-12DD-36453AC61569}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DE73418-7046-4405-AC36-32DE4698550A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DE73418-7046-4405-AC36-32DE4698550A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DE73418-7046-4405-AC36-32DE4698550A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DE73418-7046-4405-AC36-32DE4698550A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetUtils;
 using NLog.Extensions.Logging;
+
 namespace TesterFrm {
 	static class Program {
 		[STAThread]
@@ -47,7 +48,9 @@ namespace TesterFrm {
 						services.AddScoped<ISalesforceService, SalesforceService>();
 						services.AddScoped<PubSubService>(); // Register PubSubService	
 						services.AddScoped<SqlServerLib>();
+						services.AddScoped<X12>();
 						services.AddHttpClient();
+
 						services.AddScoped<MainForm>(); // Register the form
 						services.AddLogging(loggingBuilder => {
 							loggingBuilder.ClearProviders();

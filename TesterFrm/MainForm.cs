@@ -42,12 +42,13 @@ namespace TesterFrm {
 		#endregion enums
 		#region fields
 		private readonly IMemoryCache _cache;
-		private const string CacheKey = "SalesforceAccessToken";
+		private const string CacheKey = "SFoken";
 		private readonly IHost _host;
 		private readonly ISalesforceService _salesforceService;
 		private readonly PubSubService _pubSubService;
 		private readonly SalesforceConfig _config;
 		private readonly ILogger<MainForm> _l;
+		private readonly X12 _x12;
 		private HashSet<int> _higlightTabs = new();
 
 		static string _token = "";
@@ -70,7 +71,7 @@ namespace TesterFrm {
 		private DataTable _dtRegisteredCDCCandidates; // Data source for registered tables
 		private DataTable _dtSoqlResults = new DataTable();
 		private static int _lbxLogMw = 0;
-		
+
 
 		private List<DataRow> _rowsToMove = new List<DataRow>(); // Temp storage for rows to move
 		private readonly SqlServerLib _sqlServerLib;
@@ -131,6 +132,7 @@ namespace TesterFrm {
 		#region _sqlserver events
 		private void SqlEventObjectExist(object? sender, SqlObjectQuery e) {
 			//	throw new NotImplementedException();
+
 			Log($"CDC {e.ObjectType} {e.ObjectName} exist={e.Exist}  id= {e.Id} ", LogLevel.Information);
 
 			btnDeleteCDCRegistration.Visible = e.Exist;
@@ -175,7 +177,7 @@ namespace TesterFrm {
 		#endregion _sqlserver events
 		#endregion events	
 		#region form
-		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger) {
+		public MainForm(IMemoryCache cache, ISalesforceService salesforceService, PubSubService pubSubService, IOptions<SalesforceConfig> config, SqlServerLib sqlServerLib, ILogger<MainForm> logger, X12 x12) {
 			InitializeComponent();
 			#region tt
 			ToolTip tt = new ToolTip();
@@ -204,6 +206,7 @@ namespace TesterFrm {
 			_pubSubService = pubSubService;
 			_config = config.Value;
 			_sqlServerLib = sqlServerLib;
+			_x12 = x12;
 			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
@@ -227,6 +230,7 @@ namespace TesterFrm {
 			dgvSOQLResult.AllowUserToAddRows = true;
 			dgvSOQLResult.RowsAdded += dgvSOQLResult_RowsAdded;
 			_dtSoqlResults!.RowChanged += _dtSoqlResults_RowChanged;
+			_x12 = x12;
 			#endregion soql tab & controls
 		}
 		private void _dtSoqlResults_RowChanged(object sender, DataRowChangeEventArgs e) {
@@ -371,20 +375,14 @@ namespace TesterFrm {
 				}
 			}
 			btnSubscribe_Click(null, null);// Refresh the subscription list after moving rows
-
 			dgvCDCEnabledObjects.DataSource = null;// Refresh both DataGridViews
 			dgvCDCEnabledObjects.DataSource = _sourceTable;
 			dgvCDCEnabledObjects.Columns[0].HeaderText = "Salesforce Objects";
 			dgvCDCEnabledObjects.Refresh();
 			dgvCDCEnabledObjects.AutoResizeColumns();// Optional: Adjust column sizes
-
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.DataSource = _destinationTable;
 			dgvRegisteredCDCCandidates.AutoResizeColumns();
-
-
-
-
 			lblSourceList.Text = $"{dgvCDCEnabledObjects.Rows.Count} Salesforce objects";
 			Log($"Source count = {_sourceTable.Rows.Count} Destination={_destinationTable.Rows.Count}", LogLevel.Debug);
 		}
@@ -433,32 +431,47 @@ namespace TesterFrm {
 			dgvRegisteredCDCCandidates.SelectAll();
 			_destinationTable.Clear();
 			dgvRegisteredCDCCandidates.Refresh();
-			//foreach (DataGridViewRow row in dgvRegisteredCDCCandidates.Rows) {
-			//	btnMoveLeft.PerformClick();
-			//}
+
 			lblDestinationList.Text = $"{dgvRegisteredCDCCandidates.Rows.Count} candidate rows";
 		}
 		private void btnClearLog_Click(object sender, EventArgs e) {
 			lbxLog.Items.Clear();
 		}
-		private async void btnRegisterCDCCandidate(object sender, EventArgs e) {
 
+		private async Task<string> PopulateDbTableFromSfObject(string objectName) {
+			string schemaName = "sfo"; // Default schema name for Salesforce objects
+			JsonElement je = await _salesforceService.GetObjectSchemaAsync(objectName, default);
+			string s = $"SELECT {string.Join(",", je.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("name")))} FROM {objectName}";
+			DataTable dt = await _salesforceService.ExecSoqlToTable(s, false);
+			_sqlServerLib.UpdateServerTable(dt, s);
+			return null; // Return null or appropriate value if needed
+		}
+		private async void btnRegisterCDCCandidate(object sender, EventArgs e) {
 			DataTable dt = (DataTable)dgvRegisteredCDCCandidates.DataSource!;
 			DataTable dtSfoTables = _sqlServerLib.Select("select * from ftTablesOfSchema('sfo')");
 			HashSet<string> existingNames = new HashSet<string>(dtSfoTables.AsEnumerable().Select(r => r.Field<string>("name")!));
-
-
-
-			var warningIcon = SystemIcons.Error;
+			HashSet<string> listToCreate = new HashSet<string>();
 			foreach (DataGridViewRow row in dgvRegisteredCDCCandidates.Rows) {
-				if (row.IsNewRow) continue; // Skip the new row placeholder
+				if (row.IsNewRow) continue; // Skip the new row placeholder 
 				string name = row.Cells["name"].Value?.ToString() ?? string.Empty;
 				if (!existingNames.Contains(name)) {
-					row.Cells["statusIcon"].Value = warningIcon; // Set warning icon for non-existing names
-					continue;
+					if (row.Cells["Initialize"].Value is true) {
+						listToCreate.Add(name);
+						row.Cells["Create"].Value = Properties.Resources.CacheOk; // Set warning icon for non-existing names
+																				  //string x =await PopulateDbTableFromSfObject(name);	
+					}
 				}
 			}
+			if (listToCreate.Count > 0) {
+				await createCDCReplica(listToCreate);
+			}
+			foreach (string name in listToCreate) {
+				_ = await PopulateDbTableFromSfObject(name);
+			}
 
+			foreach (string name in listToCreate) {
+				Console.WriteLine($"name to create:{name}");
+			}
 		}
 		private void btnRegisterFields_Click(object sender, EventArgs e) {
 			throw new NotImplementedException("btnRegisterFields_Click is not implemented. Please implement the method to register fields for CDC.");
@@ -646,6 +659,13 @@ namespace TesterFrm {
 			JsonElement je = chkUseTooling.Checked ? await _salesforceService.DescribeToolingObject(oN) : await _salesforceService.GetObjectSchemaAsync(oN, default);
 			rtSoqlQuery.Text = $"SELECT {string.Join(",", je.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("name")))} FROM {oN}";
 		}
+		private async void btnListEvents_Click(object sender, EventArgs e) {
+			await _salesforceService.GetEventDefinitions();
+		}
+
+		private void button27_Click(object sender, EventArgs e) {
+
+		}
 		#endregion buttons
 		#region dgv
 		private void SetupDataGridViewHeaders(string tn) {
@@ -832,7 +852,8 @@ namespace TesterFrm {
 					}
 					try {
 						DataSet schema = await _salesforceService.GetObjectSchemaAsDataSetAsync(tableName);// Fetch schema and process
-						lbxObjects.Items.Add($"/data/{tableName}ChangeEvent");
+
+						lbxObjects.Items.Add($"/data/{SalesforceService.ObjectNameToChangeEvent(tableName)}");
 					} catch (Exception ex) {
 						_l.LogError($"Failed to process table {tableName}: {ex.Message}");
 						continue;
@@ -901,19 +922,17 @@ namespace TesterFrm {
 				.Where(r => remRows.Contains(r.Field<string>("name")))
 				.ToList()
 				.ForEach(r => {
-								string name = r.Field<string>("name");
+					string name = r.Field<string>("name")!;
 
-								if (!string.IsNullOrWhiteSpace(name) && replicatedNames.Contains(name)) {
-									r["Create"] = Properties.Resources.CacheOk;
-									r["Initialize"] = false;
-								} else {
-										r["Create"] = Properties.Resources.DocumentError;
-										r["Initialize"] = true;
-										_hasUnInitDbArtefacts = true;		
-										}
-							});
-
-
+					if (!string.IsNullOrWhiteSpace(name) && replicatedNames.Contains(name)) {
+						r["Create"] = Properties.Resources.CacheOk;
+						r["Initialize"] = false;
+					} else {
+						r["Create"] = Properties.Resources.DocumentError;
+						r["Initialize"] = true;
+						_hasUnInitDbArtefacts = true;
+					}
+				});
 			dgvCDCEnabledObjects.DataSource = removeCDCRegistered(_sourceTable, remRows!, "name");
 			dgvRegisteredCDCCandidates.DataSource = null;
 			dgvRegisteredCDCCandidates.DataSource = _dtRegisteredCDCCandidates;
@@ -1037,6 +1056,7 @@ namespace TesterFrm {
 		}
 		private void lbxLog_Click(object sender, EventArgs e) {
 
+			if (lbxLog.SelectedItems == null) return;
 			Clipboard.SetText(lbxLog.SelectedItem.ToString());
 			statusStrip1.Text = $"Copied to clipboard: {Clipboard.GetText()}"; // optional logging
 
@@ -1089,10 +1109,9 @@ namespace TesterFrm {
 			e.Graphics.FillRectangle(bgBrush, paddedBounds);
 			e.Graphics.DrawString(tbp.Text, e.Font, tBrush, paddedBounds);
 		}
-		private async void createCDCReplica(HashSet<string> list) {
+		private async Task createCDCReplica(HashSet<string> list) {
 			string script = "";
 			foreach (string cdcEntry in list) {
-
 				Log($"Processing {cdcEntry}", LogLevel.Debug);
 				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(cdcEntry);
 				if (ds != null) {
@@ -1119,6 +1138,15 @@ namespace TesterFrm {
 				break;
 				case "tbpsoql":
 				if (!_soqlLoaded) await LoadSOQL();
+				break;
+				case "tbpx12":
+
+				if (dgvRegisteredCDCCandidates.DataSource != null) {
+					var s = (DataTable)dgvRegisteredCDCCandidates.DataSource;
+					cmbCDCTables.DataSource = s.AsEnumerable().Select(r => r.Field<string>("name"))
+											.Where(n => !string.IsNullOrEmpty(n))
+											.ToList();
+				}
 				break;
 			}
 			if (_hasUnInitDbArtefacts) {
@@ -1177,7 +1205,6 @@ namespace TesterFrm {
 		}
 		private void pictureBox2_Click(object sender, EventArgs e) {
 		}
-
 		private void cmbObjects_Validated(object sender, EventArgs e) {
 			string newItem = cmbObjects.Text.Trim();
 			if (!string.IsNullOrEmpty(newItem) && !cmbObjects.Items.Contains(newItem)) {
@@ -1188,7 +1215,6 @@ namespace TesterFrm {
 			Properties.Settings.Default.cmbObjects = joined;
 			Properties.Settings.Default.Save();
 		}
-
 		private void btnDeleteCmbObjectSelected_Click(object sender, EventArgs e) {
 			var i = cmbObjects.SelectedItem;
 			if (i != null) {
@@ -1199,50 +1225,60 @@ namespace TesterFrm {
 				Properties.Settings.Default.Save();
 			}
 		}
-
 		private void cmbObjects_SelectedIndexChanged(object sender, EventArgs e) {
 			if (cmbObjects.SelectedItem == null) return;
 			lblCDCName.Text = SalesforceService.ObjectNameToChangeEvent(cmbObjects.SelectedItem.ToString());
 		}
 
-		
+		private void cmbCDCTables_SelectedIndexChanged(object sender, EventArgs e) {
+			string x = cmbCDCTables.SelectedItem?.ToString() ?? string.Empty;
+			dgvCDCTables.DataSource = _sqlServerLib.Select($"select * from sfo.{x}");
+		}
 
-		private async void btnCommitToDB_Click(object sender, EventArgs e) {
-			List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
-			string script = "";
-			Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
-			lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
-			foreach (DataRow dr in _destinationTable.Rows) {
-				string tblName = dr["name"].ToString();
-				Log($"Processing {dr["name"]}", LogLevel.Debug);
-				DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
-				if (ds != null) {
-					script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], "sfo", tblName);
-					_sqlServerLib.ExecuteNoneQuery(script);
-					rtfLog.Text = script;
-				} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
-			}
-			// now check for if there are unregistered objects in the database than the that of _destinationTable
-			DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
-			var rowsInDestination = new HashSet<string?>(
-				_destinationTable.AsEnumerable()
-				.Where(r => !r.IsNull("name"))
-				.Select(r => r.Field<string>("name")));
 
-			var rowsToDelete = dtSfTables.AsEnumerable()
-				.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
-				.ToList();
-			string sql = "";
-			foreach (DataRow dr in rowsToDelete) {
-				sql = $"DROP TABLE sfo.[{dr["name"]}]";
-
-				_sqlServerLib.ExecuteNoneQuery(sql);
-				Console.WriteLine($"Executiong:  {sql}");
-
-			}
+		private void splitContainer6_Panel2_EnabledChanged(object sender, EventArgs e) {
 
 		}
 
+		private void grpDocChanged(object sender, EventArgs e) {
+			var ISA =_x12.CreateISA(1,false);
+		}
+
+		//private async void btnCommitToDB_Click(object sender, EventArgs e) {
+		//	List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
+		//	string script = "";
+		//	Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
+		//	lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
+		//	foreach (DataRow dr in _destinationTable.Rows) {
+		//		string tblName = dr["name"].ToString();
+		//		Log($"Processing {dr["name"]}", LogLevel.Debug);
+		//		DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
+		//		if (ds != null) {
+		//			script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], "sfo", tblName);
+		//			_sqlServerLib.ExecuteNoneQuery(script);
+		//			rtfLog.Text = script;
+		//		} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
+		//	}
+		//	// now check for if there are unregistered objects in the database than the that of _destinationTable
+		//	DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
+		//	var rowsInDestination = new HashSet<string?>(
+		//		_destinationTable.AsEnumerable()
+		//		.Where(r => !r.IsNull("name"))
+		//		.Select(r => r.Field<string>("name")));
+
+		//	var rowsToDelete = dtSfTables.AsEnumerable()
+		//		.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
+		//		.ToList();
+		//	string sql = "";
+		//	foreach (DataRow dr in rowsToDelete) {
+		//		sql = $"DROP TABLE sfo.[{dr["name"]}]";
+
+		//		_sqlServerLib.ExecuteNoneQuery(sql);
+		//		Console.WriteLine($"Executiong:  {sql}");
+
+		//	}
+
+		//}
 
 	}
 }

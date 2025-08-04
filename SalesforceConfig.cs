@@ -10,6 +10,8 @@
 		public string PubSubEndpoint { get; set; }
 		public string SFSchemaName { get; set; }
 		public List<Topic> Topics { get; set; }
+		public  string pfxPath { get; set; }
+		public string pfxPassword { get; set; }	
 	}
 
 	public class Topic {

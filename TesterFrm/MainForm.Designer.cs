@@ -70,6 +70,7 @@
 			dgvObject = new DataGridView();
 			lblSelectedTable = new Label();
 			tableLayoutPanel2 = new TableLayoutPanel();
+			btnListEvents = new Button();
 			btnSubscribe = new Button();
 			button1 = new Button();
 			btnRegisterFields = new Button();
@@ -130,6 +131,15 @@
 			btnGetCDCSubscriptions = new Button();
 			btnCDCStartSubscription = new Button();
 			lblCDCStatus = new Label();
+			tbpX12 = new TabPage();
+			tableLayoutPanel18 = new TableLayoutPanel();
+			splitContainer6 = new SplitContainer();
+			dgvCDCTables = new DataGridView();
+			cmbCDCTables = new ComboBox();
+			grpx = new GroupBox();
+			radioButton1 = new RadioButton();
+			radioButton2 = new RadioButton();
+			radioButton3 = new RadioButton();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -191,6 +201,13 @@
 			splitContainer5.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).BeginInit();
 			tableLayoutPanel9.SuspendLayout();
+			tbpX12.SuspendLayout();
+			tableLayoutPanel18.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)splitContainer6).BeginInit();
+			splitContainer6.Panel1.SuspendLayout();
+			splitContainer6.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)dgvCDCTables).BeginInit();
+			grpx.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnAuthenticate
@@ -248,6 +265,7 @@
 			tabControl1.Controls.Add(tbpDescribeObject);
 			tabControl1.Controls.Add(tbpEventLog);
 			tabControl1.Controls.Add(tbpCDCEvents);
+			tabControl1.Controls.Add(tbpX12);
 			tabControl1.Dock = DockStyle.Fill;
 			tabControl1.Location = new Point(0, 0);
 			tabControl1.Name = "tabControl1";
@@ -932,6 +950,7 @@
 			tableLayoutPanel2.ColumnCount = 2;
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.58304F));
 			tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.41696F));
+			tableLayoutPanel2.Controls.Add(btnListEvents, 0, 1);
 			tableLayoutPanel2.Controls.Add(btnSubscribe, 0, 4);
 			tableLayoutPanel2.Controls.Add(button1, 1, 4);
 			tableLayoutPanel2.Controls.Add(btnRegisterFields, 1, 0);
@@ -947,6 +966,18 @@
 			tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
 			tableLayoutPanel2.Size = new Size(391, 269);
 			tableLayoutPanel2.TabIndex = 3;
+			// 
+			// btnListEvents
+			// 
+			btnListEvents.BackColor = Color.Green;
+			btnListEvents.ForeColor = Color.Yellow;
+			btnListEvents.Location = new Point(3, 60);
+			btnListEvents.Name = "btnListEvents";
+			btnListEvents.Size = new Size(155, 44);
+			btnListEvents.TabIndex = 9;
+			btnListEvents.Text = "List Subscriptions";
+			btnListEvents.UseVisualStyleBackColor = false;
+			btnListEvents.Click += btnListEvents_Click;
 			// 
 			// btnSubscribe
 			// 
@@ -1689,6 +1720,124 @@
 			lblCDCStatus.Text = "CDC Status";
 			lblCDCStatus.TextAlign = ContentAlignment.MiddleLeft;
 			// 
+			// tbpX12
+			// 
+			tbpX12.Controls.Add(tableLayoutPanel18);
+			tbpX12.Location = new Point(4, 24);
+			tbpX12.Name = "tbpX12";
+			tbpX12.Padding = new Padding(3);
+			tbpX12.Size = new Size(1415, 678);
+			tbpX12.TabIndex = 7;
+			tbpX12.Text = "X12";
+			tbpX12.UseVisualStyleBackColor = true;
+			// 
+			// tableLayoutPanel18
+			// 
+			tableLayoutPanel18.ColumnCount = 3;
+			tableLayoutPanel18.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 406F));
+			tableLayoutPanel18.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			tableLayoutPanel18.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
+			tableLayoutPanel18.Controls.Add(cmbCDCTables, 0, 0);
+			tableLayoutPanel18.Controls.Add(splitContainer6, 0, 2);
+			tableLayoutPanel18.Controls.Add(grpx, 1, 0);
+			tableLayoutPanel18.Dock = DockStyle.Fill;
+			tableLayoutPanel18.Location = new Point(3, 3);
+			tableLayoutPanel18.Name = "tableLayoutPanel18";
+			tableLayoutPanel18.RowCount = 4;
+			tableLayoutPanel18.RowStyles.Add(new RowStyle(SizeType.Absolute, 30F));
+			tableLayoutPanel18.RowStyles.Add(new RowStyle(SizeType.Absolute, 31F));
+			tableLayoutPanel18.RowStyles.Add(new RowStyle(SizeType.Absolute, 575F));
+			tableLayoutPanel18.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			tableLayoutPanel18.Size = new Size(1409, 672);
+			tableLayoutPanel18.TabIndex = 0;
+			// 
+			// splitContainer6
+			// 
+			tableLayoutPanel18.SetColumnSpan(splitContainer6, 2);
+			splitContainer6.Location = new Point(3, 64);
+			splitContainer6.Name = "splitContainer6";
+			// 
+			// splitContainer6.Panel1
+			// 
+			splitContainer6.Panel1.Controls.Add(dgvCDCTables);
+			// 
+			// splitContainer6.Panel2
+			// 
+		//	splitContainer6.Panel2.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			splitContainer6.Size = new Size(1383, 558);
+			splitContainer6.SplitterDistance = 850;
+			splitContainer6.TabIndex = 0;
+			// 
+			// dgvCDCTables
+			// 
+			dgvCDCTables.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			dgvCDCTables.Dock = DockStyle.Fill;
+			dgvCDCTables.Location = new Point(0, 0);
+			dgvCDCTables.Name = "dgvCDCTables";
+			dgvCDCTables.Size = new Size(850, 558);
+			dgvCDCTables.TabIndex = 0;
+			// 
+			// cmbCDCTables
+			// 
+			cmbCDCTables.FormattingEnabled = true;
+			cmbCDCTables.Location = new Point(3, 3);
+			cmbCDCTables.Name = "cmbCDCTables";
+			cmbCDCTables.Size = new Size(400, 23);
+			cmbCDCTables.TabIndex = 1;
+			cmbCDCTables.SelectedIndexChanged += cmbCDCTables_SelectedIndexChanged;
+			// 
+			// grpx
+			// 
+			grpx.Controls.Add(radioButton3);
+			grpx.Controls.Add(radioButton2);
+			grpx.Controls.Add(radioButton1);
+			grpx.Location = new Point(406, 0);
+			grpx.Margin = new Padding(0);
+			grpx.Name = "grpx";
+			grpx.Padding = new Padding(0);
+			grpx.Size = new Size(736, 30);
+			grpx.TabIndex = 3;
+			grpx.TabStop = false;
+			
+			// 
+			// radioButton1
+			// 
+			radioButton1.AutoSize = true;
+			radioButton1.Location = new Point(61, 8);
+			radioButton1.Name = "radioButton1";
+			radioButton1.Size = new Size(43, 19);
+			radioButton1.TabIndex = 0;
+			radioButton1.Text = "810";
+			radioButton1.UseVisualStyleBackColor = true;
+			radioButton1.CheckedChanged += grpDocChanged;
+		//	radioButton1.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			// 
+			// radioButton2
+			// 
+			radioButton2.AutoSize = true;
+			radioButton2.Checked = true;
+			radioButton2.Location = new Point(110, 8);
+			radioButton2.Name = "radioButton2";
+			radioButton2.Size = new Size(43, 19);
+			radioButton2.TabIndex = 1;
+			radioButton2.TabStop = true;
+			radioButton2.Text = "850";
+			radioButton2.UseVisualStyleBackColor = true;
+			radioButton2.CheckedChanged += grpDocChanged;
+		//	radioButton2.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			// 
+			// radioButton3
+			// 
+			radioButton3.AutoSize = true;
+			radioButton3.Location = new Point(12, 8);
+			radioButton3.Name = "radioButton3";
+			radioButton3.Size = new Size(43, 19);
+			radioButton3.TabIndex = 2;
+			radioButton3.Text = "997";
+			radioButton3.UseVisualStyleBackColor = true;
+			radioButton3.CheckedChanged += grpDocChanged;
+		//	radioButton3.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			// 
 			// MainForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1775,6 +1924,14 @@
 			splitContainer5.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)dgvFilteredFields).EndInit();
 			tableLayoutPanel9.ResumeLayout(false);
+			tbpX12.ResumeLayout(false);
+			tableLayoutPanel18.ResumeLayout(false);
+			splitContainer6.Panel1.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)splitContainer6).EndInit();
+			splitContainer6.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)dgvCDCTables).EndInit();
+			grpx.ResumeLayout(false);
+			grpx.PerformLayout();
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -1894,7 +2051,6 @@
 		private TableLayoutPanel tableLayoutPanel13;
 		private TableLayoutPanel tableLayoutPanel14;
 		private Button button29;
-		private Button button27;
 		private Button button28;
 		private Button btnSoqlSave;
 		private Button btnSoqlRDelete;
@@ -1911,5 +2067,16 @@
 		private Label lblCDCName;
 		private TableLayoutPanel tableLayoutPanel17;
 		private Label lblSOQLRowCount;
+		private Button btnListEvents;
+		private TabPage tabPage1;
+		private TabPage tbpX12;
+		private TableLayoutPanel tableLayoutPanel18;
+		private SplitContainer splitContainer6;
+		private DataGridView dgvCDCTables;
+		private ComboBox cmbCDCTables;
+		private GroupBox grpx;
+		private RadioButton radioButton3;
+		private RadioButton radioButton2;
+		private RadioButton radioButton1;
 	}
 }

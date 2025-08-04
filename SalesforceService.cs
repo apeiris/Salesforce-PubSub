@@ -1,7 +1,9 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -16,7 +18,9 @@ using Salesforce;
 using Salesforce.SDK.Net;
 using static System.Net.WebRequestMethods;
 using HttpMethod = System.Net.Http.HttpMethod;
+using System.IdentityModel.Tokens.Jwt;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using Microsoft.IdentityModel.Tokens;
 namespace NetUtils {
 	public class SalesforceService : ISalesforceService {
 		private readonly HttpClient _httpClient;
@@ -150,15 +154,17 @@ namespace NetUtils {
 			}
 		}
 		private AccessTokenCache _tokenCache;
+		/*
 		public async Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync() {
 			if (_tokenCache != null && _tokenCache.Expiry > DateTime.UtcNow.AddMinutes(5)) {// Check if cache exists and is not expired, with 5-minute buffer to account for call processing time
 				return (_tokenCache.Token, _tokenCache.InstanceUrl, _tokenCache.TenantId);
 			}
-			var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token") {
-				Content = new FormUrlEncodedContent(new Dictionary<string, string>
+				var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token") {
+					Content = new FormUrlEncodedContent(new Dictionary<string, string>
 				{
-					{ "grant_type", "password" },
-					{ "client_id", _settings.ClientId },
+							{ "grant_type", "password" }, // Use password grant type
+					//	{"grant_type", "authorization_code" }, 
+						{ "client_id", _settings.ClientId },
 					{ "client_secret", _settings.ClientSecret },
 					{ "username", _settings.Username },
 					{ "password", _settings.Password }
@@ -166,6 +172,76 @@ namespace NetUtils {
 			};
 
 			var response = await _httpClient.SendAsync(request);
+			var responseContent = await response.Content.ReadAsStringAsync();
+
+			if (!response.IsSuccessStatusCode) {
+				RaiseAuthenticationAttempt(LogLevel.Error, $"Authentication failed: {responseContent}");
+				return (null, null, null);
+			}
+
+			var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseContent);
+			var tenantId = data!["id"].Split('/')[^2];
+			_tokenCache = new AccessTokenCache {// Cache the token with 1 hour expiry, minus 5-minute buffer
+				Token = data["access_token"],
+				InstanceUrl = data["instance_url"],
+				TenantId = tenantId,
+				Expiry = DateTime.UtcNow.AddMinutes(115) // 2 hour expiry with 5-minute buffer
+			};
+			RaiseAuthenticationAttempt(LogLevel.Information, $"Authenticated {responseContent}");
+			return (_tokenCache.Token, _tokenCache.InstanceUrl, _tokenCache.TenantId);
+		}
+		*/
+
+		//private X509Certificate2 getCertifcate() {
+		//	try {
+		//		var cert = new X509Certificate2(_settings.pfxPath, _settings.pfxPassword, X509KeyStorageFlags.UserKeySet);
+		//		return cert;
+		//	} catch (Exception ex) {
+		//		_logger.Log(LogLevel.Error, ex.Message);
+
+		//		return null;
+		//	}
+		//}
+
+		private string GenerateJwt() {
+			var cert = new X509Certificate2(_settings.pfxPath, _settings.pfxPassword, X509KeyStorageFlags.UserKeySet);
+			var rsa = cert.GetRSAPrivateKey();
+			
+			var header = new JwtHeader(new Microsoft.IdentityModel.Tokens.SigningCredentials(
+			new RsaSecurityKey(rsa),
+			SecurityAlgorithms.RsaSha256));
+			var payload = new JwtPayload
+			{
+				{ "iss", _settings.ClientId }, // Replace with (Consumer Key) Client ID 
+				{ "sub", _settings.Username },   // Replace with Integration User username
+				{ "aud", _settings.LoginUrl }, // Use test.salesforce.com for sandbox
+				{ "exp", DateTimeOffset.UtcNow.AddHours(2).ToUnixTimeSeconds() } // 2-hour expiration
+			};
+
+
+			var token = new JwtSecurityToken(header, payload);
+			var handler = new JwtSecurityTokenHandler();
+			return handler.WriteToken(token); // Serialize the token to a string
+		}
+		public async Task<(string token, string instanceUrl, string tenantId)> GetAccessTokenAsync() {
+			if (_tokenCache != null && _tokenCache.Expiry > DateTime.UtcNow.AddMinutes(5)) {// Check if cache exists and is not expired, with 5-minute buffer to account for call processing time
+				return (_tokenCache.Token, _tokenCache.InstanceUrl, _tokenCache.TenantId);
+			}
+
+			string jwt = GenerateJwt(); // Generate JWT token
+			using var client = new HttpClient();
+			var content = new FormUrlEncodedContent(new[]
+			{
+				new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
+				new KeyValuePair<string, string>("assertion", jwt)
+			});
+
+
+			//	new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
+			//var response = await client.PostAsync($"{_settings.LoginUrl}/services/oauth2/token", content);
+			var response = await client.PostAsync("https://login.salesforce.com/services/oauth2/token", content);
+
+
 			var responseContent = await response.Content.ReadAsStringAsync();
 
 			if (!response.IsSuccessStatusCode) {
@@ -370,7 +446,6 @@ namespace NetUtils {
 			}
 		}
 		public async Task<bool> DeleteToolingRecord(string oName, string recordId) {
-			//oName = "PlatformEventChannelMember";
 			if (string.IsNullOrEmpty(recordId)) { return false; } // cant do it
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(oName)}/{Uri.EscapeDataString(recordId)}";
@@ -393,6 +468,33 @@ namespace NetUtils {
 				throw;
 			}
 		}
+		public async Task<string> GetEventDefinitions() {
+
+			var (token, instanceUrl, _) = await GetAccessTokenAsync();
+			var request = new HttpRequestMessage(HttpMethod.Get, $"{instanceUrl}/services/data/v{_settings.ApiVersion}/event/eventSchema");
+			request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+			request.Headers.Add("Accept", "application/json");
+			var response = await _httpClient.SendAsync(request, cancellationToken: default);
+			response.EnsureSuccessStatusCode();
+			string x = await response.Content.ReadAsStringAsync();
+			return x;
+		}
+
+
+		public class SalesforcePubSub {
+			private static readonly HttpClient client = new HttpClient();
+
+			public async Task<string> GetEventDefinitions(string accessToken, string instanceUrl, string apiVersion) {
+				var request = new HttpRequestMessage(HttpMethod.Get, $"{instanceUrl}/services/data/v{apiVersion}/event/eventSchema");
+				request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+				var response = await client.SendAsync(request);
+				response.EnsureSuccessStatusCode();
+
+				return await response.Content.ReadAsStringAsync();
+			}
+		}
+
 		public async Task<JsonElement> DescribeToolingObject(string objectName) {
 			var (token, instanceUrl, _) = await GetAccessTokenAsync();
 			string url = $"{instanceUrl}/services/data/v{_settings.ApiVersion}/tooling/sobjects/{Uri.EscapeDataString(objectName)}/describe/";

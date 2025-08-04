@@ -8,7 +8,6 @@ public interface ISalesforceService {
 	Task<DataSet> GetObjectSchemaAsDataSetAsync(string objectName, bool useTooling = false);
 	Task<DataTable> GetAllObjects();
 	Task<DataTable> GetSalesforceRecord(string objectName, string recordId);
-	
 	Task<JsonElement> GetPlaformEventChannelMembers(CancellationToken cancellationToken = default);
 	Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default);
 	//Task<JsonElement> ExecuteSoqlQueryRawAsync(string soqlQuery, CancellationToken cancellationToken = default,bool useTooling =false);
@@ -20,7 +19,8 @@ public interface ISalesforceService {
 	Task<DataTable> DescribeToolingObjectToDataTable(string objectName);
 	Task<bool> DeleteToolingRecord(string oName, string recordId);
 	Task AddCDCChannelMember(string sObject);
-//Task DeleteSobject(string objectName, string recordId);
 	Task DeleteSobject(string objectName, string recordId, bool useTooling = false);
 	Task<string> IdOfPlatformEventChannelMember(string objectName, CancellationToken cancellationToken = default);
+	Task<string> GetEventDefinitions();
+
 }
