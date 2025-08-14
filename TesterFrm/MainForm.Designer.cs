@@ -133,13 +133,13 @@
 			lblCDCStatus = new Label();
 			tbpX12 = new TabPage();
 			tableLayoutPanel18 = new TableLayoutPanel();
+			cmbCDCTables = new ComboBox();
 			splitContainer6 = new SplitContainer();
 			dgvCDCTables = new DataGridView();
-			cmbCDCTables = new ComboBox();
 			grpx = new GroupBox();
-			radioButton1 = new RadioButton();
-			radioButton2 = new RadioButton();
 			radioButton3 = new RadioButton();
+			radioButton2 = new RadioButton();
+			radioButton1 = new RadioButton();
 			statusStrip1.SuspendLayout();
 			tabControl1.SuspendLayout();
 			tbpSfObjects.SuspendLayout();
@@ -288,8 +288,8 @@
 			// 
 			tableLayoutPanel3.ColumnCount = 4;
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92F));
-			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 179F));
+			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 62F));
+			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 276F));
 			tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 			tableLayoutPanel3.Controls.Add(dgvCDCEnabledObjects, 0, 1);
@@ -315,7 +315,7 @@
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 73F));
 			tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-			tableLayoutPanel3.Size = new Size(1023, 592);
+			tableLayoutPanel3.Size = new Size(1364, 592);
 			tableLayoutPanel3.TabIndex = 0;
 			// 
 			// dgvCDCEnabledObjects
@@ -328,7 +328,7 @@
 			dgvCDCEnabledObjects.Location = new Point(3, 44);
 			dgvCDCEnabledObjects.Name = "dgvCDCEnabledObjects";
 			tableLayoutPanel3.SetRowSpan(dgvCDCEnabledObjects, 4);
-			dgvCDCEnabledObjects.Size = new Size(470, 381);
+			dgvCDCEnabledObjects.Size = new Size(890, 381);
 			dgvCDCEnabledObjects.TabIndex = 0;
 			dgvCDCEnabledObjects.RowsAdded += dgvRowCountChanged;
 			dgvCDCEnabledObjects.RowsRemoved += dgvRowCountChanged;
@@ -659,9 +659,9 @@
 			// btnMoveRight
 			// 
 			btnMoveRight.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveRight.Location = new Point(479, 199);
+			btnMoveRight.Location = new Point(899, 199);
 			btnMoveRight.Name = "btnMoveRight";
-			btnMoveRight.Size = new Size(75, 40);
+			btnMoveRight.Size = new Size(56, 40);
 			btnMoveRight.TabIndex = 0;
 			btnMoveRight.Text = ">";
 			btnMoveRight.UseVisualStyleBackColor = true;
@@ -674,7 +674,7 @@
 			dgvRegisteredCDCCandidates.AllowUserToResizeRows = false;
 			dgvRegisteredCDCCandidates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCellsExceptHeader;
 			tableLayoutPanel3.SetColumnSpan(dgvRegisteredCDCCandidates, 2);
-			dgvRegisteredCDCCandidates.Location = new Point(571, 44);
+			dgvRegisteredCDCCandidates.Location = new Point(961, 44);
 			dgvRegisteredCDCCandidates.Name = "dgvRegisteredCDCCandidates";
 			dgvRegisteredCDCCandidates.RowHeadersWidth = 10;
 			tableLayoutPanel3.SetRowSpan(dgvRegisteredCDCCandidates, 4);
@@ -687,9 +687,9 @@
 			// btnMoveLeft
 			// 
 			btnMoveLeft.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-			btnMoveLeft.Location = new Point(479, 260);
+			btnMoveLeft.Location = new Point(899, 260);
 			btnMoveLeft.Name = "btnMoveLeft";
-			btnMoveLeft.Size = new Size(75, 40);
+			btnMoveLeft.Size = new Size(56, 40);
 			btnMoveLeft.TabIndex = 1;
 			btnMoveLeft.Text = "<";
 			btnMoveLeft.UseVisualStyleBackColor = true;
@@ -704,7 +704,7 @@
 			label2.ForeColor = Color.Blue;
 			label2.Location = new Point(3, 0);
 			label2.Name = "label2";
-			label2.Size = new Size(1017, 41);
+			label2.Size = new Size(1358, 41);
 			label2.TabIndex = 5;
 			label2.Text = "Choose the objects that require Change Data Capture (CDC) subscription.";
 			label2.TextAlign = ContentAlignment.MiddleCenter;
@@ -715,7 +715,7 @@
 			tableLayoutPanel3.SetColumnSpan(lblDestinationList, 2);
 			lblDestinationList.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
 			lblDestinationList.ForeColor = Color.Brown;
-			lblDestinationList.Location = new Point(571, 428);
+			lblDestinationList.Location = new Point(961, 428);
 			lblDestinationList.Name = "lblDestinationList";
 			lblDestinationList.Size = new Size(96, 21);
 			lblDestinationList.TabIndex = 8;
@@ -732,10 +732,10 @@
 			grpPrimaryKey.Controls.Add(chkAddIdentityField);
 			grpPrimaryKey.Controls.Add(btnCommitToDB);
 			grpPrimaryKey.Controls.Add(btnClearDestination);
-			grpPrimaryKey.Location = new Point(571, 491);
+			grpPrimaryKey.Location = new Point(961, 491);
 			grpPrimaryKey.Name = "grpPrimaryKey";
 			tableLayoutPanel3.SetRowSpan(grpPrimaryKey, 2);
-			grpPrimaryKey.Size = new Size(449, 90);
+			grpPrimaryKey.Size = new Size(400, 90);
 			grpPrimaryKey.TabIndex = 10;
 			grpPrimaryKey.TabStop = false;
 			// 
@@ -1751,6 +1751,15 @@
 			tableLayoutPanel18.Size = new Size(1409, 672);
 			tableLayoutPanel18.TabIndex = 0;
 			// 
+			// cmbCDCTables
+			// 
+			cmbCDCTables.FormattingEnabled = true;
+			cmbCDCTables.Location = new Point(3, 3);
+			cmbCDCTables.Name = "cmbCDCTables";
+			cmbCDCTables.Size = new Size(400, 23);
+			cmbCDCTables.TabIndex = 1;
+			cmbCDCTables.SelectedIndexChanged += cmbCDCTables_SelectedIndexChanged;
+			// 
 			// splitContainer6
 			// 
 			tableLayoutPanel18.SetColumnSpan(splitContainer6, 2);
@@ -1760,10 +1769,6 @@
 			// splitContainer6.Panel1
 			// 
 			splitContainer6.Panel1.Controls.Add(dgvCDCTables);
-			// 
-			// splitContainer6.Panel2
-			// 
-		//	splitContainer6.Panel2.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
 			splitContainer6.Size = new Size(1383, 558);
 			splitContainer6.SplitterDistance = 850;
 			splitContainer6.TabIndex = 0;
@@ -1777,15 +1782,6 @@
 			dgvCDCTables.Size = new Size(850, 558);
 			dgvCDCTables.TabIndex = 0;
 			// 
-			// cmbCDCTables
-			// 
-			cmbCDCTables.FormattingEnabled = true;
-			cmbCDCTables.Location = new Point(3, 3);
-			cmbCDCTables.Name = "cmbCDCTables";
-			cmbCDCTables.Size = new Size(400, 23);
-			cmbCDCTables.TabIndex = 1;
-			cmbCDCTables.SelectedIndexChanged += cmbCDCTables_SelectedIndexChanged;
-			// 
 			// grpx
 			// 
 			grpx.Controls.Add(radioButton3);
@@ -1798,19 +1794,17 @@
 			grpx.Size = new Size(736, 30);
 			grpx.TabIndex = 3;
 			grpx.TabStop = false;
-			
 			// 
-			// radioButton1
+			// radioButton3
 			// 
-			radioButton1.AutoSize = true;
-			radioButton1.Location = new Point(61, 8);
-			radioButton1.Name = "radioButton1";
-			radioButton1.Size = new Size(43, 19);
-			radioButton1.TabIndex = 0;
-			radioButton1.Text = "810";
-			radioButton1.UseVisualStyleBackColor = true;
-			radioButton1.CheckedChanged += grpDocChanged;
-		//	radioButton1.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			radioButton3.AutoSize = true;
+			radioButton3.Location = new Point(12, 8);
+			radioButton3.Name = "radioButton3";
+			radioButton3.Size = new Size(43, 19);
+			radioButton3.TabIndex = 2;
+			radioButton3.Text = "997";
+			radioButton3.UseVisualStyleBackColor = true;
+			radioButton3.CheckedChanged += grpDocChanged;
 			// 
 			// radioButton2
 			// 
@@ -1824,19 +1818,17 @@
 			radioButton2.Text = "850";
 			radioButton2.UseVisualStyleBackColor = true;
 			radioButton2.CheckedChanged += grpDocChanged;
-		//	radioButton2.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
 			// 
-			// radioButton3
+			// radioButton1
 			// 
-			radioButton3.AutoSize = true;
-			radioButton3.Location = new Point(12, 8);
-			radioButton3.Name = "radioButton3";
-			radioButton3.Size = new Size(43, 19);
-			radioButton3.TabIndex = 2;
-			radioButton3.Text = "997";
-			radioButton3.UseVisualStyleBackColor = true;
-			radioButton3.CheckedChanged += grpDocChanged;
-		//	radioButton3.EnabledChanged += splitContainer6_Panel2_EnabledChanged;
+			radioButton1.AutoSize = true;
+			radioButton1.Location = new Point(61, 8);
+			radioButton1.Name = "radioButton1";
+			radioButton1.Size = new Size(43, 19);
+			radioButton1.TabIndex = 0;
+			radioButton1.Text = "810";
+			radioButton1.UseVisualStyleBackColor = true;
+			radioButton1.CheckedChanged += grpDocChanged;
 			// 
 			// MainForm
 			// 

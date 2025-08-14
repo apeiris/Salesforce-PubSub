@@ -1,0 +1,37 @@
+{
+    "Salesforce": {
+        "ClientId": "3MVG9p1Q1BCe9GmDzV5A4zac0_56Ha9_d6ZUncSzE0EIw3LYmOoP3W4blciadUa8LKHZabXxf3zLezjijlN3T", // Consumer Key -- accessed via  Setup/App manager/New/connectedapp",
+        "pfxPath": "path to your Certificate file  ie  C:\\VAULT\\Salesforce-pubsub\\pubsubCert.p12",
+        "pfxPassword": "your pfx password" , 
+        "Username": "xxx@yyyy.com",
+        "ApiVersion": "64.0",
+        "LoginUrl": "https://xxxs-dev-ed.my.salesforce.com", //  dev org , you can use your own org URL 
+        // "LoginUrl": "https://login.salesforce.com",  
+        //"LoginUrl": "https://xxx-4017-dev-ed.scratch.my.salesforce.com",   
+        // "LoginUrl": "https://test.salesforce.com", // we are using Scratch org (this was working with Sandbox org)
+        "GrpcUrl": "https://api.pubsub.salesforce.com:7443",
+        "PubSubEndpoint": "https://api.pubsub.salesforce.com:7443",
+        "RedirectUri": "https://localhost:5000/callback",
+        "SFSchemaName": "sfo" // saleforce objects are replicated to this schema in the SqL Server database    },
+"Serilog": {
+    "MinimumLevel": {
+        "Default": "Verbose"
+    },
+    "Using": [
+        "Serilog.Sinks.Console"
+    ],
+    "Enrich": [
+        "WithCaller",
+        "FromLogContext"
+    ],
+    "WriteTo": [
+        {
+            "Name": "Console",
+            "Args": {
+                "outputTemplate": "[{Level:u3}] {Message} (at {CallerMemberName} in {CallerFilePath}){NewLine}"
+            }
+        }
+    ]
+}, "ConnectionStrings": {
+    "mssql": "Server=localhost,1434;Database=Salesforce;User Id=sa;Password=?;TrustServerCertificate=True;"
+} }

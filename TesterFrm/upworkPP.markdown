@@ -16,15 +16,15 @@ I offer expertise in building a robust, real-time data synchronization solution 
 
 ## Technical Expertise
 
-* **Salesforce**: Proficient in Salesforce APIs (REST/SOAP), Apex, and Platform Events for real-time data capture and updates.
+* **Salesforce**: Proficient in Salesforce APIs (REST/SOAP), Apex, and Platform Events for real-time data capture.
 * **SQL Server**: Experienced in designing and managing SQL Server databases, triggers, and stored procedures for efficient data handling.
+* **Oracle**: Experienced in Oracle PL/SQL packages.
 * **ANSI X12/EDIFACT**: Expertise in implementing ANSI X12 ,HL7 and EDIFACT standards for data interchange, ensuring compliance with industry standards.
-* * * **Oracle**: Experienced in Oracle PL/SQL packages.
 * **.Net Assemblies**: Extend functionality of your Sql backends (MSSQL/Oracle) using .Net CLR extensions.
 * **gRPC Pub/Sub**: Skilled in implementing gRPC-based publish/subscribe systems for scalable, real-time communication.
 * **Open API/Swagger**: Expertise in building middleware solutions for data transformation and integration between disparate platforms.
 * **Programming**: Expertise in C#, Java, Python, or Node.js for building integration logic and middleware.
-* **Security**: Knowledge of OAuth, TLS, and secure API integrations to ensure data integrity and compliance.
+* **Security**: Expertise in  OAuth,JWT,PKCS and secure API integrations to ensure data integrity and compliance.
 
 ## Project Deliverables
 
@@ -42,10 +42,25 @@ I offer expertise in building a robust, real-time data synchronization solution 
 
 ## Ideal Client
 
-* Businesses using Salesforce , Infor(Baan) , SAP and SQL Server, Oracle, seeking real-time data synchronization.
+* Businesses using Salesforce , Infor(Baan) , SAP , SQL Server , Oracle  seeking real-time data synchronization.
 * Organizations looking to streamline data workflows with minimal user intervention.
 * Teams needing a secure, scalable, and efficient integration solution.
 
 ## Next Steps
 
 Let’s discuss your specific requirements, including object types, data volume, and performance needs. I’m available for a consultation to scope the project and provide a detailed timeline and cost estimate. Contact me to get started on transforming your Salesforce-SQL Server data workflow!
+Speciman project is on GitHub: [Salesforce to SQL Server Integration](https://github.com/apeiris/Salesforce-PubSub.git).
+This project shows how to use gRPC Pub/Sub to integrate Salesforce with SQL Server in real-time.
+For obvious reasons, the project does not include actual appsettings.json file but contains a appsettings.json.mock.
+Revise the mock to suit with your own Salesforce and SQL Server credentials to run the project.
+You can clone the repository and run the project locally to see how it works. The project includes detailed documentation on how to set up and configure the integration, as well as examples of how to use the one-click subscription feature.
+
+
+## Watch for more..
+* **Salesforce to OpenAS2 Real-Time Integration**: Seamlessly integrate Salesforce to Trading partner using **OPENAS2** platform is in the works. 
+
+ When an Order is created in Salesforce, it will be automatically sent to the Trading Partner via OpenAS2, ensuring real-time data exchange in compliance with EDI (ANSI X12 or EDIFACT) standards.
+ The statndards to use will be determined based on the requirements of the trading partner definitions retrived directly from the Salesforce, ensuring that the integration meets industry standards and facilitates smooth data interchange.
+ 
+
+ 

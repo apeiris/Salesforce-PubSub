@@ -1241,44 +1241,10 @@ namespace TesterFrm {
 		}
 
 		private void grpDocChanged(object sender, EventArgs e) {
-			var ISA =_x12.CreateISA(1,false);
+			var ISA =_x12.CreateISA(1,false,"s12312","r123123");
 		}
 
-		//private async void btnCommitToDB_Click(object sender, EventArgs e) {
-		//	List<string> selectedFields = _config.Topics.GetFieldsToFilterByName((string)lbxObjects.SelectedItem);
-		//	string script = "";
-		//	Debug.WriteLine($"Selected fields:{string.Join(", ", selectedFields)}");
-		//	lbxLog.Items.Add(new LogItem("btnCommit_Click executed", LogLevel.Debug));
-		//	foreach (DataRow dr in _destinationTable.Rows) {
-		//		string tblName = dr["name"].ToString();
-		//		Log($"Processing {dr["name"]}", LogLevel.Debug);
-		//		DataSet ds = await _salesforceService.GetObjectSchemaAsDataSetAsync(tblName);
-		//		if (ds != null) {
-		//			script = _sqlServerLib.GenerateCreateTableScript(ds.Tables[0], "sfo", tblName);
-		//			_sqlServerLib.ExecuteNoneQuery(script);
-		//			rtfLog.Text = script;
-		//		} else Log($"Schema for the table {tblName} could not be retrived..", LogLevel.Error);
-		//	}
-		//	// now check for if there are unregistered objects in the database than the that of _destinationTable
-		//	DataTable dtSfTables = _sqlServerLib.GetAll_sfoTables();
-		//	var rowsInDestination = new HashSet<string?>(
-		//		_destinationTable.AsEnumerable()
-		//		.Where(r => !r.IsNull("name"))
-		//		.Select(r => r.Field<string>("name")));
 
-		//	var rowsToDelete = dtSfTables.AsEnumerable()
-		//		.Where(r => !rowsInDestination.Contains(r.Field<string>("name")))
-		//		.ToList();
-		//	string sql = "";
-		//	foreach (DataRow dr in rowsToDelete) {
-		//		sql = $"DROP TABLE sfo.[{dr["name"]}]";
-
-		//		_sqlServerLib.ExecuteNoneQuery(sql);
-		//		Console.WriteLine($"Executiong:  {sql}");
-
-		//	}
-
-		//}
 
 	}
 }

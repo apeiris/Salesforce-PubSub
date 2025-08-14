@@ -237,10 +237,8 @@ namespace NetUtils {
 			});
 
 
-			//	new HttpRequestMessage(HttpMethod.Post, $"{_settings.LoginUrl}/services/oauth2/token");
-			//var response = await client.PostAsync($"{_settings.LoginUrl}/services/oauth2/token", content);
-			var response = await client.PostAsync("https://login.salesforce.com/services/oauth2/token", content);
-
+			var response = await client.PostAsync($"{_settings.LoginUrl}/services/oauth2/token", content);
+		
 
 			var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -548,7 +546,9 @@ namespace NetUtils {
 			return dt;
 		}
 		public async Task<DataTable> GetCDCEnabledEntitiesAsync(CancellationToken cancellationToken = default) {
-			string query = "SELECT Id,QualifiedApiName,developerName  FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
+//			string query = "SELECT Id,QualifiedApiName,developerName  FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
+			string query = "SELECT QualifiedApiName,developerName  FROM EntityDefinition WHERE PublisherId = 'CDC' ORDER BY QualifiedApiName";
+
 			JsonElement rootElement = await ExecuteSoqlQueryRawAsync(query, cancellationToken);
 			string tableName = getObjectNameFromSoql(query);//FROM is case sensitive
 			DataTable dt = new DataTable(tableName);
