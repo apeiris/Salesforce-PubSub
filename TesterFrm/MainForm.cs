@@ -92,42 +92,8 @@ namespace TesterFrm {
 			} else lbxCDCTopics.Items.Add(e.Message);
 		}
 		// do not handle _pubsubService.CDCEvent here, SqlServerLib will handle it
-		//private async void _pubSubService_ChangeEventReceived(object? sender, CDCEventArgs e) {
-		//	if (dgvFilteredFields.InvokeRequired) {// Ensure UI updates happen on the UI thread
-		//		_higlightTabs.Add((int)tbp.CDCEvents);// color it on owner draw
-		//		tabControl1.Invalidate(); //trigger redraw 
-		//		dgvFilteredFields.Invoke(new Action(() => dgvFilteredFields.DataSource = e.DeltaFields));
+		
 
-		//		lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add($"CDC from {e.DeltaFields.TableName}")));
-		//		switch (e.ChangeType) {
-		//			case "UPDATE":
-		//			//_sqlServerLib.CDCUpdateOrInsert(e.DeltaFields);
-		//			string tableName = e.DeltaFields.TableName;
-		//			if (!_sqlServerLib.AssertRecord(tableName, e.RecordIds[0])) {
-		//				DataTable dt = await _salesforceService.GetSalesforceRecord(tableName, e.RecordIds[0]);// The Record does not exist,  Get in whole from Salesforce and Initialize sql Row
-		//				_sqlServerLib.InsertRecordAsync(dt);
-		//				Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
-		//			} else {
-		//				//_sqlServerLib.UpdateAsyncWithFill(dt);
-
-		//				DataTable dt = e.DeltaFields.Transpose();
-		//				//await _sqlServerLib.UpdateAsync(dt);
-
-		//				//_sqlServerLib.UpdateServerTable(dt, $"SELECT * FROM sfo.{e.DeltaFields.TableName} where Id='{e.RecordIds[0]}'");
-		//				_sqlServerLib.UpdateOrInsertRecordAsync(dt, "sfo");
-		//				Console.WriteLine($" Table name {e.DeltaFields.TableName} e.Entity={e.EntityName} RecordId={e.RecordIds[0]}  ");
-		//			}
-		//			break;//------------------------------------------------------
-		//			case "CREATE":
-
-		//			break;//------------------------------------------------------
-		//			case "DELETE":
-		//			_sqlServerLib.ExecuteNoneQuery($"DELETE FROM {e.EntityName} where Id='{e.RecordIds[0]}'");
-		//			break;
-		//		}
-		//		//	lbxCDCEvents.Invoke(new Action(() => lbxCDCEvents.Items.Add(e.DeltaFields)));
-		//	} else dgvFilteredFields.DataSource = e.DeltaFields;
-		//}
 		#endregion pubsubservice events
 		#region _sqlserver events
 		private void SqlEventObjectExist(object? sender, SqlObjectQuery e) {
@@ -208,6 +174,7 @@ namespace TesterFrm {
 			_sqlServerLib = sqlServerLib;
 			_x12 = x12;
 			_pubSubService.ProgressUpdated += PubSubService_ProgressUpdated!;
+			PubSubService.LogEmit += PubSubService_LogEmit;
 			if (_salesforceService is SalesforceService cs) {
 				cs.AuthenticationAttempt += SalesforceService_AuthenticationAttempt!;
 			}
@@ -233,6 +200,11 @@ namespace TesterFrm {
 			_x12 = x12;
 			#endregion soql tab & controls
 		}
+
+		private void PubSubService_LogEmit(object? sender, string e) {
+			BeginInvoke(() => lbxLog.Items.Add($"<%Info%> LogEmitted = {e}"));
+		}
+
 		private void _dtSoqlResults_RowChanged(object sender, DataRowChangeEventArgs e) {
 			throw new NotImplementedException();
 		}
@@ -1025,38 +997,10 @@ namespace TesterFrm {
 			msg = $"{msg}:{callerMemberName}:{callerLineNumber}:{fp.Split('\\').Last()}";
 			lbxLog.Invoke(new Action(() => lbxLog.Items.Add(new LogItem(msg, l))));
 		}
-		private void lbxLog_DrawItem(object sender, DrawItemEventArgs e) {
-			if (e.Index < 0) return;
-			Color bc;
-			LogItem li = (LogItem)lbxLog.Items[e.Index];
-			string text = lbxLog.Items[e.Index].ToString();
-			switch (li.Level) {
-				case LogLevel.Debug:
-				bc = Color.Blue;
-				break;
-				case LogLevel.Information:
-				bc = Color.Green;
-				break;
-				case LogLevel.Warning:
-				bc = Color.Yellow;
-				break;
-				case LogLevel.Error:
-				bc = Color.Red;
-				break;
-				default:
-				bc = Color.Gray;
-				break;
-			}
-			int iW = (int)e.Graphics.MeasureString(text, e.Font).Width;
-			_lbxLogMw = iW > _lbxLogMw ? iW : _lbxLogMw;
-			lbxLog.HorizontalExtent = _lbxLogMw;
-			e.Graphics.FillRectangle(new SolidBrush(bc), e.Bounds);
-			TextRenderer.DrawText(e.Graphics, text, e.Font, e.Bounds, e.ForeColor, TextFormatFlags.Left);
-			e.DrawFocusRectangle();
-		}
-		private void lbxLog_Click(object sender, EventArgs e) {
+	
+		private void lbxLog_SelectedIndexChanged(object sender, EventArgs e) {
 
-			if (lbxLog.SelectedItems == null) return;
+			if(lbxLog.SelectedItems.Count == 0) return;
 			Clipboard.SetText(lbxLog.SelectedItem.ToString());
 			statusStrip1.Text = $"Copied to clipboard: {Clipboard.GetText()}"; // optional logging
 
