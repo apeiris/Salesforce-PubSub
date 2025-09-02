@@ -118,7 +118,14 @@
 			tableLayoutPanel6 = new TableLayoutPanel();
 			tableLayoutPanel7 = new TableLayoutPanel();
 			btnClearLog = new Button();
-			lbxLog = new ListBox();
+			lbxLog = new DarkListBox {
+				Dock = DockStyle.Fill
+			};
+			lbxLog.Items.AddRange(new object[] { "Info", "Warning", "Error", "Debug" });
+
+			//Controls.Add(lbxLog);
+			BackColor = Color.FromArgb(24, 26, 27); // match overall dark form if you want
+
 			rtfLog = new RichTextBox();
 			tbpCDCEvents = new TabPage();
 			tableLayoutPanel8 = new TableLayoutPanel();
@@ -1570,8 +1577,9 @@
 			lbxLog.ScrollAlwaysVisible = true;
 			lbxLog.Size = new Size(756, 606);
 			lbxLog.TabIndex = 1;
-			lbxLog.Click += lbxLog_Click;
-			lbxLog.DrawItem += lbxLog_DrawItem;
+			lbxLog.SelectedIndexChanged += lbxLog_SelectedIndexChanged;
+			//lbxLog.Click += lbxLog_Click;
+		//	lbxLog.DrawItem += lbxLog_DrawItem;
 			// 
 			// rtfLog
 			// 

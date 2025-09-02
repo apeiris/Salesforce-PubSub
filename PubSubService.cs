@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using static NetUtils.PubSub;
 
 namespace NetUtils {
+
 	public class ProgressUpdateEventArgs : EventArgs {
 		public string Message { get; }
 		public ProgressUpdateEventArgs(string message) {
@@ -25,10 +26,8 @@ namespace NetUtils {
 		public string ChangeType { get; set; }
 		public List<string> ChangedFields { get; set; }
 		public DataTable DeltaFields { get; set; }
-
 		public string ReplayId { get; set; }
 		public string Error { get; set; }
-
 		public CDCEventArgs() {
 			RecordIds = new List<string>();
 			ChangedFields = new List<string>();
@@ -38,16 +37,22 @@ namespace NetUtils {
 		}
 	}
 	public class PubSubService : IDisposable {
+	
 		private Dictionary<string, string> _replayIds = new Dictionary<string, string>();
+		private bool _DebugBreak = false;
 		private readonly ISalesforceService _oauthService;
 		private readonly SalesforceConfig _config;
 		private readonly GrpcChannel _channel;
 		private readonly PubSubClient _client;
-		private readonly ILogger<PubSubService> _logger;	
+		private readonly ILogger<PubSubService> _logger;
 		private readonly List<(AsyncDuplexStreamingCall<FetchRequest, FetchResponse> Call, CancellationTokenSource Cts)> _subscriptions;
 		private readonly Dictionary<string, RecordSchema> _schemaCache;
+		#region events
 		public event EventHandler<ProgressUpdateEventArgs> ProgressUpdated;
 		public event EventHandler<CDCEventArgs> CDCEvent;
+		public static event EventHandler<string> LogEmit;
+		#endregion events
+		public bool DebugBreak { get { return _DebugBreak; } set { _DebugBreak = value; } }
 		public PubSubService(ISalesforceService oauthService, IOptions<SalesforceConfig> configOptions, ILogger<PubSubService> logger) {
 			_oauthService = oauthService ?? throw new ArgumentNullException(nameof(oauthService));
 			_config = configOptions?.Value ?? throw new ArgumentNullException(nameof(configOptions));
@@ -69,7 +74,7 @@ namespace NetUtils {
 						_logger.LogWarning("Skipping null or empty topic.");
 						continue;
 					}
-					
+
 					await SubscribeToTopicAsync(topic, token!, instanceUrl!, tenantId!, null);
 					_logger.LogInformation("Subscribed to topic: {Topic}", topic);
 				}
@@ -81,6 +86,8 @@ namespace NetUtils {
 		}
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
 			var result = new CDCEventArgs();
+			LogEmit?.Invoke(this, $"Decoding event for schema: {schema.Name}");
+			if (DebugBreak) Debugger.Break();
 			try {
 				using var stream = new MemoryStream(payload);
 				var reader = new BinaryDecoder(stream);
@@ -96,6 +103,8 @@ namespace NetUtils {
 				result.RecordIds = header.TryGetValue("recordIds", out object rIds) && rIds is IList<object> idsList ? idsList.Select(id => id.ToString()).ToList() : new List<string>();
 				result.ChangedFields = header.TryGetValue("changedFields", out object cf) && cf is IList<object> cfList ? cfList.Select(f => f.ToString()).ToList() : new List<string>();
 				header.TryGetValue("ReplayId", out object replay);
+
+				LogEmit?.Invoke(this, $"Event ChangeType: {result.ChangeType}ChangedFields: {string.Join(",", result.ChangedFields)}");
 				switch (result.ChangeType) {
 					case "DELETE":
 					result.DeltaFields.TableName = header.TryGetValue("entityName", out object oN) ? oN.ToString() : "Unknown";
@@ -158,12 +167,12 @@ namespace NetUtils {
 			var callOptions = new CallOptions(credentials: CustomGrpcCredentials.Create(token, instanceUrl, tenantId));
 			try {
 				var streamingCall = _client.Subscribe(callOptions);
-				
+
 				await streamingCall.RequestStream.WriteAsync(fetchRequest);
 
 				var cts = new CancellationTokenSource();
 				_subscriptions.Add((streamingCall, cts));
-				
+
 				_ = Task.Run(async () => {
 					try {
 						while (await streamingCall.ResponseStream.MoveNext(cts.Token)) {
