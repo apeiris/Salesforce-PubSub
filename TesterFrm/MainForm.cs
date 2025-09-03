@@ -202,7 +202,7 @@ namespace TesterFrm {
 		}
 
 		private void PubSubService_LogEmit(object? sender, string e) {
-			BeginInvoke(() => lbxLog.Items.Add($"<%Info%> LogEmitted = {e}"));
+			BeginInvoke(() => lbxLog.Items.Add(e));
 		}
 
 		private void _dtSoqlResults_RowChanged(object sender, DataRowChangeEventArgs e) {
