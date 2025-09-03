@@ -86,7 +86,8 @@ namespace NetUtils {
 		}
 		private void DecodeChangeEvent(byte[] payload, RecordSchema schema, List<string> fieldsToFilter) {
 			var result = new CDCEventArgs();
-			LogEmit?.Invoke(this, $"Decoding event for schema: {schema.Name}");
+			LogEmit?.Invoke(this, $"<%debug%>Decoding event for schema: {schema.Name}");
+			LogEmit?.Invoke(this, $"<%Info%>Payload (base64): {Convert.ToBase64String(payload)}");
 			if (DebugBreak) Debugger.Break();
 			try {
 				using var stream = new MemoryStream(payload);
